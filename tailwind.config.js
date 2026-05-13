@@ -7,10 +7,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'poke-yellow': '#FFDE00',
-        'poke-blue': '#3B4CCA',
-        'poke-red': '#FF0000',
-        'poke-dark': '#0a0a0a',
+        primary: '#00BFA5',
+        accent: '#FF6B6B',
+        background: '#FFFFFF',
+        slate: {
+          50: '#F1F4F6',
+          900: '#2D3436'
+        }
       },
     },
   },

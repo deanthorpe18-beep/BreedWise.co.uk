@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['assets.tcgdex.net'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'assets.tcgdex.net',
+      },
+    ],
   },
 };
 
