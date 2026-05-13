@@ -1,6 +1,6 @@
-import SearchResults from "@/app/components/SearchResults";
-import SearchForm from "@/app/components/SearchForm";
-import { enrichWithDistance, searchBreeders } from "@/lib/breeders";
+import SearchResults from "@components/SearchResults";
+import SearchForm from "@components/SearchForm";
+import { enrichWithDistance, searchBreeders } from "@lib/breeders";
 
 export default function SearchPage({ searchParams }) {
   const query = searchParams?.q || "";
@@ -16,7 +16,7 @@ export default function SearchPage({ searchParams }) {
       </div>
 
       <div className="mt-8">
-        <SearchForm />
+        <SearchForm initialLocation={query} initialBreed={breed} />
       </div>
 
       <div className="mt-8">

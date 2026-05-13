@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllBreeders, getBreederBySlug } from "@/lib/breeders";
+import { getAllBreeders, getBreederBySlug } from "@lib/breeders";
 import { Globe, Phone, Mail, ShieldCheck, Star } from "lucide-react";
 
 export function generateStaticParams() {

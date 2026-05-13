@@ -1,0 +1,21 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[255],{8943:function(e,t,s){Promise.resolve().then(s.bind(s,5127))},5127:function(e,t,s){"use strict";s.r(t),s.d(t,{default:function(){return n}});var r=s(7437),a=s(2265);/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let l=(0,s(8030).Z)("PenLine",[["path",{d:"M12 20h9",key:"t2du7b"}],["path",{d:"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z",key:"ymcmye"}]]);function n(){let[e,t]=(0,a.useState)(!1),[s,n]=(0,a.useState)(""),[o,i]=(0,a.useState)("");return(0,r.jsx)("div",{className:"mx-auto max-w-3xl px-4 py-8 sm:px-6 md:px-8",children:(0,r.jsxs)("div",{className:"space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm",children:[(0,r.jsxs)("div",{className:"flex items-center gap-3 text-slate-900",children:[(0,r.jsx)(l,{className:"h-5 w-5 text-[#00BFA5]"}),(0,r.jsx)("p",{className:"text-sm uppercase tracking-[0.3em] text-[#00BFA5]",children:"Suggest an edit"})]}),(0,r.jsx)("h1",{className:"text-3xl font-semibold text-slate-900",children:"Help us keep listings accurate"}),e?(0,r.jsxs)("div",{className:"rounded-3xl border border-[#00BFA5] bg-[#E6FFFB] p-6 text-slate-800",children:[(0,r.jsx)("p",{className:"font-semibold",children:"Thanks for your suggestion"}),(0,r.jsx)("p",{className:"mt-2",children:"We’ll review your request and update the listing if appropriate."})]}):(0,r.jsxs)("form",{className:"space-y-5",onSubmit:e=>{e.preventDefault(),t(!0)},children:[(0,r.jsxs)("label",{className:"block text-sm font-semibold text-slate-700",children:["Your email",(0,r.jsx)("input",{type:"email",required:!0,value:s,onChange:e=>n(e.target.value),placeholder:"you@example.com",className:"mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20"})]}),(0,r.jsxs)("label",{className:"block text-sm font-semibold text-slate-700",children:["Suggestion details",(0,r.jsx)("textarea",{required:!0,value:o,onChange:e=>i(e.target.value),rows:6,placeholder:"Describe which listing should be updated and why.",className:"mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20"})]}),(0,r.jsx)("button",{className:"inline-flex w-full items-center justify-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/20 transition hover:bg-[#00a98e]",children:"Submit suggestion"})]})]})})}},8030:function(e,t,s){"use strict";s.d(t,{Z:function(){return i}});var r=s(2265);/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=e=>e.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase(),l=function(){for(var e=arguments.length,t=Array(e),s=0;s<e;s++)t[s]=arguments[s];return t.filter((e,t,s)=>!!e&&s.indexOf(e)===t).join(" ")};/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */var n={xmlns:"http://www.w3.org/2000/svg",width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let o=(0,r.forwardRef)((e,t)=>{let{color:s="currentColor",size:a=24,strokeWidth:o=2,absoluteStrokeWidth:i,className:u="",children:c,iconNode:d,...m}=e;return(0,r.createElement)("svg",{ref:t,...n,width:a,height:a,stroke:s,strokeWidth:i?24*Number(o)/Number(a):o,className:l("lucide",u),...m},[...d.map(e=>{let[t,s]=e;return(0,r.createElement)(t,s)}),...Array.isArray(c)?c:[c]])}),i=(e,t)=>{let s=(0,r.forwardRef)((s,n)=>{let{className:i,...u}=s;return(0,r.createElement)(o,{ref:n,iconNode:t,className:l("lucide-".concat(a(e)),i),...u})});return s.displayName="".concat(e),s}}},function(e){e.O(0,[971,23,744],function(){return e(e.s=8943)}),_N_E=e.O()}]);

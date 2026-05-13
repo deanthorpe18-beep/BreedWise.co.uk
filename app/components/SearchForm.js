@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Search, MapPin } from "lucide-react";
-import { getBreeds } from "@/lib/breeders";
+import { getBreeds } from "@lib/breeders";
 
-export default function SearchForm() {
+export default function SearchForm({ initialLocation = "", initialBreed = "" }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [locationQuery, setLocationQuery] = useState(searchParams.get("q") || "");
-  const [breed, setBreed] = useState(searchParams.get("breed") || "");
+  const [locationQuery, setLocationQuery] = useState(initialLocation);
+  const [breed, setBreed] = useState(initialBreed);
   const breeds = getBreeds();
 
   return (

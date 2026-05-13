@@ -1,5 +1,5 @@
-import SearchResults from "@/app/components/SearchResults";
-import { getLocationBreadcrumbText, getBreedersByLocation, getLocationParams, enrichWithDistance } from "@/lib/breeders";
+import SearchResults from "@components/SearchResults";
+import { getLocationBreadcrumbText, getBreedersByLocation, getLocationParams, enrichWithDistance } from "@lib/breeders";
 
 export function generateStaticParams() {
   return getLocationParams();

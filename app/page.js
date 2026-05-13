@@ -1,6 +1,6 @@
 import Link from "next/link";
-import SearchForm from "@/app/components/SearchForm";
-import { getBreeds } from "@/lib/breeders";
+import SearchForm from "@components/SearchForm";
+import { getBreeds } from "@lib/breeders";
 
 export default function HomePage() {
   const featuredBreeds = [

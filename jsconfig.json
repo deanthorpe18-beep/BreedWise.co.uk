@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "baseUrl": "www.breederwise.com",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@components/*": ["./app/components/*"],
+      "@lib/*": ["./lib/*"]
     }
   }
 }
