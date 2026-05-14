@@ -1,0 +1,56 @@
+
+> dropdexuk@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.3
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/972) ...
+   Generating static pages (243/972) 
+   Generating static pages (486/972) 
+   Generating static pages (729/972) 
+ ✓ Generating static pages (972/972)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                                    Size     First Load JS
+┌ ○ /                                                                          3 kB            103 kB
+├ ○ /_not-found                                                                871 B          87.9 kB
+├ ● /[country]/[region]/[county]/[town]/[breed]-breeders                       176 B          98.6 kB
+├   ├ /england/west-sussex/west-sussex/chichester/labrador-retriever-breeders
+├   ├ /england/west-sussex/west-sussex/chichester/golden-retriever-breeders
+├   ├ /england/west-sussex/west-sussex/chichester/cocker-spaniel-breeders
+├   └ [+897 more paths]
+├ ● /[country]/[region]/[county]/[town]/dog-breeders                           176 B          98.6 kB
+├   ├ /england/west-sussex/west-sussex/chichester/dog-breeders
+├   ├ /england/west-sussex/west-sussex/worthing/dog-breeders
+├   ├ /england/west-sussex/west-sussex/crawley/dog-breeders
+├   └ [+27 more paths]
+├ ○ /admin                                                                     6.76 kB        93.8 kB
+├ ƒ /api/places/[placeId]                                                      0 B                0 B
+├ ● /breeder/[slug]                                                            4.36 kB        98.2 kB
+├   ├ /breeder/chichester-labrador-kennels-chichester
+├   ├ /breeder/worthing-golden-acres-worthing
+├   ├ /breeder/crawley-cocker-classics-crawley
+├   └ [+27 more paths]
+├ ○ /claim                                                                     3.4 kB         97.2 kB
+├ ○ /disclaimer                                                                137 B          87.2 kB
+├ ○ /privacy                                                                   176 B            94 kB
+├ ○ /request-removal                                                           1.72 kB        88.8 kB
+├ ƒ /search                                                                    723 B           105 kB
+├ ○ /suggest-edit                                                              1.66 kB        88.7 kB
+└ ○ /terms                                                                     176 B            94 kB
++ First Load JS shared by all                                                  87 kB
+  ├ chunks/23-687465998a62cc3c.js                                              31.5 kB
+  ├ chunks/fd9d1056-83701e137505fb90.js                                        53.6 kB
+  └ other shared chunks (total)                                                1.95 kB
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+

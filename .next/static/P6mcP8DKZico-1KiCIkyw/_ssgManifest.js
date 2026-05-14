@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002F[country]\u002F[region]\u002F[county]\u002F[town]\u002F[breed]-breeders","\u002F[country]\u002F[region]\u002F[county]\u002F[town]\u002Fdog-breeders","\u002Fbreeder\u002F[slug]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
