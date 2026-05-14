@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAllBreeders, getBreederBySlug } from "@lib/breeders";
 import { Globe, Phone, Mail, ShieldCheck, Star, UserCheck } from "lucide-react";
 import ClaimButton from "@components/ClaimButton";
+import ProfileViewTracker from "@components/ProfileViewTracker";
 
 export function generateStaticParams() {
   const breeders = getAllBreeders();

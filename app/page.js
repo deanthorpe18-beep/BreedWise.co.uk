@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { useEffect } from "react";
 import SearchForm from "@components/SearchForm";
 import { getBreeds } from "@lib/breeders";
+import { trackPageView } from "@lib/analytics";
 
 export default function HomePage() {
   const featuredBreeds = [
@@ -45,7 +47,7 @@ export default function HomePage() {
             </div>
             <Link href="/claim" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer block">
               <p className="text-sm font-semibold text-slate-700">Claim listings</p>
-              <p className="mt-2 text-sm text-slate-500">Breeders can submit a claim and request approval to update their profile.</p>
+              <p className="mt-2 text-sm text-slate-500">Breeders can search for their profile and request approval to update their information.</p>
             </Link>
           </div>
         </div>
