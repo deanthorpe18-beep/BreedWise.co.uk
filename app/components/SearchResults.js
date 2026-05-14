@@ -69,13 +69,6 @@ export default function SearchResults({ breeders, query, breed }) {
   }, [saved]);
 
   // Track search on first render
-  useEffect(() => {
-    if (!tracked && breeders.length > 0) {
-      trackSearch(query, breed, filteredBreeders.length);
-      setTracked(true);
-    }
-  }, [tracked, breeders.length, filteredBreeders.length, query, breed]);
-
   const toggleSave = (slug, breederName) => {
     setSaved((current) => {
       const isAdding = !current.includes(slug);
@@ -94,6 +87,13 @@ export default function SearchResults({ breeders, query, breed }) {
   const filteredBreeders = useMemo(() => {
     return applyFilters(breeders, filters);
   }, [breeders, filters]);
+
+  useEffect(() => {
+    if (!tracked && breeders.length > 0) {
+      trackSearch(query, breed, filteredBreeders.length);
+      setTracked(true);
+    }
+  }, [tracked, breeders.length, filteredBreeders.length, query, breed]);
 
   const mapPoints = useMemo(() => {
     if (!filteredBreeders.length) return [];

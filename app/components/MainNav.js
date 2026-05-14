@@ -17,7 +17,7 @@ export default function MainNav() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -50,7 +50,7 @@ export default function MainNav() {
       </div>
 
       {isOpen ? (
-        <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg md:hidden">
+        <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg md:hidden z-50">
           <div className="flex flex-col gap-3 text-sm font-medium text-slate-700">
             {navItems.map((item) => {
               const isActive =
