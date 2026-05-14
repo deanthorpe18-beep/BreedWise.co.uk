@@ -74,7 +74,7 @@ export default function SearchResults({ breeders, query, breed }) {
       trackSearch(query, breed, filteredBreeders.length);
       setTracked(true);
     }
-  }, []);
+  }, [tracked, breeders.length, filteredBreeders.length, query, breed]);
 
   const toggleSave = (slug, breederName) => {
     setSaved((current) => {

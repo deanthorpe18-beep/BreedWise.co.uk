@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UserCheck } from "lucide-react";
+import { trackClaimSubmission } from "@lib/analytics";
 
 export default function ClaimButton({ breederSlug, breederName }) {
   const [submitted, setSubmitted] = useState(false);
@@ -23,6 +24,7 @@ export default function ClaimButton({ breederSlug, breederName }) {
     };
 
     localStorage.setItem("breedwise-claims", JSON.stringify([...existingClaims, newClaim]));
+    trackClaimSubmission(breederSlug, breederName, email);
     setSubmitted(true);
   };
 

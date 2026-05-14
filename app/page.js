@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { useEffect } from "react";
 import SearchForm from "@components/SearchForm";
+import PageViewTracker from "@components/PageViewTracker";
 import { getBreeds } from "@lib/breeders";
-import { trackPageView } from "@lib/analytics";
 
 export default function HomePage() {
   const featuredBreeds = [
@@ -15,6 +14,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
+      <PageViewTracker page="home" />
       <section className="space-y-6 pb-8">
         <div className="max-w-3xl space-y-6">
           <span className="inline-flex rounded-full bg-[#00BFA5]/10 px-3 py-1 text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">UK Dog Breeder Directory</span>
@@ -33,19 +33,19 @@ export default function HomePage() {
         <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-semibold text-slate-900">Search made simple</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer" title="Search breeders by entering a town or postcode in the search box above.">
+            <Link href="/search?q=West%20Sussex" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 transition hover:bg-[#E6FFFB] hover:shadow-md block" title="Search breeders by entering a town or postcode in the search box above.">
               <p className="text-sm font-semibold text-slate-700">Browse by location</p>
               <p className="mt-2 text-sm text-slate-500">Start with town or postcode and expand across the UK later.</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer" title="Use the breed dropdown in the search form to filter results to specific dog breeds.">
+            </Link>
+            <Link href="/search?breed=Labrador%20Retriever" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 transition hover:bg-[#E6FFFB] hover:shadow-md block" title="Use the breed dropdown in the search form to filter results to specific dog breeds.">
               <p className="text-sm font-semibold text-slate-700">Filter by breed</p>
               <p className="mt-2 text-sm text-slate-500">Choose from over 30 popular UK breeds, including Labradors, Cockapoos and more.</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer" title="Compare breeders side-by-side using the list view to see ratings, contact info, and kennel club details.">
+            </Link>
+            <Link href="/search?q=West%20Sussex" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 transition hover:bg-[#E6FFFB] hover:shadow-md block" title="Compare breeders side-by-side using the list view to see ratings, contact info, and kennel club details.">
               <p className="text-sm font-semibold text-slate-700">Compare quickly</p>
               <p className="mt-2 text-sm text-slate-500">Review Google ratings, contact options, and public credibility details at a glance.</p>
-            </div>
-            <Link href="/claim" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer block">
+            </Link>
+            <Link href="/claim" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 transition hover:bg-[#E6FFFB] hover:shadow-md block">
               <p className="text-sm font-semibold text-slate-700">Claim listings</p>
               <p className="mt-2 text-sm text-slate-500">Breeders can search for their profile and request approval to update their information.</p>
             </Link>

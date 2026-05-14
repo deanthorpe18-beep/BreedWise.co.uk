@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { SearchIcon, UserCheck, CheckCircle, Mail } from "lucide-react";
+import PageViewTracker from "@components/PageViewTracker";
 
 export default function ClaimPage() {
   return (
+    <>
+      <PageViewTracker page="claim" />
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 md:px-8">
       <div className="space-y-8">
         {/* Header */}
@@ -127,5 +130,6 @@ export default function ClaimPage() {
         </div>
       </div>
     </div>
+  </>
   );
 }

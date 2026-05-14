@@ -5,6 +5,7 @@ import { Lock, Shield, Users, FileText, BarChart3, Settings } from "lucide-react
 import AdminQueue from "@components/AdminQueue";
 import AdminStats from "@components/AdminStats";
 import AdminTools from "@components/AdminTools";
+import { trackPageView } from "@lib/analytics";
 
 export default function AdminPage() {
   const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "breedwise2024";
@@ -27,6 +28,12 @@ export default function AdminPage() {
       alert("Incorrect password");
     }
   };
+
+  useEffect(() => {
+    if (authenticated) {
+      trackPageView("admin");
+    }
+  }, [authenticated]);
 
   if (!authenticated) {
     return (

@@ -4,6 +4,7 @@ import { getAllBreeders, getBreederBySlug } from "@lib/breeders";
 import { Globe, Phone, Mail, ShieldCheck, Star, UserCheck } from "lucide-react";
 import ClaimButton from "@components/ClaimButton";
 import ProfileViewTracker from "@components/ProfileViewTracker";
+import GooglePlacePreview from "@components/GooglePlacePreview";
 
 export function generateStaticParams() {
   const breeders = getAllBreeders();
@@ -18,6 +19,7 @@ export default function BreederProfilePage({ params }) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
+      <ProfileViewTracker breederSlug={breeder.slug} breederName={breeder.name.value} />
       <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="sm:flex sm:items-start sm:justify-between sm:gap-6">
           <div>
@@ -55,6 +57,8 @@ export default function BreederProfilePage({ params }) {
             View Google reviews
           </a>
         </div>
+
+        <GooglePlacePreview placeId={breeder.place_id.value} />
 
         <div className="space-y-4">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
