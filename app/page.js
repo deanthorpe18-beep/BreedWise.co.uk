@@ -31,22 +31,22 @@ export default function HomePage() {
         <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-semibold text-slate-900">Search made simple</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer" title="Search breeders by entering a town or postcode in the search box above.">
               <p className="text-sm font-semibold text-slate-700">Browse by location</p>
               <p className="mt-2 text-sm text-slate-500">Start with town or postcode and expand across the UK later.</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer" title="Use the breed dropdown in the search form to filter results to specific dog breeds.">
               <p className="text-sm font-semibold text-slate-700">Filter by breed</p>
               <p className="mt-2 text-sm text-slate-500">Choose from over 30 popular UK breeds, including Labradors, Cockapoos and more.</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer" title="Compare breeders side-by-side using the list view to see ratings, contact info, and kennel club details.">
               <p className="text-sm font-semibold text-slate-700">Compare quickly</p>
               <p className="mt-2 text-sm text-slate-500">Review Google ratings, contact options, and public credibility details at a glance.</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+            <Link href="/claim" className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 hover:bg-[#E6FFFB] transition cursor-pointer block">
               <p className="text-sm font-semibold text-slate-700">Claim listings</p>
               <p className="mt-2 text-sm text-slate-500">Breeders can submit a claim and request approval to update their profile.</p>
-            </div>
+            </Link>
           </div>
         </div>
 

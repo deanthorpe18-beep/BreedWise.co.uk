@@ -17,14 +17,12 @@ export default function RootLayout({ children }) {
           <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 md:px-8">
               <Link href="/" className="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-[#2D3436]">
-                <span className="h-10 w-10 rounded-2xl bg-[#00BFA5] text-white flex items-center justify-center font-black">B</span>
-                <span>BreedWise</span>
+                <span className="h-10 w-10 rounded-2xl bg-[#00BFA5] text-white flex items-center justify-center font-black">BW</span>
+                <span>BreedWise.co.uk</span>
               </Link>
               <nav className="hidden items-center gap-4 md:flex text-sm font-medium text-slate-600">
                 <Link href="/" className="hover:text-[#00BFA5]">Home</Link>
                 <Link href="/search" className="hover:text-[#00BFA5]">Search</Link>
-                <Link href="/admin" className="hover:text-[#00BFA5]">Admin</Link>
-                <Link href="/claim" className="hover:text-[#00BFA5]">Claim</Link>
                 <Link href="/privacy" className="hover:text-[#00BFA5]">Privacy</Link>
               </nav>
             </div>

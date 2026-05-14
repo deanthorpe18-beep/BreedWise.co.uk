@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllBreeders, getBreederBySlug } from "@lib/breeders";
-import { Globe, Phone, Mail, ShieldCheck, Star } from "lucide-react";
+import { Globe, Phone, Mail, ShieldCheck, Star, UserCheck } from "lucide-react";
+import ClaimButton from "@components/ClaimButton";
 
 export function generateStaticParams() {
   const breeders = getAllBreeders();
@@ -83,7 +84,7 @@ export default function BreederProfilePage({ params }) {
           <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
             <div className="mt-3 space-y-2 text-sm text-slate-600">
-              <Link href="/claim" className="block text-[#00BFA5] hover:text-[#008f7a]">Claim this listing</Link>
+              <ClaimButton breederSlug={breeder.slug} breederName={breeder.name.value} />
               <Link href="/suggest-edit" className="block text-[#00BFA5] hover:text-[#008f7a]">Suggest an edit</Link>
             </div>
           </div>
