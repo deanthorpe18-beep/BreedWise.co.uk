@@ -15,14 +15,15 @@ export async function middleware(request) {
     "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
   );
 
-  // Content Security Policy (adjust as needed for Google Maps, etc.)
+  // Content Security Policy (adjust as needed for Google Maps, Supabase, etc.)
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://*.googleapis.com https://*.gstatic.com",
+    "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co",
     "font-src 'self'",
     "connect-src 'self' https://*.supabase.co https://maps.googleapis.com",
+    "frame-src 'self' https://www.google.com https://*.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
