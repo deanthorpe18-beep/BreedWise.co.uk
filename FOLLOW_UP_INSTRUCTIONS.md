@@ -5,15 +5,55 @@
 
 ---
 
+## ✅ COMPLETED — Railway Deployment
+
+**Status: LIVE** at [https://breedwise.co.uk](https://breedwise.co.uk)
+
+- Railway project: `BreedWise.co.uk`
+- Service ID: `a8412acf-f8e1-4f66-b117-a6f213c2c2bc`
+- Environment: `production`
+- Latest deployment: `SUCCESS` (commit `9bc791f`)
+
+### Environment variables set in Railway:
+- ✅ `NEXT_PUBLIC_SUPABASE_URL`
+- ⚠️ `NEXT_PUBLIC_SUPABASE_ANON_KEY` — **SET TO PLACEHOLDER, NEEDS REAL VALUE**
+- ✅ `SUPABASE_SERVICE_ROLE_KEY`
+- ✅ `GOOGLE_PLACES_API_KEY`
+- ✅ `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY`
+- ✅ `RESEND_API_KEY`
+- ✅ `RESEND_FROM_EMAIL`
+- ✅ `RESEND_ADMIN_EMAIL`
+- ✅ `NEXT_PUBLIC_SITE_URL`
+- ✅ `CRON_SECRET`
+- ✅ `NEXT_PUBLIC_ADSENSE_ENABLED`
+- ✅ `ADMIN_SECRET_KEY`
+
+---
+
+## 🔴 URGENT: Supabase Anon Key
+
+The `NEXT_PUBLIC_SUPABASE_ANON_KEY` is currently set to a placeholder value. **Auth will not work until you provide the real key.**
+
+### How to find it:
+1. Go to [supabase.com/dashboard/project/zbvwqsjgasgxpphljahs/settings/api](https://supabase.com/dashboard/project/zbvwqsjgasgxpphljahs/settings/api)
+2. Copy the **"anon public"** API key (NOT the service role key)
+3. Send it to me so I can update Railway
+
+Or paste it here and I'll update it immediately via the Railway API.
+
+---
+
 ## 1. DNS Records for Resend (breedwise.co.uk)
 
 Before Resend can send emails from `breedwise.co.uk`, you must add DNS records to your domain registrar / DNS provider.
+
+**Current status:** Cloudflare zone is active for `breedwise.co.uk`. Railway is already serving the site via the custom domain.
 
 ### 1.1 Verify domain in Resend dashboard
 1. Log into [resend.com](https://resend.com)
 2. Go to **Domains** → **Add Domain**
 3. Enter `breedwise.co.uk`
-4. Resend will give you specific DKIM / SPF records to add
+4. Resend will give you specific DKIM host/value pairs to add
 
 ### 1.2 Required DNS records (generic — confirm exact values in Resend dashboard)
 
@@ -31,7 +71,7 @@ Host: resend._domainkey
 Value: <provided by Resend>
 ```
 
-**DMARC record** (recommended, TXT on root domain):
+**DMARC (recommended):**
 ```
 Type: TXT
 Host: _dmarc
@@ -42,7 +82,7 @@ Value: v=DMARC1; p=quarantine; rua=mailto:dmarc@breedwise.co.uk
 
 ---
 
-## 2. Supabase Dashboard Configuration
+## 2. Supabase Auth Dashboard Configuration
 
 Log into your Supabase project: `https://supabase.com/dashboard/project/zbvwqsjgasgxpphljahs`
 
@@ -81,54 +121,20 @@ WHERE id = '<your-user-uuid>';
 
 ---
 
-## 3. Vercel Environment Variables
+## 3. Google Places API
 
-In the [Vercel Dashboard](https://vercel.com/deanthorpe18-beep/breedwise.co.uk) → **Settings → Environment Variables**, ensure every variable below is set for **Production** (and Preview if you want preview deployments to work):
-
-| Variable | Value | Required |
-|----------|-------|----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://zbvwqsjgasgxpphljahs.supabase.co` | ✅ |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<your-anon-key>` | ✅ |
-| `SUPABASE_SERVICE_ROLE_KEY` | `<your-service-role-key>` | ✅ |
-| `GOOGLE_PLACES_API_KEY` | `AIzaSyCy96kjGFWrK-2_EpX4-HvYyIY0l9fuxnA` | ✅ |
-| `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` | `AIzaSyCy96kjGFWrK-2_EpX4-HvYyIY0l9fuxnA` | ✅ |
-| `RESEND_API_KEY` | `re_9yuXRkY5_DRPeriigencBAc4eAMqgSaM1` | ✅ |
-| `RESEND_FROM_EMAIL` | `noreply@breedwise.co.uk` | ✅ |
-| `RESEND_ADMIN_EMAIL` | `admin@breedwise.co.uk` | ✅ |
-| `NEXT_PUBLIC_SITE_URL` | `https://breedwise.co.uk` | ✅ |
-| `CRON_SECRET` | `<generate-strong-random-string>` | ✅ |
-| `NEXT_PUBLIC_ADSENSE_ENABLED` | `false` | ✅ |
-| `ADMIN_SECRET_KEY` | `<generate-strong-random-string>` | Optional |
-
-> **How to generate a strong random string for CRON_SECRET / ADMIN_SECRET_KEY:**
-> ```bash
-> node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-> ```
+- Enable billing on the Google Cloud project
+- Restrict the API key to HTTP referrers: `https://breedwise.co.uk/*` and `https://*.vercel.app/*` (for previews)
 
 ---
 
-## 4. Google Cloud / Places API
+## 4. Legal Review
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Find the project with the Places API key
-3. Navigate to **APIs & Services → Credentials**
-4. Restrict the API key:
-   - **HTTP referrers (websites):**
-     - `https://breedwise.co.uk/*`
-     - `https://*.vercel.app/*` (for preview deployments)
-   - **API restrictions:** Allow only **Places API (New)** and **Maps JavaScript API**
-5. Ensure billing is enabled on the project
-
----
-
-## 5. Legal Review
-
-Before going live, have a solicitor review these policy pages for UK compliance:
-
-- `/privacy` → `app/privacy/page.js`
-- `/terms` → `app/terms/page.js`
-- `/disclaimer` → `app/disclaimer/page.js`
-- `/corrections-removals` → `app/corrections-removals/page.js`
+Before going live, have a solicitor review:
+- `app/privacy/page.js`
+- `app/terms/page.js`
+- `app/disclaimer/page.js`
+- `app/corrections-removals/page.js`
 
 Key areas to review:
 - Liability limitations
@@ -138,56 +144,19 @@ Key areas to review:
 
 ---
 
-## 6. Cookie Consent Banner
+## 5. Cookie Consent Banner
 
-The Privacy Policy mentions cookie usage but there is **no visible cookie-consent banner** yet. You should implement a lightweight banner that:
-
-1. Appears on first visit
-2. Records consent in `localStorage`
-3. Blocks non-essential analytics until consent is given
-4. Links to `/privacy`
+The Privacy Policy mentions cookies but there is no visible cookie-consent banner yet. Implement a lightweight banner that:
+- Appears on first visit
+- Records consent in `localStorage`
+- Blocks non-essential analytics until consent is given
+- Links to `/privacy`
 
 This is required under UK GDPR + PECR.
 
 ---
 
-## 7. Vercel Build Failure — What Was Fixed
-
-Your previous deployment failed with two errors:
-
-### Error 1: Conflicting dynamic routes
-**Cause:** Next.js does not allow `app/breeders/[breed]/page.js` and `app/breeders/[location]/page.js` at the same path level because they use different parameter names.
-
-**Fix:** Merged into a single `app/breeders/[slug]/page.js` that detects whether the slug is a breed or location and renders the appropriate content. URLs remain unchanged:
-- `/breeders/labrador-retriever` ✅
-- `/breeders/chichester` ✅
-
-### Error 2: Resend module instantiation during build
-**Cause:** `lib/emails/resend.js` created `new Resend()` at the module level. During static generation, if `RESEND_API_KEY` was missing or the module loaded in an unexpected context, it threw.
-
-**Fix:** Changed to lazy instantiation (`getResend()`) so the client is only created when an email function is actually called at runtime.
-
-### Error 3: `useSearchParams()` without Suspense
-**Cause:** Next.js 14 App Router requires `useSearchParams()` to be wrapped in a `<Suspense>` boundary during static generation.
-
-**Fix:** Wrapped `ResetPasswordForm` in a `<Suspense>` boundary in `app/auth/reset/page.js`.
-
----
-
-## 8. How to Verify the Fix Deployed
-
-1. Go to [Vercel Dashboard → Deployments](https://vercel.com/deanthorpe18-beep/breedwise.co.uk/deployments)
-2. Look for the latest deployment from `main`
-3. Status should show **Ready** (green dot) instead of **Error**
-4. Click **Visit** to confirm the site loads
-5. Test these URLs:
-   - `https://breedwise.co.uk/breeders/labrador-retriever`
-   - `https://breedwise.co.uk/breeders/chichester`
-   - `https://breedwise.co.uk/breeders/labrador-retriever/chichester`
-
----
-
-## 9. Post-Launch Monitoring Checklist
+## 6. Post-Launch Monitoring Checklist
 
 | Check | How |
 |-------|-----|
@@ -203,9 +172,10 @@ Your previous deployment failed with two errors:
 
 ---
 
-## 10. Contact & Support
+## Deployment History
 
-- **BreedWise domain:** breedwise.co.uk
-- **Supabase project:** zbvwqsjgasgxpphljahs
-- **Resend dashboard:** resend.com
-- **Vercel dashboard:** vercel.com/deanthorpe18-beep/breedwise.co.uk
+| Date | Commit | Status | Notes |
+|------|--------|--------|-------|
+| 2026-06-06 | `6e94aa1` | ❌ FAILED | Old commit, Next.js 14.2.3 vulnerabilities blocked by Railway |
+| 2026-06-06 | `4f4f9b8` | ❌ FAILED | Same as above (redeploy of old patch) |
+| 2026-06-06 | `9bc791f` | ✅ SUCCESS | Upgraded Next.js to 14.2.35, fixes CVEs, site live |
