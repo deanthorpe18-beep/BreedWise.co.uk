@@ -74,8 +74,19 @@ export default async function BreederProfilePage({ params }) {
                         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
                         <p className="mt-2 text-sm text-slate-500">
-                            {breeder.town}{breeder.county ? `, ${breeder.county}` : ""} · {statusLabel}
+                            {breeder.town}{breeder.county ? `, ${breeder.county}` : ""}
+                            {breeder.business_type ? ` · ${breeder.business_type}` : ""}
+                            {breeder.status === "claimed_profile" ? " · Verified Profile" : ""}
                         </p>
+                        {breeder.google_rating && (
+                            <div className="mt-2 flex items-center gap-2">
+                                <Star className="h-4 w-4 text-[#FFB545] fill-[#FFB545]" />
+                                <span className="text-sm font-semibold text-slate-700">{breeder.google_rating}</span>
+                                {breeder.google_review_count && (
+                                    <span className="text-sm text-slate-500">({breeder.google_review_count} reviews)</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="mt-4 flex gap-3 sm:mt-0">
                         {breeder.website && (
@@ -132,12 +143,17 @@ export default async function BreederProfilePage({ params }) {
                 {/* Google Rating */}
                 <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
                     <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <Star className="h-5 w-5 text-[#FFB545]" />
+                        <Star className="h-5 w-5 text-[#FFB545] fill-[#FFB545]" />
                         <p className="font-semibold text-slate-900">Google rating</p>
                     </div>
-                    <p className="mt-4 text-3xl font-semibold text-slate-900">
-                        {breeder.google_rating ? `${breeder.google_rating} / 5.0` : "No rating available"}
-                    </p>
+                    <div className="mt-4 flex items-baseline gap-3">
+                        <p className="text-3xl font-semibold text-slate-900">
+                            {breeder.google_rating ? `${breeder.google_rating}` : "No rating"}
+                        </p>
+                        {breeder.google_review_count ? (
+                            <p className="text-sm text-slate-500">{breeder.google_review_count} reviews</p>
+                        ) : null}
+                    </div>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                         Profile information is sourced from Google Places. BreedWise does not independently verify breeder claims.
                     </p>

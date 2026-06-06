@@ -18,7 +18,7 @@ export default function HomePage() {
             UK Dog Breeder Directory
           </span>
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Search dog breeder listings across the UK
+            Search for a dog breeder near you
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-slate-600">
             Compare public breeder information before making contact. BreedWise is a directory only — we do not sell puppies, endorse breeders, or guarantee the accuracy of third-party information.

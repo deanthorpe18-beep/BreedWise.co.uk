@@ -7,7 +7,6 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     maxDistance: 50,
-    minRating: 0,
     healthTesting: null,
     kennelClub: null,
     councilLicence: null
@@ -22,7 +21,6 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
   const resetFilters = () => {
     const defaultFilters = {
       maxDistance: 50,
-      minRating: 0,
       healthTesting: null,
       kennelClub: null,
       councilLicence: null
@@ -71,26 +69,6 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
             </div>
           </div>
 
-          {/* Google Rating Filter */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-3">Minimum Google rating</label>
-            <div className="flex gap-2">
-              {[0, 3, 3.5, 4, 4.5].map((rating) => (
-                <button
-                  key={rating}
-                  onClick={() => handleFilterChange("minRating", rating)}
-                  className={`px-3 py-2 rounded-3xl text-sm font-semibold transition ${
-                    filters.minRating === rating
-                      ? "bg-[#00BFA5] text-white"
-                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  {rating === 0 ? "Any" : `${rating}+`}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Health Testing Filter */}
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-3">Health testing</label>
@@ -106,7 +84,7 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
                     name="healthTesting"
                     value={option.value}
                     checked={filters.healthTesting === option.value}
-                    onChange={(e) => handleFilterChange("healthTesting", option.value === "null" ? null : option.value)}
+                    onChange={(e) => handleFilterChange("healthTesting", e.target.value === "null" ? null : e.target.value)}
                     className="accent-[#00BFA5]"
                   />
                   <span className="text-sm text-slate-700">{option.label}</span>
@@ -130,7 +108,7 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
                     name="kennelClub"
                     value={option.value}
                     checked={filters.kennelClub === option.value}
-                    onChange={(e) => handleFilterChange("kennelClub", option.value === "null" ? null : option.value)}
+                    onChange={(e) => handleFilterChange("kennelClub", e.target.value === "null" ? null : e.target.value)}
                     className="accent-[#00BFA5]"
                   />
                   <span className="text-sm text-slate-700">{option.label}</span>
@@ -154,7 +132,7 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
                     name="councilLicence"
                     value={option.value}
                     checked={filters.councilLicence === option.value}
-                    onChange={(e) => handleFilterChange("councilLicence", option.value === "null" ? null : option.value)}
+                    onChange={(e) => handleFilterChange("councilLicence", e.target.value === "null" ? null : e.target.value)}
                     className="accent-[#00BFA5]"
                   />
                   <span className="text-sm text-slate-700">{option.label}</span>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, Heart, Globe, ChevronRight, Layers, Image as ImageIcon } from "lucide-react";
+import { MapPin, Phone, Star, Heart, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft } from "lucide-react";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
@@ -16,19 +16,26 @@ function applyFilters(breeders, filters) {
     if (breeder.distance !== null && breeder.distance > filters.maxDistance) {
       return false;
     }
-    if (filters.minRating > 0 && (breeder.google_rating || 0) < filters.minRating) {
-      return false;
-    }
     return true;
   });
 }
 
-export default function SearchResults({ breeders, query, breed, sortBy, userLat, userLng }) {
+export default function SearchResults({
+  breeders,
+  query,
+  breed,
+  sortBy,
+  userLat,
+  userLng,
+  currentPage = 1,
+  totalPages = 1,
+  totalCount = 0,
+  pageSize = 24,
+}) {
   const [mapView, setMapView] = useState(false);
   const [saved, setSaved] = useState([]);
   const [filters, setFilters] = useState({
     maxDistance: 50,
-    minRating: 0,
   });
   const [tracked, setTracked] = useState(false);
 
@@ -63,10 +70,10 @@ export default function SearchResults({ breeders, query, breed, sortBy, userLat,
 
   useEffect(() => {
     if (!tracked && breeders.length > 0) {
-      trackSearch(query, breed, filteredBreeders.length);
+      trackSearch(query, breed, totalCount);
       setTracked(true);
     }
-  }, [tracked, breeders.length, filteredBreeders.length, query, breed]);
+  }, [tracked, breeders.length, totalCount, query, breed]);
 
   const mapPoints = useMemo(() => {
     if (!filteredBreeders.length) return [];
@@ -82,6 +89,21 @@ export default function SearchResults({ breeders, query, breed, sortBy, userLat,
     });
   }, [filteredBreeders]);
 
+  // Build pagination URL
+  const buildPageUrl = (pageNum) => {
+    const params = new URLSearchParams();
+    if (query && query !== "My location") params.set("q", query);
+    if (breed) params.set("breed", breed);
+    if (userLat) params.set("userLat", userLat);
+    if (userLng) params.set("userLng", userLng);
+    if (sortBy && sortBy !== "relevance") params.set("sort", sortBy);
+    params.set("page", String(pageNum));
+    return `/search?${params.toString()}`;
+  };
+
+  const startIndex = (currentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(startIndex + breeders.length - 1, totalCount);
+
   return (
     <section className="space-y-6">
       <SearchFilters onFiltersChange={handleFiltersChange} breeders={breeders} />
@@ -89,17 +111,18 @@ export default function SearchResults({ breeders, query, breed, sortBy, userLat,
       <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Results</p>
-          <h2 className="text-2xl font-semibold text-slate-900">{filteredBreeders.length} breeders found</h2>
+          <h2 className="text-2xl font-semibold text-slate-900">{totalCount} breeders found</h2>
           <p className="text-sm text-slate-500">
-            Showing matches for <span className="font-semibold text-slate-700">{query || "All UK"}</span>
+            {totalCount > 0 ? `Showing ${startIndex}–${endIndex} of ${totalCount}` : "No results"}
             {breed ? ` · ${breed}` : ""}
             {userLat && userLng ? " · sorted by distance" : ""}
+            {sortBy === "rating" ? " · sorted by rating" : ""}
           </p>
         </div>
         <div className="inline-flex overflow-hidden rounded-full border border-slate-200 bg-slate-50 p-1">
           <button
             type="button"
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "bg-white text-slate-900" : "text-slate-500"}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${!mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
             onClick={() => setMapView(false)}
           >
             <Layers className="h-4 w-4" />
@@ -107,7 +130,7 @@ export default function SearchResults({ breeders, query, breed, sortBy, userLat,
           </button>
           <button
             type="button"
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "text-slate-900" : "text-slate-500"}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
             onClick={() => setMapView(true)}
           >
             <MapPin className="h-4 w-4" />
@@ -147,7 +170,14 @@ export default function SearchResults({ breeders, query, breed, sortBy, userLat,
                   <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{formatDistance(breeder.distance)}</span>
                     {breeder.google_rating ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating} ★</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+                        <Star className="h-3 w-3 text-[#FFB545] fill-[#FFB545]" />
+                        {breeder.google_rating}
+                        {breeder.google_review_count ? ` (${breeder.google_review_count})` : ""}
+                      </span>
+                    ) : null}
+                    {breeder.business_type ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{breeder.business_type}</span>
                     ) : null}
                     {breeder.breeds?.slice(0, 3).map((breedName) => (
                       <span key={breedName} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{breedName}</span>
@@ -223,6 +253,62 @@ export default function SearchResults({ breeders, query, breed, sortBy, userLat,
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <Link
+            href={currentPage > 1 ? buildPageUrl(currentPage - 1) : "#"}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              currentPage > 1
+                ? "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                : "text-slate-400 cursor-not-allowed pointer-events-none"
+            }`}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Link>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => {
+                // Show first, last, current, and neighbors
+                return p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1;
+              })
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) {
+                  acc.push(<span key={`gap-${p}`} className="px-2 text-slate-400">…</span>);
+                }
+                acc.push(
+                  <Link
+                    key={p}
+                    href={buildPageUrl(p)}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${
+                      p === currentPage
+                        ? "bg-[#00BFA5] text-white"
+                        : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {p}
+                  </Link>
+                );
+                return acc;
+              }, [])}
+          </div>
+
+          <Link
+            href={currentPage < totalPages ? buildPageUrl(currentPage + 1) : "#"}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              currentPage < totalPages
+                ? "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                : "text-slate-400 cursor-not-allowed pointer-events-none"
+            }`}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 

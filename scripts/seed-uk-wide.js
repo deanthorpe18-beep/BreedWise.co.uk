@@ -512,6 +512,8 @@ async function main() {
           website: place.websiteUri || null,
           phone: place.internationalPhoneNumber || null,
           google_rating: place.rating || null,
+          google_review_count: place.userRatingCount || null,
+          business_type: place.primaryType || (place.types && place.types[0]) || null,
           status: "public_listing",
           source_tags: ["google_places", "uk_wide"],
           confidence_score: 0.85,

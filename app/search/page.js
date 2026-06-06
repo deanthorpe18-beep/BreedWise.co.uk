@@ -59,6 +59,8 @@ function sortBreeders(breeders, sortBy) {
     }
 }
 
+const PAGE_SIZE = 24;
+
 export default async function SearchPage({ searchParams }) {
     const query = searchParams?.q || "";
     const breed = searchParams?.breed || "";
@@ -66,11 +68,12 @@ export default async function SearchPage({ searchParams }) {
     const sortBy = searchParams?.sort || "relevance";
     const userLat = searchParams?.userLat || "";
     const userLng = searchParams?.userLng || "";
+    const page = Math.max(1, parseInt(searchParams?.page || "1", 10));
 
     const supabase = createClient();
     let dbQuery = supabase
         .from("breeders")
-        .select("*, breeder_breeds(breed)")
+        .select("*, breeder_breeds(breed)", { count: "exact" })
         .in("status", ["public_listing", "claimed_profile"]);
 
     if (query && query !== "My location") {
@@ -78,10 +81,14 @@ export default async function SearchPage({ searchParams }) {
     }
 
     dbQuery = dbQuery.order("name", { ascending: true });
-    const { data, error } = await dbQuery;
+    const { data, error, count } = await dbQuery;
 
     let breeders = [];
+    let totalCount = 0;
+    let totalPages = 0;
+
     if (!error && data) {
+        totalCount = count || data.length;
         breeders = data.map((b) => ({
             ...b,
             breeds: b.breeder_breeds?.map((bb) => bb.breed) || [],
@@ -91,6 +98,7 @@ export default async function SearchPage({ searchParams }) {
         if (breed) {
             const breedLower = breed.toLowerCase();
             breeders = breeders.filter((b) => b.breeds.some((br) => br.toLowerCase() === breedLower));
+            totalCount = breeders.length;
         }
 
         // Calculate distance from user location if provided
@@ -100,10 +108,16 @@ export default async function SearchPage({ searchParams }) {
         if (maxDistance) {
             const max = parseFloat(maxDistance);
             breeders = breeders.filter((b) => b.distance !== null && b.distance <= max);
+            totalCount = breeders.length;
         }
 
         // Sort
         breeders = sortBreeders(breeders, sortBy);
+
+        // Pagination
+        totalPages = Math.ceil(totalCount / PAGE_SIZE);
+        const start = (page - 1) * PAGE_SIZE;
+        breeders = breeders.slice(start, start + PAGE_SIZE);
     }
 
     return (
@@ -142,6 +156,10 @@ export default async function SearchPage({ searchParams }) {
                             sortBy={sortBy}
                             userLat={userLat}
                             userLng={userLng}
+                            currentPage={page}
+                            totalPages={totalPages}
+                            totalCount={totalCount}
+                            pageSize={PAGE_SIZE}
                         />
 
                         {/* Educational content block */}
