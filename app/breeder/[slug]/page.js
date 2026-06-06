@@ -72,7 +72,7 @@ export default async function BreederProfilePage({ params }) {
                         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
                         <p className="mt-2 text-sm text-slate-500">
-                            {breeder.town}, {breeder.county} · {statusLabel}
+                            {breeder.town}{breeder.county ? `, ${breeder.county}` : ""} · {statusLabel}
                         </p>
                     </div>
                     <div className="mt-4 flex gap-3 sm:mt-0">
@@ -109,14 +109,14 @@ export default async function BreederProfilePage({ params }) {
                     <BreederPhotos photos={photos} breederName={breeder.name} />
                 )}
 
-                {/* Info Tiles */}
+                {/* Info Tiles — ONLY show fields that have real data */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <InfoTile label="Website" value={breeder.website} />
-                    <InfoTile label="Phone" value={breeder.phone} />
-                    <InfoTile label="Email" value={breeder.email} missing="Not found" />
-                    <InfoTile label="Kennel Club" value={breeder.kennel_club} />
-                    <InfoTile label="Council Licence" value={breeder.council_licence} />
-                    <InfoTile label="Health Testing" value={breeder.health_testing} />
+                    {breeder.website && <InfoTile label="Website" value={breeder.website} />}
+                    {breeder.phone && <InfoTile label="Phone" value={breeder.phone} />}
+                    {breeder.email && <InfoTile label="Email" value={breeder.email} />}
+                    {breeder.kennel_club && <InfoTile label="Kennel Club" value={breeder.kennel_club} />}
+                    {breeder.council_licence && <InfoTile label="Council Licence" value={breeder.council_licence} />}
+                    {breeder.health_testing && <InfoTile label="Health Testing" value={breeder.health_testing} />}
                 </div>
 
                 {/* Google Rating */}
@@ -129,10 +129,10 @@ export default async function BreederProfilePage({ params }) {
                         {breeder.google_rating ? `${breeder.google_rating} / 5.0` : "No rating available"}
                     </p>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                        Profile information is sourced from Google Places, website scraping, and BreedWise admin curation.
+                        Profile information is sourced from Google Places. BreedWise does not independently verify breeder claims.
                     </p>
                     <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(breeder.name + " " + breeder.town)}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(breeder.name)}&query_place_id=${breeder.google_place_id || ""}`}
                         target="_blank"
                         rel="noreferrer"
                         className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]"
@@ -145,36 +145,38 @@ export default async function BreederProfilePage({ params }) {
                 <GoogleReviews slug={slug} breederName={breeder.name} />
 
                 {/* About */}
-                <div className="space-y-4">
-                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-xl font-semibold text-slate-900">About</h2>
-                        <p className="mt-3 text-sm leading-7 text-slate-600">
-                            {breeder.about} {breeder.location_notes}
-                        </p>
-                    </section>
+                {breeder.about && (
+                    <div className="space-y-4">
+                        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="text-xl font-semibold text-slate-900">About</h2>
+                            <p className="mt-3 text-sm leading-7 text-slate-600">
+                                {breeder.about} {breeder.location_notes || ""}
+                            </p>
+                        </section>
+                    </div>
+                )}
 
-                    {/* Location */}
-                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-xl font-semibold text-slate-900">Location</h2>
-                        <p className="mt-3 text-sm text-slate-600">
-                            <MapPin className="mr-1 inline h-4 w-4 text-[#00BFA5]" />
-                            {breeder.address}
-                        </p>
-                        {breeder.lat && breeder.lng && (
-                            <div className="mt-4 h-72 overflow-hidden rounded-3xl">
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    style={{ border: 0 }}
-                                    loading="lazy"
-                                    allowFullScreen
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&q=${breeder.lat},${breeder.lng}&zoom=14`}
-                                />
-                            </div>
-                        )}
-                    </section>
-                </div>
+                {/* Location */}
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="text-xl font-semibold text-slate-900">Location</h2>
+                    <p className="mt-3 text-sm text-slate-600">
+                        <MapPin className="mr-1 inline h-4 w-4 text-[#00BFA5]" />
+                        {breeder.address || `${breeder.town}${breeder.county ? `, ${breeder.county}` : ""}`}
+                    </p>
+                    {breeder.lat && breeder.lng && (
+                        <div className="mt-4 h-72 overflow-hidden rounded-3xl">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                allowFullScreen
+                                referrerPolicy="no-referrer-when-downgrade"
+                                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&q=place_id:${breeder.google_place_id || `${breeder.lat},${breeder.lng}`}&zoom=14`}
+                            />
+                        </div>
+                    )}
+                </section>
 
                 {/* Related searches */}
                 <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
@@ -210,7 +212,7 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
                         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Data sources</p>
-                        <p className="mt-3 text-sm text-slate-600">Google · Website · Admin curation</p>
+                        <p className="mt-3 text-sm text-slate-600">Google Places</p>
                     </div>
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
                         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
@@ -226,12 +228,11 @@ export default async function BreederProfilePage({ params }) {
     );
 }
 
-function InfoTile({ label, value, missing = "Found" }) {
-    const display = value ? value : missing;
+function InfoTile({ label, value }) {
     return (
         <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-4">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{label}</p>
-            <p className="mt-3 text-sm font-semibold text-slate-900">{display}</p>
+            <p className="mt-3 text-sm font-semibold text-slate-900">{value}</p>
         </div>
     );
 }

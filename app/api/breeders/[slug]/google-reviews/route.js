@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: "Breeder not found" }, { status: 404 });
         }
 
-        if (!breeder.google_place_id || breeder.google_place_id.startsWith("place-")) {
+        if (!breeder.google_place_id) {
             return NextResponse.json({
                 reviews: [],
                 rating: null,

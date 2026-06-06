@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
-import { getAllBreeders, getBreeds, getLocationParams } from "@lib/breeders";
+import { createClient } from "@/lib/supabase/server";
+import { getBreeds } from "@lib/breeders";
 
 export async function GET() {
   const baseUrl = "https://breedwise.co.uk";
-  const breeders = getAllBreeders();
+
+  const supabase = createClient();
+
+  // Fetch real breeder slugs from Supabase
+  const { data: breeders, error } = await supabase
+    .from("breeders")
+    .select("slug, town")
+    .in("status", ["public_listing", "claimed_profile"]);
+
+  if (error) {
+    console.error("Sitemap: failed to fetch breeders:", error.message);
+  }
+
   const breeds = getBreeds();
-  const locations = getLocationParams();
+
+  // Get unique towns from real breeders
+  const uniqueTowns = [...new Set((breeders || []).map((b) => b.town).filter(Boolean))];
 
   const staticPaths = [
     "",
@@ -39,28 +54,35 @@ export async function GET() {
     xml += `  <url>\n    <loc>${baseUrl}/education/${slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
   }
 
-  for (const breeder of breeders) {
+  // Real breeder pages
+  for (const breeder of breeders || []) {
     xml += `  <url>\n    <loc>${baseUrl}/breeder/${breeder.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
   }
 
-  for (const loc of locations) {
-    xml += `  <url>\n    <loc>${baseUrl}/${loc.country}/${loc.region}/${loc.county}/${loc.town}/dog-breeders</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+  // Town pages (from real data)
+  for (const town of uniqueTowns) {
+    const townSlug = town.toLowerCase().replace(/\s+/g, "-");
+    xml += `  <url>\n    <loc>${baseUrl}/england/west-sussex/west-sussex/${townSlug}/dog-breeders</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
     for (const breed of breeds) {
       const breedSlug = breed.toLowerCase().replace(/\s+/g, "-");
-      xml += `  <url>\n    <loc>${baseUrl}/${loc.country}/${loc.region}/${loc.county}/${loc.town}/${breedSlug}-breeders</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}/england/west-sussex/west-sussex/${townSlug}/${breedSlug}-breeders</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
     }
   }
 
+  // Breed pages
   for (const breed of breeds) {
     const breedSlug = breed.toLowerCase().replace(/\s+/g, "-");
     xml += `  <url>\n    <loc>${baseUrl}/breeders/${breedSlug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
-    for (const loc of locations) {
-      xml += `  <url>\n    <loc>${baseUrl}/breeders/${breedSlug}/${loc.town}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+    for (const town of uniqueTowns) {
+      const townSlug = town.toLowerCase().replace(/\s+/g, "-");
+      xml += `  <url>\n    <loc>${baseUrl}/breeders/${breedSlug}/${townSlug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
     }
   }
 
-  for (const loc of locations) {
-    xml += `  <url>\n    <loc>${baseUrl}/breeders/${loc.town}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+  // Town index pages
+  for (const town of uniqueTowns) {
+    const townSlug = town.toLowerCase().replace(/\s+/g, "-");
+    xml += `  <url>\n    <loc>${baseUrl}/breeders/${townSlug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
   }
 
   xml += `</urlset>`;

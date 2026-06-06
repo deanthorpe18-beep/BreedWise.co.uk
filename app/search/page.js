@@ -18,40 +18,6 @@ export function generateMetadata({ searchParams }) {
     });
 }
 
-function toLegacyFormat(breeder) {
-    return {
-        id: breeder.slug,
-        slug: breeder.slug,
-        name: { value: breeder.name, source: "google", last_updated_at: breeder.last_updated_at },
-        address: { value: breeder.address, source: "google", last_updated_at: breeder.last_updated_at },
-        town: { value: breeder.town, source: "google", last_updated_at: breeder.last_updated_at },
-        postcode: { value: breeder.postcode, source: "google", last_updated_at: breeder.last_updated_at },
-        country: { value: "UK", source: "admin", last_updated_at: breeder.last_updated_at },
-        region: { value: "England", source: "admin", last_updated_at: breeder.last_updated_at },
-        county: { value: breeder.county, source: "admin", last_updated_at: breeder.last_updated_at },
-        coordinates: { lat: breeder.lat, lng: breeder.lng },
-        website: { value: breeder.website, source: "google", last_updated_at: breeder.last_updated_at },
-        phone: { value: breeder.phone, source: "google", last_updated_at: breeder.last_updated_at },
-        email: { value: breeder.email, source: "website", last_updated_at: breeder.last_updated_at },
-        google_rating: { value: breeder.google_rating, source: "google", last_updated_at: breeder.last_updated_at },
-        place_id: { value: breeder.google_place_id || `place-${breeder.slug}`, source: "google", last_updated_at: breeder.last_updated_at },
-        breeds: breeder.breeds?.map((name) => ({ name, source: "website" })) || [],
-        kennel_club: { value: breeder.kennel_club, source: "website", last_updated_at: breeder.last_updated_at },
-        council_licence: { value: breeder.council_licence, source: "website", last_updated_at: breeder.last_updated_at },
-        health_testing: { value: breeder.health_testing, source: "website", last_updated_at: breeder.last_updated_at },
-        about: breeder.about,
-        location_notes: breeder.location_notes,
-        status: breeder.status,
-        claimed: breeder.claimed,
-        save_count: 0,
-        last_updated_at: breeder.last_updated_at,
-        source_tags: breeder.source_tags,
-        confidence_score: breeder.confidence_score,
-        distance: breeder.distance,
-        hero_image_url: breeder.hero_image_url,
-    };
-}
-
 function distanceMiles(lat1, lon1, lat2, lon2) {
     const toRad = (degree) => (degree * Math.PI) / 180;
     const R = 3958.8;
@@ -67,7 +33,6 @@ function distanceMiles(lat1, lon1, lat2, lon2) {
 function enrichWithDistance(breeders, locationQuery) {
     if (!locationQuery) return breeders.map((item) => ({ ...item, distance: null }));
 
-    // Find a breeder whose town matches the query to use as reference point
     const reference = breeders.find((b) =>
         b.town?.toLowerCase().includes(locationQuery.toLowerCase())
     );
@@ -113,7 +78,6 @@ export default async function SearchPage({ searchParams }) {
         }
 
         breeders = enrichWithDistance(breeders, query);
-        breeders = breeders.map(toLegacyFormat);
     }
 
     return (

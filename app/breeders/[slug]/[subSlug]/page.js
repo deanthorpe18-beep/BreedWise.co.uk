@@ -1,22 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllBreeders, getBreeds, getLocationParams, normalizeBreedParam } from "@lib/breeders";
+import { createClient } from "@/lib/supabase/server";
+import { getBreeds } from "@lib/breeders";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/schema";
 
-export function generateStaticParams() {
-  const locations = getLocationParams();
-  const breeds = getBreeds();
-  return locations.flatMap((loc) =>
-    breeds.map((breed) => ({
-      slug: breed.toLowerCase().replace(/\s+/g, "-"),
-      subSlug: loc.town,
-    }))
-  );
-}
-
 export function generateMetadata({ params }) {
-  const breedName = normalizeBreedParam(params.slug);
+  const breedName = params.slug.replace(/-/g, " ");
   const locationName = params.subSlug.replace(/-/g, " ");
   const title = `${breedName} breeders in ${locationName}`;
   const description = `Compare ${breedName} breeder listings in ${locationName}. Browse public information before making contact. BreedWise is a directory only.`;
@@ -27,17 +17,34 @@ export function generateMetadata({ params }) {
   });
 }
 
-export default function BreedLocationPage({ params }) {
-  const breedName = normalizeBreedParam(params.slug);
+export default async function BreedLocationPage({ params }) {
+  const breedName = params.slug.replace(/-/g, " ");
   const locationName = params.subSlug.replace(/-/g, " ");
-  const allBreeders = getAllBreeders();
-  const breeders = allBreeders.filter(
-    (b) =>
-      b.town.value.toLowerCase() === locationName.toLowerCase() &&
-      b.breeds.some((br) => br.name.toLowerCase() === breedName.toLowerCase())
-  );
 
-  if (!breeders.length) return notFound();
+  // Validate breed exists
+  const breedList = getBreeds();
+  const isValidBreed = breedList.some((b) => b.toLowerCase() === breedName.toLowerCase());
+  if (!isValidBreed) return notFound();
+
+  const supabase = createClient();
+
+  const { data: breeders, error } = await supabase
+    .from("breeders")
+    .select("*, breeder_breeds(breed)")
+    .ilike("town", locationName)
+    .in("status", ["public_listing", "claimed_profile"]);
+
+  if (error) return notFound();
+
+  const matched = (breeders || []).filter((b) =>
+    b.breeder_breeds?.some((bb) => bb.breed.toLowerCase() === breedName.toLowerCase())
+  ).map((b) => ({
+    ...b,
+    breeds: b.breeder_breeds?.map((bb) => bb.breed) || [],
+    breeder_breeds: undefined,
+  }));
+
+  if (matched.length === 0) return notFound();
 
   const structuredData = breadcrumbSchema([
     { name: "Home", url: "https://breedwise.co.uk/" },
@@ -62,18 +69,20 @@ export default function BreedLocationPage({ params }) {
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {breeders.map((breeder) => (
+        {matched.map((breeder) => (
           <Link
             key={breeder.slug}
             href={`/breeder/${breeder.slug}`}
             className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <p className="text-sm font-semibold text-slate-900">{breeder.name.value}</p>
-            <p className="mt-1 text-sm text-slate-500">{breeder.town.value}, {breeder.county.value}</p>
+            <p className="text-sm font-semibold text-slate-900">{breeder.name}</p>
+            <p className="mt-1 text-sm text-slate-500">{breeder.town}{breeder.county ? `, ${breeder.county}` : ""}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating.value} ★</span>
-              {breeder.breeds.slice(0, 2).map((b) => (
-                <span key={b.name} className="rounded-full bg-slate-100 px-3 py-1">{b.name}</span>
+              {breeder.google_rating ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating} ★</span>
+              ) : null}
+              {breeder.breeds?.slice(0, 2).map((b) => (
+                <span key={b} className="rounded-full bg-slate-100 px-3 py-1">{b}</span>
               ))}
             </div>
           </Link>

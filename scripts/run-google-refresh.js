@@ -32,7 +32,7 @@ async function main() {
     .from('breeders')
     .select('id, slug, google_place_id')
     .not('google_place_id', 'is', null)
-    .not('google_place_id', 'like', 'place-%')
+
     .in('status', ['public_listing', 'claimed_profile']);
 
   if (error) {

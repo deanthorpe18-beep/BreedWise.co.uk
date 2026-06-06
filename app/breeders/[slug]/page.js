@@ -1,26 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getBreeds, getAllBreeders, getLocationParams } from "@lib/breeders";
+import { createClient } from "@/lib/supabase/server";
+import { getBreeds } from "@lib/breeders";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/schema";
 
-export function generateStaticParams() {
-  const breeds = getBreeds().map((breed) => ({
-    slug: breed.toLowerCase().replace(/\s+/g, "-"),
-  }));
-  const locations = getLocationParams().map((loc) => ({
-    slug: loc.town,
-  }));
-  return [...breeds, ...locations];
-}
-
 export function generateMetadata({ params }) {
   const slugName = params.slug.replace(/-/g, " ");
-  const allBreeders = getAllBreeders();
-
-  const isBreed = allBreeders.some((b) =>
-    b.breeds.some((br) => br.name.toLowerCase() === slugName.toLowerCase())
-  );
+  const breedList = getBreeds().map(b => b.toLowerCase());
+  const isBreed = breedList.includes(slugName.toLowerCase());
 
   if (isBreed) {
     return baseMetadata({
@@ -37,31 +25,55 @@ export function generateMetadata({ params }) {
   });
 }
 
-export default function BreedersSlugPage({ params }) {
+export default async function BreedersSlugPage({ params }) {
   const slugName = params.slug.replace(/-/g, " ");
-  const allBreeders = getAllBreeders();
+  const breedList = getBreeds();
+  const isBreed = breedList.some((b) => b.toLowerCase() === slugName.toLowerCase());
 
-  const breedBreeders = allBreeders.filter((b) =>
-    b.breeds.some((br) => br.name.toLowerCase() === slugName.toLowerCase())
-  );
+  const supabase = createClient();
 
-  if (breedBreeders.length > 0) {
+  if (isBreed) {
+    // Fetch breeders by breed
+    const { data: breeders, error } = await supabase
+      .from("breeders")
+      .select("*, breeder_breeds(breed)")
+      .in("status", ["public_listing", "claimed_profile"]);
+
+    if (error) return notFound();
+
+    const breedBreeders = (breeders || []).filter((b) =>
+      b.breeder_breeds?.some((bb) => bb.breed.toLowerCase() === slugName.toLowerCase())
+    ).map((b) => ({
+      ...b,
+      breeds: b.breeder_breeds?.map((bb) => bb.breed) || [],
+      breeder_breeds: undefined,
+    }));
+
+    if (breedBreeders.length === 0) return notFound();
     return <BreedPage breedName={slugName} breeders={breedBreeders} slug={params.slug} />;
   }
 
-  const locationBreeders = allBreeders.filter(
-    (b) => b.town.value.toLowerCase() === slugName.toLowerCase()
-  );
+  // Fetch breeders by town
+  const { data: breeders, error } = await supabase
+    .from("breeders")
+    .select("*, breeder_breeds(breed)")
+    .ilike("town", slugName)
+    .in("status", ["public_listing", "claimed_profile"]);
 
-  if (locationBreeders.length > 0) {
-    return <LocationPage locationName={slugName} breeders={locationBreeders} slug={params.slug} />;
-  }
+  if (error) return notFound();
 
-  return notFound();
+  const locationBreeders = (breeders || []).map((b) => ({
+    ...b,
+    breeds: b.breeder_breeds?.map((bb) => bb.breed) || [],
+    breeder_breeds: undefined,
+  }));
+
+  if (locationBreeders.length === 0) return notFound();
+  return <LocationPage locationName={slugName} breeders={locationBreeders} slug={params.slug} />;
 }
 
 function BreedPage({ breedName, breeders, slug }) {
-  const uniqueTowns = [...new Set(breeders.map((b) => b.town.value))].slice(0, 8);
+  const uniqueTowns = [...new Set(breeders.map((b) => b.town))].slice(0, 8);
 
   const structuredData = breadcrumbSchema([
     { name: "Home", url: "https://breedwise.co.uk/" },
@@ -91,12 +103,14 @@ function BreedPage({ breedName, breeders, slug }) {
             href={`/breeder/${breeder.slug}`}
             className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <p className="text-sm font-semibold text-slate-900">{breeder.name.value}</p>
-            <p className="mt-1 text-sm text-slate-500">{breeder.town.value}, {breeder.county.value}</p>
+            <p className="text-sm font-semibold text-slate-900">{breeder.name}</p>
+            <p className="mt-1 text-sm text-slate-500">{breeder.town}{breeder.county ? `, ${breeder.county}` : ""}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating.value} ★</span>
-              {breeder.breeds.slice(0, 2).map((b) => (
-                <span key={b.name} className="rounded-full bg-slate-100 px-3 py-1">{b.name}</span>
+              {breeder.google_rating ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating} ★</span>
+              ) : null}
+              {breeder.breeds?.slice(0, 2).map((b) => (
+                <span key={b} className="rounded-full bg-slate-100 px-3 py-1">{b}</span>
               ))}
             </div>
           </Link>
@@ -124,7 +138,7 @@ function BreedPage({ breedName, breeders, slug }) {
 }
 
 function LocationPage({ locationName, breeders, slug }) {
-  const breedsInLocation = [...new Set(breeders.flatMap((b) => b.breeds.map((br) => br.name)))].slice(0, 10);
+  const breedsInLocation = [...new Set(breeders.flatMap((b) => b.breeds || []))].slice(0, 10);
 
   const structuredData = breadcrumbSchema([
     { name: "Home", url: "https://breedwise.co.uk/" },
@@ -154,12 +168,14 @@ function LocationPage({ locationName, breeders, slug }) {
             href={`/breeder/${breeder.slug}`}
             className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <p className="text-sm font-semibold text-slate-900">{breeder.name.value}</p>
-            <p className="mt-1 text-sm text-slate-500">{breeder.town.value}, {breeder.county.value}</p>
+            <p className="text-sm font-semibold text-slate-900">{breeder.name}</p>
+            <p className="mt-1 text-sm text-slate-500">{breeder.town}{breeder.county ? `, ${breeder.county}` : ""}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating.value} ★</span>
-              {breeder.breeds.slice(0, 2).map((b) => (
-                <span key={b.name} className="rounded-full bg-slate-100 px-3 py-1">{b.name}</span>
+              {breeder.google_rating ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1">{breeder.google_rating} ★</span>
+              ) : null}
+              {breeder.breeds?.slice(0, 2).map((b) => (
+                <span key={b} className="rounded-full bg-slate-100 px-3 py-1">{b}</span>
               ))}
             </div>
           </Link>
