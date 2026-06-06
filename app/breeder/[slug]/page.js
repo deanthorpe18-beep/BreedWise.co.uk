@@ -1,14 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllBreeders, getBreederBySlug } from "@lib/breeders";
-import { Globe, Phone, Mail, ShieldCheck, Star, UserCheck } from "lucide-react";
+import { Globe, Phone, Mail, Star } from "lucide-react";
 import ClaimButton from "@components/ClaimButton";
 import ProfileViewTracker from "@components/ProfileViewTracker";
 import GooglePlacePreview from "@components/GooglePlacePreview";
+import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
+import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
 export function generateStaticParams() {
   const breeders = getAllBreeders();
   return breeders.map((item) => ({ slug: item.slug }));
+}
+
+export function generateMetadata({ params }) {
+  const breeder = getBreederBySlug(params.slug);
+  if (!breeder) return baseMetadata({ title: "Breeder not found" });
+  return baseMetadata({
+    title: `${breeder.name.value} — ${breeder.town.value}`,
+    description: `Public listing for ${breeder.name.value} in ${breeder.town.value}, ${breeder.county.value}. Compare breeder information on BreedWise.`,
+    path: `/breeder/${params.slug}`,
+  });
 }
 
 export default function BreederProfilePage({ params }) {
@@ -17,9 +29,23 @@ export default function BreederProfilePage({ params }) {
 
   const status = breeder.status === "claimed_profile" ? "Claimed Profile" : "Public Listing";
 
+  const structuredData = [
+    localBusinessSchema(breeder),
+    breadcrumbSchema([
+      { name: "Home", url: "https://breedwise.co.uk/" },
+      { name: "Search", url: "https://breedwise.co.uk/search" },
+      { name: breeder.name.value, url: `https://breedwise.co.uk/breeder/${params.slug}` },
+    ]),
+  ];
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
       <ProfileViewTracker breederSlug={breeder.slug} breederName={breeder.name.value} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
       <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="sm:flex sm:items-start sm:justify-between sm:gap-6">
           <div>
@@ -52,7 +78,9 @@ export default function BreederProfilePage({ params }) {
             <p className="font-semibold text-slate-900">Google rating</p>
           </div>
           <p className="mt-4 text-3xl font-semibold text-slate-900">{breeder.google_rating.value} / 5.0</p>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Profile information is sourced from Google Places, website scraping, and BreedWise admin curation. Click through to view public reviews.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            Profile information is sourced from Google Places, website scraping, and BreedWise admin curation. Click through to view public reviews.
+          </p>
           <a href={`https://www.google.com/search?q=${encodeURIComponent(breeder.name.value)}`} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">
             View Google reviews
           </a>
@@ -77,6 +105,21 @@ export default function BreederProfilePage({ params }) {
           </section>
         </div>
 
+        {/* Internal linking */}
+        <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500 mb-3">Related searches</p>
+          <div className="flex flex-wrap gap-2">
+            {breeder.breeds.map((b) => (
+              <Link key={b.name} href={`/search?breed=${encodeURIComponent(b.name)}`} className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#00BFA5] hover:text-[#00BFA5] transition">
+                {b.name} breeders
+              </Link>
+            ))}
+            <Link href={`/search?q=${encodeURIComponent(breeder.town.value)}`} className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#00BFA5] hover:text-[#00BFA5] transition">
+              Breeders in {breeder.town.value}
+            </Link>
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Last updated</p>
@@ -91,6 +134,7 @@ export default function BreederProfilePage({ params }) {
             <div className="mt-3 space-y-2 text-sm text-slate-600">
               <ClaimButton breederSlug={breeder.slug} breederName={breeder.name.value} />
               <Link href="/suggest-edit" className="block text-[#00BFA5] hover:text-[#008f7a]">Suggest an edit</Link>
+              <Link href="/request-removal" className="block text-slate-500 hover:text-[#FF6B6B]">Request listing removal</Link>
             </div>
           </div>
         </div>

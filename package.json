@@ -1,11 +1,16 @@
 {
-  "name": "dropdexuk",
-  "version": "0.1.0",
+  "name": "breedwise",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "db:reset": "supabase db reset",
+    "db:migrate": "supabase migration up"
   },
   "dependencies": {
     "next": "14.2.3",
@@ -13,7 +18,11 @@
     "react-dom": "^18",
     "lucide-react": "^0.378.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.3.0"
+    "tailwind-merge": "^2.3.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "@supabase/ssr": "^0.3.0",
+    "resend": "^3.2.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "postcss": "^8",

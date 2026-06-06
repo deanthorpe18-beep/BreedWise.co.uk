@@ -1,2 +1,29 @@
+# Dependencies
 node_modules
+
+# Next.js build output
 .next
+
+# Environment variables
+.env.local
+.env.*.local
+
+# API keys and secrets
+API keys.txt
+API keys/
+*.key
+*.pem
+
+# Supabase local
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
