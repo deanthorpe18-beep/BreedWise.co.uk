@@ -5,30 +5,26 @@ import { createAdminClient } from "@/lib/supabase/server";
  * Google Places Weekly Refresh — Vercel Cron Job
  * Triggered: Sundays at 03:00 UTC (configured in vercel.json)
  *
- * What this does:
- * 1. Reads breeders from Supabase that have a google_place_id.
- * 2. Fetches current public data from Google Places Details API.
- * 3. Stores permitted fields (name, address, phone, website, rating, place_id, photos) in Supabase.
- * 4. Fetches and stores up to 5 Place Photos per breeder in Supabase Storage.
- * 5. Logs the run result for admin review.
- *
- * Compliance notes:
- * - We do NOT store Google reviews text or user-generated review content locally.
- * - We display ratings with attribution and link back to Google.
- * - Photo usage follows Google Maps Platform Terms of Service (attribution retained).
- * - Caching follows Google Maps Platform Terms of Service (refreshed weekly).
- * - If the API is unavailable, the job logs the failure and exits gracefully.
+ * Uses the NEW Google Places API (places.googleapis.com).
  */
 
-async function fetchPlacePhoto(apiKey, photoReference, maxWidth = 800) {
-    const url = new URL("https://maps.googleapis.com/maps/api/place/photo");
-    url.searchParams.set("maxwidth", String(maxWidth));
-    url.searchParams.set("photo_reference", photoReference);
-    url.searchParams.set("key", apiKey);
-
-    const res = await fetch(url.toString(), { redirect: "follow" });
+async function fetchPlaceDetails(apiKey, placeId) {
+    const url = `https://places.googleapis.com/v1/places/${placeId}`;
+    const res = await fetch(url, {
+        headers: {
+            "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask": "id,displayName,rating,photos,userRatingCount,formattedAddress,websiteUri,nationalPhoneNumber,editorialSummary,reviews",
+        },
+        next: { revalidate: 0 },
+    });
     if (!res.ok) return null;
+    return res.json();
+}
 
+async function fetchPlacePhoto(apiKey, photoName, maxHeightPx = 800) {
+    const url = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=${maxHeightPx}&key=${apiKey}`;
+    const res = await fetch(url, { redirect: "follow" });
+    if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "image/jpeg";
     const buffer = await res.arrayBuffer();
     return { buffer, contentType };
@@ -45,7 +41,6 @@ export async function GET(request) {
     let logEntry = null;
 
     try {
-        // Start log
         const { data: le, error: leErr } = await supabase
             .from("google_refresh_log")
             .insert({ status: "started", records_processed: 0 })
@@ -57,11 +52,11 @@ export async function GET(request) {
         }
         logEntry = le;
 
-        // Fetch breeders with place_ids
         const { data: breeders, error: breedersErr } = await supabase
             .from("breeders")
             .select("id, slug, google_place_id")
             .not("google_place_id", "is", null)
+            .not("google_place_id", "like", "place-%")
             .in("status", ["public_listing", "claimed_profile"]);
 
         if (breedersErr) throw breedersErr;
@@ -77,35 +72,22 @@ export async function GET(request) {
 
         for (const breeder of breeders || []) {
             try {
-                const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
-                url.searchParams.set("place_id", breeder.google_place_id);
-                url.searchParams.set("fields", "name,formatted_address,formatted_phone_number,website,rating,place_id,photos");
-                url.searchParams.set("key", apiKey);
-
-                const res = await fetch(url.toString(), { next: { revalidate: 0 } });
-                if (!res.ok) {
-                    errors.push(`${breeder.slug}: HTTP ${res.status}`);
+                const details = await fetchPlaceDetails(apiKey, breeder.google_place_id);
+                if (!details) {
+                    errors.push(`${breeder.slug}: failed to fetch details`);
                     continue;
                 }
 
-                const json = await res.json();
-                if (json.status !== "OK" || !json.result) {
-                    errors.push(`${breeder.slug}: ${json.status}`);
-                    continue;
-                }
-
-                const r = json.result;
-                const photoList = r.photos || [];
-
-                // Update permitted fields only
+                // Update breeder with new data
                 const { error: updErr } = await supabase
                     .from("breeders")
                     .update({
-                        name: r.name || undefined,
-                        address: r.formatted_address || undefined,
-                        phone: r.formatted_phone_number || undefined,
-                        website: r.website || undefined,
-                        google_rating: r.rating ? Number(r.rating) : undefined,
+                        name: details.displayName?.text || undefined,
+                        address: details.formattedAddress || undefined,
+                        phone: details.nationalPhoneNumber || undefined,
+                        website: details.websiteUri || undefined,
+                        google_rating: details.rating ? Number(details.rating) : undefined,
+                        about: details.editorialSummary?.text || undefined,
                         last_updated_at: new Date().toISOString(),
                     })
                     .eq("id", breeder.id);
@@ -115,14 +97,15 @@ export async function GET(request) {
                     continue;
                 }
 
-                // Process photos: download and store in Supabase Storage
+                // Process photos
+                const photoList = details.photos || [];
                 const photoUrls = [];
                 const photosToStore = photoList.slice(0, 5);
 
                 for (let i = 0; i < photosToStore.length; i++) {
                     const photo = photosToStore[i];
                     try {
-                        const photoData = await fetchPlacePhoto(apiKey, photo.photo_reference, 800);
+                        const photoData = await fetchPlacePhoto(apiKey, photo.name, 800);
                         if (!photoData) continue;
 
                         const fileName = `${breeder.slug}-${i}-${Date.now()}.jpg`;
@@ -154,7 +137,6 @@ export async function GET(request) {
                     }
                 }
 
-                // Update breeder with photo URLs and set hero image
                 if (photoUrls.length > 0) {
                     const { error: photoUpdErr } = await supabase
                         .from("breeders")
@@ -170,7 +152,7 @@ export async function GET(request) {
                     }
                 }
 
-                // Also log to breeder_photos table for audit
+                // Log photo metadata
                 for (let i = 0; i < photosToStore.length; i++) {
                     const photo = photosToStore[i];
                     const photoUrl = photoUrls[i];
@@ -180,16 +162,16 @@ export async function GET(request) {
                         .from("breeder_photos")
                         .upsert({
                             breeder_id: breeder.id,
-                            photo_reference: photo.photo_reference,
+                            photo_reference: photo.name,
                             photo_url: photoUrl,
-                            width: photo.width,
-                            height: photo.height,
-                            attribution: photo.html_attributions?.[0] || null,
+                            width: photo.widthPx,
+                            height: photo.heightPx,
+                            attribution: photo.authorAttributions?.[0]?.displayName || null,
                             is_primary: i === 0,
                         }, { onConflict: "breeder_id,photo_reference" });
 
                     if (photoLogErr) {
-                        console.error(` breeder_photos upsert error for ${breeder.slug}:`, photoLogErr);
+                        console.error(`breeder_photos upsert error for ${breeder.slug}:`, photoLogErr);
                     }
                 }
 
@@ -199,7 +181,6 @@ export async function GET(request) {
             }
         }
 
-        // Complete log
         await supabase
             .from("google_refresh_log")
             .update({

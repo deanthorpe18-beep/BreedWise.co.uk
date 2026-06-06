@@ -6,7 +6,6 @@ export async function GET(request, { params }) {
         const { slug } = await params;
         const supabase = createClient();
 
-        // Get the breeder's google_place_id
         const { data: breeder, error } = await supabase
             .from("breeders")
             .select("google_place_id, name")
@@ -31,40 +30,35 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: "Google Places API key not configured" }, { status: 500 });
         }
 
-        const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
-        url.searchParams.set("place_id", breeder.google_place_id);
-        url.searchParams.set("fields", "name,rating,reviews,user_ratings_total,url");
-        url.searchParams.set("key", apiKey);
+        const url = `https://places.googleapis.com/v1/places/${breeder.google_place_id}`;
+        const res = await fetch(url, {
+            headers: {
+                "X-Goog-Api-Key": apiKey,
+                "X-Goog-FieldMask": "id,displayName,rating,reviews,userRatingCount",
+            },
+            next: { revalidate: 3600 },
+        });
 
-        const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
         if (!res.ok) {
             return NextResponse.json({ error: `Google API error: ${res.status}` }, { status: 502 });
         }
 
-        const json = await res.json();
-        if (json.status !== "OK" || !json.result) {
-            return NextResponse.json(
-                { error: `Google API: ${json.status}`, details: json.error_message },
-                { status: 502 }
-            );
-        }
+        const data = await res.json();
 
-        const result = json.result;
-        const reviews = (result.reviews || []).map((r) => ({
-            author_name: r.author_name,
-            author_url: r.author_url,
-            profile_photo_url: r.profile_photo_url,
+        const reviews = (data.reviews || []).map((r) => ({
+            author_name: r.authorAttribution?.displayName || "Anonymous",
+            author_url: r.authorAttribution?.uri || null,
+            profile_photo_url: r.authorAttribution?.photoUri || null,
             rating: r.rating,
-            relative_time_description: r.relative_time_description,
-            text: r.text,
-            time: r.time,
+            relative_time_description: r.relativePublishTimeDescription,
+            text: r.text?.text || "",
+            time: r.publishTime,
         }));
 
         return NextResponse.json({
             reviews,
-            rating: result.rating,
-            total_reviews: result.user_ratings_total,
-            google_url: result.url,
+            rating: data.rating,
+            total_reviews: data.userRatingCount,
         });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
