@@ -84,7 +84,8 @@ export default async function SearchPage({ searchParams }) {
     return (
         <>
             <PageViewTracker page="search" />
-            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8">
+                {/* Header */}
                 <div className="space-y-2">
                     <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Search breeders</p>
                     <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Find breeders by town, postcode, or breed</h1>
@@ -93,39 +94,51 @@ export default async function SearchPage({ searchParams }) {
                     </p>
                 </div>
 
+                {/* Search form */}
                 <div className="mt-8">
                     <SearchForm initialLocation={query} initialBreed={breed} />
                 </div>
 
-                {/* AdSense placeholder — horizontal mobile, vertical desktop */}
-                <div className="mt-8">
-                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
-                </div>
+                {/* Main layout: content + sidebar ad */}
+                <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
+                    {/* Main content column */}
+                    <div className="space-y-8">
+                        <SearchResults breeders={breeders} query={query} breed={breed} />
 
-                <div className="mt-8">
-                    <SearchResults breeders={breeders} query={query} breed={breed} />
-                </div>
-
-                {/* Educational content block */}
-                <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-900">Before you contact a breeder</h2>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-3 text-sm text-slate-600">
-                        <div className="rounded-2xl bg-[#F1F4F6] p-4">
-                            <p className="font-semibold text-slate-900">Do your own checks</p>
-                            <p className="mt-1">Verify licences, health tests, and references independently.</p>
-                        </div>
-                        <div className="rounded-2xl bg-[#F1F4F6] p-4">
-                            <p className="font-semibold text-slate-900">Ask the right questions</p>
-                            <p className="mt-1">See our guide on what to ask before making contact.</p>
-                        </div>
-                        <div className="rounded-2xl bg-[#F1F4F6] p-4">
-                            <p className="font-semibold text-slate-900">Watch for red flags</p>
-                            <p className="mt-1">Learn the warning signs to protect yourself and your family.</p>
+                        {/* Educational content block */}
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold text-slate-900">Before you contact a breeder</h2>
+                            <div className="mt-4 grid gap-4 sm:grid-cols-3 text-sm text-slate-600">
+                                <div className="rounded-2xl bg-[#F1F4F6] p-4">
+                                    <p className="font-semibold text-slate-900">Do your own checks</p>
+                                    <p className="mt-1">Verify licences, health tests, and references independently.</p>
+                                </div>
+                                <div className="rounded-2xl bg-[#F1F4F6] p-4">
+                                    <p className="font-semibold text-slate-900">Ask the right questions</p>
+                                    <p className="mt-1">See our guide on what to ask before making contact.</p>
+                                </div>
+                                <div className="rounded-2xl bg-[#F1F4F6] p-4">
+                                    <p className="font-semibold text-slate-900">Watch for red flags</p>
+                                    <p className="mt-1">Learn the warning signs to protect yourself and your family.</p>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <a href="/education" className="text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">Explore buyer guides →</a>
+                            </div>
                         </div>
                     </div>
-                    <div className="mt-4">
-                        <a href="/education" className="text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">Explore buyer guides →</a>
-                    </div>
+
+                    {/* Sidebar ad — desktop only, sticky */}
+                    <aside className="hidden lg:block">
+                        <div className="sticky top-24">
+                            <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
+                        </div>
+                    </aside>
+                </div>
+
+                {/* Mobile ad — below content on small screens */}
+                <div className="mt-8 lg:hidden">
+                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
                 </div>
             </div>
         </>
