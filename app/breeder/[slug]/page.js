@@ -71,14 +71,9 @@ export default async function BreederProfilePage({ params }) {
                     <div>
                         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                            <p className="text-sm text-slate-500">
-                                {breeder.town}{breeder.county ? `, ${breeder.county}` : ""} · {statusLabel}
-                            </p>
-                            {breeder.status !== "claimed_profile" && (
-                                <ClaimProfileButton breederSlug={slug} breederName={breeder.name} variant="button" />
-                            )}
-                        </div>
+                        <p className="mt-2 text-sm text-slate-500">
+                            {breeder.town}{breeder.county ? `, ${breeder.county}` : ""} · {statusLabel}
+                        </p>
                     </div>
                     <div className="mt-4 flex gap-3 sm:mt-0">
                         {breeder.website && (
@@ -94,10 +89,13 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                 </div>
 
-                {/* Prominent Claim Banner */}
-                {breeder.status !== "claimed_profile" && (
-                    <ClaimProfileButton breederSlug={slug} breederName={breeder.name} variant="banner" />
-                )}
+                {/* Prominent Claim Banner (or Verified badge if claimed) */}
+                <ClaimProfileButton
+                    breederSlug={slug}
+                    breederName={breeder.name}
+                    variant="banner"
+                    isClaimed={breeder.status === "claimed_profile"}
+                />
 
                 {/* Hero Image */}
                 {hasHeroImage && (

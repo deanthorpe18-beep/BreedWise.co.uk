@@ -2,14 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { UserCheck, X, ShieldCheck } from "lucide-react";
+import { UserCheck, X, ShieldCheck, CheckCircle } from "lucide-react";
 
-export default function ClaimProfileButton({ breederSlug, breederName, variant = "button" }) {
+export default function ClaimProfileButton({
+  breederSlug,
+  breederName,
+  variant = "button",
+  isClaimed = false,
+}) {
   const [showModal, setShowModal] = useState(false);
-
   const claimUrl = `/claim?slug=${encodeURIComponent(breederSlug)}&name=${encodeURIComponent(breederName)}`;
 
   if (variant === "banner") {
+    if (isClaimed) {
+      return (
+        <div className="rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-[#F0FDFA] p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#00BFA5]">
+              <CheckCircle className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900 flex items-center gap-2">
+                Verified Profile
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                This listing has been claimed and verified by the breeder.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <>
         <div className="rounded-3xl border border-[#00BFA5]/30 bg-gradient-to-r from-[#E6FFFB] to-[#F0FDFA] p-5">
@@ -68,6 +92,8 @@ export default function ClaimProfileButton({ breederSlug, breederName, variant =
       </>
     );
   }
+
+  if (isClaimed) return null;
 
   return (
     <Link

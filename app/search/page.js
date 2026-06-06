@@ -1,6 +1,7 @@
 import SearchResults from "@components/SearchResults";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
+import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { createClient } from "@/lib/supabase/server";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -94,6 +95,11 @@ export default async function SearchPage({ searchParams }) {
 
                 <div className="mt-8">
                     <SearchForm initialLocation={query} initialBreed={breed} />
+                </div>
+
+                {/* AdSense placeholder — horizontal mobile, vertical desktop */}
+                <div className="mt-8">
+                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
                 </div>
 
                 <div className="mt-8">
