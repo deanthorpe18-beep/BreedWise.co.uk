@@ -14,71 +14,51 @@
 - Environment: `production`
 - Latest deployment: `SUCCESS` (commit `9bc791f`)
 
-### Environment variables set in Railway:
-- ✅ `NEXT_PUBLIC_SUPABASE_URL`
-- ⚠️ `NEXT_PUBLIC_SUPABASE_ANON_KEY` — **SET TO PLACEHOLDER, NEEDS REAL VALUE**
-- ✅ `SUPABASE_SERVICE_ROLE_KEY`
-- ✅ `GOOGLE_PLACES_API_KEY`
-- ✅ `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY`
-- ✅ `RESEND_API_KEY`
-- ✅ `RESEND_FROM_EMAIL`
-- ✅ `RESEND_ADMIN_EMAIL`
-- ✅ `NEXT_PUBLIC_SITE_URL`
-- ✅ `CRON_SECRET`
-- ✅ `NEXT_PUBLIC_ADSENSE_ENABLED`
-- ✅ `ADMIN_SECRET_KEY`
+---
+
+## ✅ COMPLETED — Environment Variables
+
+All environment variables have been set in Railway:
+
+| Variable | Status |
+|----------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ Set |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Set (real key) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Set |
+| `GOOGLE_PLACES_API_KEY` | ✅ Set |
+| `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` | ✅ Set |
+| `RESEND_API_KEY` | ✅ Set |
+| `RESEND_FROM_EMAIL` | ✅ Set |
+| `RESEND_ADMIN_EMAIL` | ✅ Set |
+| `NEXT_PUBLIC_SITE_URL` | ✅ Set |
+| `CRON_SECRET` | ✅ Set |
+| `NEXT_PUBLIC_ADSENSE_ENABLED` | ✅ Set |
+| `ADMIN_SECRET_KEY` | ✅ Set |
 
 ---
 
-## 🔴 URGENT: Supabase Anon Key
+## ✅ COMPLETED — DNS Records for Resend
 
-The `NEXT_PUBLIC_SUPABASE_ANON_KEY` is currently set to a placeholder value. **Auth will not work until you provide the real key.**
+Cloudflare DNS records added for `breedwise.co.uk`:
 
-### How to find it:
-1. Go to [supabase.com/dashboard/project/zbvwqsjgasgxpphljahs/settings/api](https://supabase.com/dashboard/project/zbvwqsjgasgxpphljahs/settings/api)
-2. Copy the **"anon public"** API key (NOT the service role key)
-3. Send it to me so I can update Railway
+| Type | Name | Value |
+|------|------|-------|
+| TXT | `@` | `v=spf1 include:_spf.resend.com ~all` |
+| TXT | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:dmarc@breedwise.co.uk` |
 
-Or paste it here and I'll update it immediately via the Railway API.
+Existing Resend DKIM already present:
+| TXT | `resend._domainkey` | Resend DKIM public key |
+
+> **Note:** It can take up to 24 hours for DNS propagation. Verify in Resend dashboard.
 
 ---
 
-## 1. DNS Records for Resend (breedwise.co.uk)
+## 1. Resend Domain Verification
 
-Before Resend can send emails from `breedwise.co.uk`, you must add DNS records to your domain registrar / DNS provider.
-
-**Current status:** Cloudflare zone is active for `breedwise.co.uk`. Railway is already serving the site via the custom domain.
-
-### 1.1 Verify domain in Resend dashboard
 1. Log into [resend.com](https://resend.com)
-2. Go to **Domains** → **Add Domain**
-3. Enter `breedwise.co.uk`
-4. Resend will give you specific DKIM host/value pairs to add
-
-### 1.2 Required DNS records (generic — confirm exact values in Resend dashboard)
-
-**SPF record** (TXT on root domain):
-```
-Type: TXT
-Host: @
-Value: v=spf1 include:_spf.resend.com ~all
-```
-
-**DKIM record** (TXT — Resend provides the exact value):
-```
-Type: TXT
-Host: resend._domainkey
-Value: <provided by Resend>
-```
-
-**DMARC (recommended):**
-```
-Type: TXT
-Host: _dmarc
-Value: v=DMARC1; p=quarantine; rua=mailto:dmarc@breedwise.co.uk
-```
-
-> **Note:** It can take up to 24 hours for DNS propagation. Resend will show "Verified" once complete.
+2. Go to **Domains**
+3. Verify `breedwise.co.uk` shows green/verified
+4. If not verified yet, wait for DNS propagation (up to 24 hours)
 
 ---
 
@@ -124,7 +104,7 @@ WHERE id = '<your-user-uuid>';
 ## 3. Google Places API
 
 - Enable billing on the Google Cloud project
-- Restrict the API key to HTTP referrers: `https://breedwise.co.uk/*` and `https://*.vercel.app/*` (for previews)
+- Restrict the API key to HTTP referrers: `https://breedwise.co.uk/*`
 
 ---
 
@@ -176,6 +156,8 @@ This is required under UK GDPR + PECR.
 
 | Date | Commit | Status | Notes |
 |------|--------|--------|-------|
-| 2026-06-06 | `6e94aa1` | ❌ FAILED | Old commit, Next.js 14.2.3 vulnerabilities blocked by Railway |
-| 2026-06-06 | `4f4f9b8` | ❌ FAILED | Same as above (redeploy of old patch) |
-| 2026-06-06 | `9bc791f` | ✅ SUCCESS | Upgraded Next.js to 14.2.35, fixes CVEs, site live |
+| 2026-06-06 | `6e94aa1` | ❌ FAILED | Next.js 14.2.3 vulnerabilities blocked by Railway |
+| 2026-06-06 | `4f4f9b8` | ❌ FAILED | Same CVEs (redeploy of old patch) |
+| 2026-06-06 | `9bc791f` | ✅ SUCCESS | Upgraded Next.js to 14.2.35 |
+| 2026-06-06 | `69a80f4` | ✅ SUCCESS | Updated follow-up docs |
+| 2026-06-06 | `8a0df584` | ✅ SUCCESS | Real Supabase anon key + Resend DNS |
