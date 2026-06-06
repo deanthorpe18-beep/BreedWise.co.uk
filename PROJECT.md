@@ -78,9 +78,8 @@
 │   ├── breeder/[slug]/page.js             # Individual breeder profile
 │   ├── breeder-benefits/page.js           # Why claim your profile
 │   ├── breeders/
-│   │   ├── [breed]/page.js                # Breed landing page
-│   │   ├── [location]/page.js             # Location landing page
-│   │   └── [breed]/[location]/page.js     # Breed + location landing page
+│   │   ├── [slug]/page.js                 # Breed or location landing page
+│   │   └── [slug]/[subSlug]/page.js       # Breed + location landing page
 │   ├── claim/page.js                      # Claim listing flow
 │   ├── components/                        # Reusable React components
 │   ├── corrections-removals/page.js       # Policy page
@@ -435,9 +434,8 @@ npx supabase db reset
 | `/` | `/` | Homepage |
 | `/search?q={q}&breed={breed}` | `/search?q=Chichester&breed=Labrador` | Search results |
 | `/breeder/{slug}` | `/breeder/chichester-labrador-kennels-chichester` | Profile |
-| `/breeders/{breed}` | `/breeders/labrador-retriever` | Breed landing |
-| `/breeders/{location}` | `/breeders/chichester` | Location landing |
-| `/breeders/{breed}/{location}` | `/breeders/labrador-retriever/chichester` | Breed + location |
+| `/breeders/{slug}` | `/breeders/labrador-retriever` | Breed or location landing (detected at runtime) |
+| `/breeders/{slug}/{subSlug}` | `/breeders/labrador-retriever/chichester` | Breed + location landing |
 | `/{country}/{region}/{county}/{town}/dog-breeders` | `/england/west-sussex/west-sussex/chichester/dog-breeders` | Town landing |
 | `/{country}/{region}/{county}/{town}/{breed}-breeders` | `/england/west-sussex/west-sussex/chichester/labrador-retriever-breeders` | Town + breed |
 

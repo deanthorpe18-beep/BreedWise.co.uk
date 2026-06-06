@@ -1,40 +1,49 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllBreeders, getLocationParams, getBreeds } from "@lib/breeders";
+import { getAllBreeders, getBreeds, getLocationParams, normalizeBreedParam } from "@lib/breeders";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/schema";
 
 export function generateStaticParams() {
   const locations = getLocationParams();
-  return locations.map((loc) => ({ location: loc.town }));
+  const breeds = getBreeds();
+  return locations.flatMap((loc) =>
+    breeds.map((breed) => ({
+      slug: breed.toLowerCase().replace(/\s+/g, "-"),
+      subSlug: loc.town,
+    }))
+  );
 }
 
 export function generateMetadata({ params }) {
-  const locationName = params.location.replace(/-/g, " ");
-  const title = `Dog breeders in ${locationName}`;
-  const description = `Compare dog breeder listings in ${locationName}. Browse public information, ratings, and contact details before making contact. BreedWise is a directory only.`;
+  const breedName = normalizeBreedParam(params.slug);
+  const locationName = params.subSlug.replace(/-/g, " ");
+  const title = `${breedName} breeders in ${locationName}`;
+  const description = `Compare ${breedName} breeder listings in ${locationName}. Browse public information before making contact. BreedWise is a directory only.`;
   return baseMetadata({
     title,
     description,
-    path: `/breeders/${params.location}`,
+    path: `/breeders/${params.slug}/${params.subSlug}`,
   });
 }
 
-export default function LocationPage({ params }) {
-  const locationName = params.location.replace(/-/g, " ");
+export default function BreedLocationPage({ params }) {
+  const breedName = normalizeBreedParam(params.slug);
+  const locationName = params.subSlug.replace(/-/g, " ");
   const allBreeders = getAllBreeders();
   const breeders = allBreeders.filter(
-    (b) => b.town.value.toLowerCase() === locationName.toLowerCase()
+    (b) =>
+      b.town.value.toLowerCase() === locationName.toLowerCase() &&
+      b.breeds.some((br) => br.name.toLowerCase() === breedName.toLowerCase())
   );
 
   if (!breeders.length) return notFound();
 
-  const breedsInLocation = [...new Set(breeders.flatMap((b) => b.breeds.map((br) => br.name)))].slice(0, 10);
-
   const structuredData = breadcrumbSchema([
     { name: "Home", url: "https://breedwise.co.uk/" },
-    { name: "Locations", url: "https://breedwise.co.uk/search" },
-    { name: locationName, url: `https://breedwise.co.uk/breeders/${params.location}` },
+    { name: "Breeds", url: "https://breedwise.co.uk/search" },
+    { name: breedName, url: `https://breedwise.co.uk/breeders/${params.slug}` },
+    { name: locationName, url: `https://breedwise.co.uk/breeders/${params.slug}/${params.subSlug}` },
   ]);
 
   return (
@@ -45,10 +54,10 @@ export default function LocationPage({ params }) {
       />
 
       <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Location directory</p>
-        <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Dog breeders in {locationName}</h1>
+        <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Breed + location</p>
+        <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">{breedName} breeders in {locationName}</h1>
         <p className="max-w-3xl text-sm leading-6 text-slate-600">
-          Browse public dog breeder listings in {locationName}. Compare contact details, ratings, and breeds before making your own enquiries. BreedWise is a directory only — we do not endorse or vet breeders.
+          Browse public {breedName} breeder listings in {locationName}. Compare contact details and ratings before making your own enquiries. BreedWise is a directory only — we do not endorse or vet breeders.
         </p>
       </div>
 
@@ -71,19 +80,19 @@ export default function LocationPage({ params }) {
         ))}
       </div>
 
-      <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-500 mb-3">Popular breeds in {locationName}</p>
-        <div className="flex flex-wrap gap-2">
-          {breedsInLocation.map((breed) => (
-            <Link
-              key={breed}
-              href={`/search?q=${encodeURIComponent(locationName)}&breed=${encodeURIComponent(breed)}`}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
-            >
-              {breed}
-            </Link>
-          ))}
-        </div>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          href={`/breeders/${params.slug}`}
+          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
+        >
+          All {breedName} breeders
+        </Link>
+        <Link
+          href={`/breeders/${params.subSlug}`}
+          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
+        >
+          All breeders in {locationName}
+        </Link>
       </div>
 
       <div className="mt-8 rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
