@@ -31,26 +31,41 @@ function distanceMiles(lat1, lon1, lat2, lon2) {
     return Number((R * c).toFixed(1));
 }
 
-function enrichWithDistance(breeders, locationQuery) {
-    if (!locationQuery) return breeders.map((item) => ({ ...item, distance: null }));
-
-    const reference = breeders.find((b) =>
-        b.town?.toLowerCase().includes(locationQuery.toLowerCase())
-    );
-
-    if (!reference || !reference.lat || !reference.lng) {
-        return breeders.map((item) => ({ ...item, distance: null }));
-    }
-
+function calculateDistanceFromUser(breeders, userLat, userLng) {
+    if (!userLat || !userLng) return breeders.map((item) => ({ ...item, distance: null }));
+    const lat = parseFloat(userLat);
+    const lng = parseFloat(userLng);
     return breeders.map((item) => ({
         ...item,
-        distance: distanceMiles(reference.lat, reference.lng, item.lat, item.lng),
+        distance: item.lat && item.lng ? distanceMiles(lat, lng, item.lat, item.lng) : null,
     }));
+}
+
+function sortBreeders(breeders, sortBy) {
+    const sorted = [...breeders];
+    switch (sortBy) {
+        case "distance":
+            return sorted.sort((a, b) => {
+                const da = a.distance ?? Infinity;
+                const db = b.distance ?? Infinity;
+                return da - db;
+            });
+        case "rating":
+            return sorted.sort((a, b) => (b.google_rating || 0) - (a.google_rating || 0));
+        case "name":
+            return sorted.sort((a, b) => a.name.localeCompare(b.name));
+        default:
+            return sorted;
+    }
 }
 
 export default async function SearchPage({ searchParams }) {
     const query = searchParams?.q || "";
     const breed = searchParams?.breed || "";
+    const maxDistance = searchParams?.maxDistance || "";
+    const sortBy = searchParams?.sort || "relevance";
+    const userLat = searchParams?.userLat || "";
+    const userLng = searchParams?.userLng || "";
 
     const supabase = createClient();
     let dbQuery = supabase
@@ -58,7 +73,7 @@ export default async function SearchPage({ searchParams }) {
         .select("*, breeder_breeds(breed)")
         .in("status", ["public_listing", "claimed_profile"]);
 
-    if (query) {
+    if (query && query !== "My location") {
         dbQuery = dbQuery.or(`name.ilike.%${query}%,town.ilike.%${query}%,postcode.ilike.%${query}%,address.ilike.%${query}%`);
     }
 
@@ -78,7 +93,17 @@ export default async function SearchPage({ searchParams }) {
             breeders = breeders.filter((b) => b.breeds.some((br) => br.toLowerCase() === breedLower));
         }
 
-        breeders = enrichWithDistance(breeders, query);
+        // Calculate distance from user location if provided
+        breeders = calculateDistanceFromUser(breeders, userLat, userLng);
+
+        // Apply max distance filter
+        if (maxDistance) {
+            const max = parseFloat(maxDistance);
+            breeders = breeders.filter((b) => b.distance !== null && b.distance <= max);
+        }
+
+        // Sort
+        breeders = sortBreeders(breeders, sortBy);
     }
 
     return (
@@ -90,20 +115,34 @@ export default async function SearchPage({ searchParams }) {
                     <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Search breeders</p>
                     <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Find breeders by town, postcode, or breed</h1>
                     <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                        Browse public breeder listings in West Sussex and beyond. Compare available information before reaching out. BreedWise does not endorse or vet breeders.
+                        Browse public breeder listings across the UK. Compare available information before reaching out. BreedWise does not endorse or vet breeders.
                     </p>
                 </div>
 
                 {/* Search form */}
                 <div className="mt-8">
-                    <SearchForm initialLocation={query} initialBreed={breed} />
+                    <SearchForm
+                        initialLocation={query}
+                        initialBreed={breed}
+                        initialMaxDistance={maxDistance}
+                        initialSort={sortBy}
+                        initialUserLat={userLat}
+                        initialUserLng={userLng}
+                    />
                 </div>
 
                 {/* Main layout: content + sidebar ad */}
                 <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
                     {/* Main content column */}
                     <div className="space-y-8">
-                        <SearchResults breeders={breeders} query={query} breed={breed} />
+                        <SearchResults
+                            breeders={breeders}
+                            query={query}
+                            breed={breed}
+                            sortBy={sortBy}
+                            userLat={userLat}
+                            userLng={userLng}
+                        />
 
                         {/* Educational content block */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

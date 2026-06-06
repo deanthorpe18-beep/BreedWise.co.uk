@@ -23,7 +23,7 @@ function applyFilters(breeders, filters) {
   });
 }
 
-export default function SearchResults({ breeders, query, breed }) {
+export default function SearchResults({ breeders, query, breed, sortBy, userLat, userLng }) {
   const [mapView, setMapView] = useState(false);
   const [saved, setSaved] = useState([]);
   const [filters, setFilters] = useState({
@@ -90,7 +90,11 @@ export default function SearchResults({ breeders, query, breed }) {
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Results</p>
           <h2 className="text-2xl font-semibold text-slate-900">{filteredBreeders.length} breeders found</h2>
-          <p className="text-sm text-slate-500">Showing matches for <span className="font-semibold text-slate-700">{query || "West Sussex"}</span>{breed ? ` · ${breed}` : ""}</p>
+          <p className="text-sm text-slate-500">
+            Showing matches for <span className="font-semibold text-slate-700">{query || "All UK"}</span>
+            {breed ? ` · ${breed}` : ""}
+            {userLat && userLng ? " · sorted by distance" : ""}
+          </p>
         </div>
         <div className="inline-flex overflow-hidden rounded-full border border-slate-200 bg-slate-50 p-1">
           <button
@@ -127,7 +131,7 @@ export default function SearchResults({ breeders, query, breed }) {
               </Link>
             ))}
           </div>
-          <p className="mt-4 text-sm text-slate-500">Map markers show approximate public listing locations within West Sussex.</p>
+          <p className="mt-4 text-sm text-slate-500">Map markers show approximate public listing locations.</p>
         </div>
       ) : (
         <div className="space-y-4">

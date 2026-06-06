@@ -18,7 +18,7 @@ export default function HomePage() {
             UK Dog Breeder Directory
           </span>
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Search dog breeder listings across West Sussex and the UK
+            Search dog breeder listings across the UK
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-slate-600">
             Compare public breeder information before making contact. BreedWise is a directory only — we do not sell puppies, endorse breeders, or guarantee the accuracy of third-party information.
@@ -139,10 +139,10 @@ export default function HomePage() {
           <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
             <p className="text-sm font-semibold text-slate-700">West Sussex towns</p>
             <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              {["Chichester", "Worthing", "Crawley", "Horsham", "Haywards Heath", "Bognor Regis"].map((town) => (
+              {["London", "Birmingham", "Manchester", "Leeds", "Bristol", "Glasgow", "Cardiff", "Belfast"].map((town) => (
                 <Link
                   key={town}
-                  href={`/england/west-sussex/${slugify(town)}/dog-breeders`}
+                  href={`/search?q=${encodeURIComponent(town)}`}
                   className="rounded-2xl bg-white px-3 py-2 text-slate-700 hover:bg-[#E6FFFB] transition"
                 >
                   {town}
