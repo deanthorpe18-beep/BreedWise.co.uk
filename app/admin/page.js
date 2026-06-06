@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Shield, Users, FileText, BarChart3, Settings, CheckCircle, XCircle, Clock, AlertTriangle, Loader2, Trash2, UserCheck } from "lucide-react";
+import { Lock, Shield, Users, FileText, BarChart3, Settings, CheckCircle, XCircle, Clock, AlertTriangle, Loader2, Trash2, UserCheck, UserPlus, UserMinus } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -12,8 +12,18 @@ export default function AdminPage() {
   const [claims, setClaims] = useState([]);
   const [removals, setRemovals] = useState([]);
   const [stats, setStats] = useState(null);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Admin creation form
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [newAdminName, setNewAdminName] = useState("");
+  const [createAdminMessage, setCreateAdminMessage] = useState("");
+  const [createAdminError, setCreateAdminError] = useState("");
+  const [createAdminLoading, setCreateAdminLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -22,7 +32,6 @@ export default function AdminPage() {
         setUser(data.user);
         setLoadingUser(false);
         if (!data.user || data.user.role !== "admin") {
-          // Not admin; redirect
           router.push("/");
         }
       })
@@ -40,11 +49,16 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [claimsRes, removalsRes, statsRes] = await Promise.all([
+      const endpoints = [
         fetch("/api/admin/claims"),
         fetch("/api/admin/removals"),
         fetch("/api/admin/stats"),
-      ]);
+      ];
+      if (activeTab === "admins") {
+        endpoints.push(fetch("/api/admin/users"));
+      }
+
+      const [claimsRes, removalsRes, statsRes, adminsRes] = await Promise.all(endpoints);
 
       if (claimsRes.status === 403 || removalsRes.status === 403) {
         setError("Access denied.");
@@ -59,6 +73,11 @@ export default function AdminPage() {
       setClaims(claimsData.claims || []);
       setRemovals(removalsData.removals || []);
       setStats(statsData);
+
+      if (adminsRes && adminsRes.ok) {
+        const adminsData = await adminsRes.json();
+        setAdmins(adminsData.admins || []);
+      }
     } catch (err) {
       setError("Unable to load admin data.");
     } finally {
@@ -95,6 +114,52 @@ export default function AdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ removalId: id, breederSlug, confirmDelete: true }),
+      });
+      if (res.ok) loadData();
+    } catch {}
+  };
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setCreateAdminMessage("");
+    setCreateAdminError("");
+
+    if (!newAdminEmail || !newAdminPassword || newAdminPassword.length < 8) {
+      setCreateAdminError("Email and password (min 8 chars) required.");
+      return;
+    }
+
+    setCreateAdminLoading(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newAdminEmail, password: newAdminPassword, fullName: newAdminName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCreateAdminError(data.error || "Failed to create admin.");
+      } else {
+        setCreateAdminMessage(data.message);
+        setNewAdminEmail("");
+        setNewAdminPassword("");
+        setNewAdminName("");
+        loadData();
+      }
+    } catch (err) {
+      setCreateAdminError(err.message);
+    } finally {
+      setCreateAdminLoading(false);
+    }
+  };
+
+  const handleRemoveAdmin = async (adminId) => {
+    if (!confirm("Remove admin access for this user? They will be demoted to a regular breeder account.")) return;
+    try {
+      const res = await fetch("/api/admin/users/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: adminId }),
       });
       if (res.ok) loadData();
     } catch {}
@@ -147,10 +212,11 @@ export default function AdminPage() {
 
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200">
-            <nav className="flex">
+            <nav className="flex flex-wrap">
               {[
                 { id: "queue", label: "Review Queue", icon: Shield },
                 { id: "stats", label: "Statistics", icon: BarChart3 },
+                { id: "admins", label: "Admins", icon: Users },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -264,6 +330,117 @@ export default function AdminPage() {
                       <div key={stat.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
                         <p className={`text-sm font-medium ${stat.color}`}>{stat.title}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "admins" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-[#00BFA5]" />
+                    Administrators
+                  </h2>
+                  <button
+                    onClick={() => setShowCreateAdmin(!showCreateAdmin)}
+                    className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Add admin
+                  </button>
+                </div>
+
+                {showCreateAdmin && (
+                  <form onSubmit={handleCreateAdmin} className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6 space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-900">Create new admin</h3>
+                    {createAdminMessage && (
+                      <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{createAdminMessage}</div>
+                    )}
+                    {createAdminError && (
+                      <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{createAdminError}</div>
+                    )}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700">Email</label>
+                        <input
+                          type="email"
+                          required
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700">Full name</label>
+                        <input
+                          type="text"
+                          value={newAdminName}
+                          onChange={(e) => setNewAdminName(e.target.value)}
+                          className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700">Password (min 8 chars)</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={8}
+                        value={newAdminPassword}
+                        onChange={(e) => setNewAdminPassword(e.target.value)}
+                        className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        disabled={createAdminLoading}
+                        className="rounded-3xl bg-[#00BFA5] px-5 py-2 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-50"
+                      >
+                        {createAdminLoading ? "Creating..." : "Create admin"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateAdmin(false)}
+                        className="rounded-3xl border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {admins.length === 0 ? (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No admin users found.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {admins.map((admin) => (
+                      <div key={admin.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{admin.display_name || "Unnamed"}</p>
+                            <p className="text-xs text-slate-500">ID: {admin.id}</p>
+                            <p className="text-xs text-slate-400">Created {new Date(admin.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-600">
+                              <CheckCircle className="h-3 w-3" />
+                              Admin
+                            </span>
+                            {admin.id !== user?.id && (
+                              <button
+                                onClick={() => handleRemoveAdmin(admin.id)}
+                                className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                              >
+                                <UserMinus className="h-3 w-3" />
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -49,7 +49,6 @@ api_url = "http://localhost:54321"
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
-inbucket_url = "http://localhost:54324"
 
 [storage]
 enabled = true
@@ -137,4 +136,3 @@ backend = "postgres"
 # Configures Postgres storage engine to use OrioleDB (S3) instead of the default Heap storage.
 orioledb_version = ""
 # Configures specifying version of supabase-postgres image.
-postgres_version = ""

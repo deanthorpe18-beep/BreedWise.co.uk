@@ -116,6 +116,8 @@ CREATE POLICY "Claims: auth insert"
   ON public.claims FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Claims: users read own" ON public.claims;
+
 CREATE POLICY "Claims: users read own"
   ON public.claims FOR SELECT
   USING (
@@ -139,6 +141,8 @@ CREATE POLICY "Claims: admins update all"
 CREATE POLICY "Removals: auth insert"
   ON public.removals FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Removals: users read own" ON public.removals;
 
 CREATE POLICY "Removals: users read own"
   ON public.removals FOR SELECT

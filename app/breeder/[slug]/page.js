@@ -1,154 +1,237 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getAllBreeders, getBreederBySlug } from "@lib/breeders";
-import { Globe, Phone, Mail, Star } from "lucide-react";
+import { notFound } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { Globe, Phone, Mail, Star, MapPin, ExternalLink } from "lucide-react";
 import ClaimButton from "@components/ClaimButton";
-import ProfileViewTracker from "@components/ProfileViewTracker";
-import GooglePlacePreview from "@components/GooglePlacePreview";
+import GoogleReviews from "@components/GoogleReviews";
+import BreederPhotos from "@components/BreederPhotos";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
-export function generateStaticParams() {
-  const breeders = getAllBreeders();
-  return breeders.map((item) => ({ slug: item.slug }));
+export async function generateMetadata({ params }) {
+    const { slug } = await params;
+    const supabase = createClient();
+    const { data: breeder } = await supabase
+        .from("breeders")
+        .select("name, town, county")
+        .eq("slug", slug)
+        .in("status", ["public_listing", "claimed_profile"])
+        .single();
+
+    if (!breeder) return baseMetadata({ title: "Breeder not found" });
+    return baseMetadata({
+        title: `${breeder.name} — ${breeder.town}`,
+        description: `Public listing for ${breeder.name} in ${breeder.town}, ${breeder.county}. Compare breeder information, photos and reviews on BreedWise.`,
+        path: `/breeder/${slug}`,
+    });
 }
 
-export function generateMetadata({ params }) {
-  const breeder = getBreederBySlug(params.slug);
-  if (!breeder) return baseMetadata({ title: "Breeder not found" });
-  return baseMetadata({
-    title: `${breeder.name.value} — ${breeder.town.value}`,
-    description: `Public listing for ${breeder.name.value} in ${breeder.town.value}, ${breeder.county.value}. Compare breeder information on BreedWise.`,
-    path: `/breeder/${params.slug}`,
-  });
-}
+export default async function BreederProfilePage({ params }) {
+    const { slug } = await params;
+    const supabase = createClient();
 
-export default function BreederProfilePage({ params }) {
-  const breeder = getBreederBySlug(params.slug);
-  if (!breeder) return notFound();
+    const { data: breeder, error } = await supabase
+        .from("breeders")
+        .select("*, breeder_breeds(breed), breeder_photos(*)")
+        .eq("slug", slug)
+        .in("status", ["public_listing", "claimed_profile"])
+        .single();
 
-  const status = breeder.status === "claimed_profile" ? "Claimed Profile" : "Public Listing";
+    if (error || !breeder) {
+        return notFound();
+    }
 
-  const structuredData = [
-    localBusinessSchema(breeder),
-    breadcrumbSchema([
-      { name: "Home", url: "https://breedwise.co.uk/" },
-      { name: "Search", url: "https://breedwise.co.uk/search" },
-      { name: breeder.name.value, url: `https://breedwise.co.uk/breeder/${params.slug}` },
-    ]),
-  ];
+    const breeds = breeder.breeder_breeds?.map((bb) => bb.breed) || [];
+    const photos = breeder.breeder_photos || [];
+    const hasHeroImage = !!breeder.hero_image_url;
+    const statusLabel = breeder.status === "claimed_profile" ? "Claimed Profile" : "Public Listing";
 
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
-      <ProfileViewTracker breederSlug={breeder.slug} breederName={breeder.name.value} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
+    const structuredData = [
+        localBusinessSchema({
+            ...breeder,
+            breeds: breeds.map((b) => ({ name: b })),
+        }),
+        breadcrumbSchema([
+            { name: "Home", url: "https://breedwise.co.uk/" },
+            { name: "Search", url: "https://breedwise.co.uk/search" },
+            { name: breeder.name, url: `https://breedwise.co.uk/breeder/${slug}` },
+        ]),
+    ];
 
-      <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="sm:flex sm:items-start sm:justify-between sm:gap-6">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name.value}</h1>
-            <p className="mt-2 text-sm text-slate-500">{breeder.town.value}, {breeder.county.value} · {status}</p>
-          </div>
-          <div className="mt-4 flex gap-3 sm:mt-0">
-            <a href={breeder.website.value} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-3xl bg-[#00BFA5] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/15 transition hover:bg-[#00a98e]">
-              <Globe className="mr-2 h-4 w-4" /> Visit website
-            </a>
-            <a href={`tel:${breeder.phone.value}`} className="inline-flex items-center justify-center rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-              <Phone className="mr-2 h-4 w-4" /> Call
-            </a>
-          </div>
-        </div>
+    return (
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+            />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <InfoTile label="Website" value={breeder.website.value} />
-          <InfoTile label="Phone" value={breeder.phone.value} />
-          <InfoTile label="Email" value={breeder.email.value} missing="Not found" />
-          <InfoTile label="Kennel Club" value={breeder.kennel_club.value} />
-          <InfoTile label="Council Licence" value={breeder.council_licence.value} />
-          <InfoTile label="Health Testing" value={breeder.health_testing.value} />
-        </div>
+            <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                {/* Header */}
+                <div className="sm:flex sm:items-start sm:justify-between sm:gap-6">
+                    <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
+                        <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
+                        <p className="mt-2 text-sm text-slate-500">
+                            {breeder.town}, {breeder.county} · {statusLabel}
+                        </p>
+                    </div>
+                    <div className="mt-4 flex gap-3 sm:mt-0">
+                        {breeder.website && (
+                            <a href={breeder.website} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-3xl bg-[#00BFA5] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/15 transition hover:bg-[#00a98e]">
+                                <Globe className="mr-2 h-4 w-4" /> Visit website
+                            </a>
+                        )}
+                        {breeder.phone && (
+                            <a href={`tel:${breeder.phone}`} className="inline-flex items-center justify-center rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                <Phone className="mr-2 h-4 w-4" /> Call
+                            </a>
+                        )}
+                    </div>
+                </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
-          <div className="flex items-center gap-3 text-sm text-slate-600">
-            <Star className="h-5 w-5 text-[#FFB545]" />
-            <p className="font-semibold text-slate-900">Google rating</p>
-          </div>
-          <p className="mt-4 text-3xl font-semibold text-slate-900">{breeder.google_rating.value} / 5.0</p>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Profile information is sourced from Google Places, website scraping, and BreedWise admin curation. Click through to view public reviews.
-          </p>
-          <a href={`https://www.google.com/search?q=${encodeURIComponent(breeder.name.value)}`} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">
-            View Google reviews
-          </a>
-        </div>
+                {/* Hero Image */}
+                {hasHeroImage && (
+                    <div className="relative overflow-hidden rounded-3xl">
+                        <img
+                            src={breeder.hero_image_url}
+                            alt={`${breeder.name} — breeder photo`}
+                            className="h-64 w-full object-cover sm:h-80"
+                            loading="eager"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                            <p className="text-xs text-white/80">Photo from Google Places</p>
+                        </div>
+                    </div>
+                )}
 
-        <GooglePlacePreview placeId={breeder.place_id.value} />
+                {/* Photo Gallery */}
+                {photos.length > 0 && (
+                    <BreederPhotos photos={photos} breederName={breeder.name} />
+                )}
 
-        <div className="space-y-4">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">About</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{breeder.about} {breeder.location_notes}</p>
-          </section>
+                {/* Info Tiles */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <InfoTile label="Website" value={breeder.website} />
+                    <InfoTile label="Phone" value={breeder.phone} />
+                    <InfoTile label="Email" value={breeder.email} missing="Not found" />
+                    <InfoTile label="Kennel Club" value={breeder.kennel_club} />
+                    <InfoTile label="Council Licence" value={breeder.council_licence} />
+                    <InfoTile label="Health Testing" value={breeder.health_testing} />
+                </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Location</h2>
-            <p className="mt-3 text-sm text-slate-600">Exact location is available for public listings only. This page shows the town and county for every breeder.</p>
-            <div className="mt-4 h-72 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 p-6 text-sm text-slate-500">
-              <p className="font-semibold text-slate-900">Map placeholder</p>
-              <p className="mt-3">{breeder.address.value}</p>
-              <p className="mt-1">Latitude: {breeder.coordinates.lat.toFixed(4)} · Longitude: {breeder.coordinates.lng.toFixed(4)}</p>
+                {/* Google Rating */}
+                <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
+                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                        <Star className="h-5 w-5 text-[#FFB545]" />
+                        <p className="font-semibold text-slate-900">Google rating</p>
+                    </div>
+                    <p className="mt-4 text-3xl font-semibold text-slate-900">
+                        {breeder.google_rating ? `${breeder.google_rating} / 5.0` : "No rating available"}
+                    </p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                        Profile information is sourced from Google Places, website scraping, and BreedWise admin curation.
+                    </p>
+                    <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(breeder.name + " " + breeder.town)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]"
+                    >
+                        View on Google <ExternalLink className="h-3 w-3" />
+                    </a>
+                </div>
+
+                {/* Google Reviews */}
+                <GoogleReviews slug={slug} breederName={breeder.name} />
+
+                {/* About */}
+                <div className="space-y-4">
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h2 className="text-xl font-semibold text-slate-900">About</h2>
+                        <p className="mt-3 text-sm leading-7 text-slate-600">
+                            {breeder.about} {breeder.location_notes}
+                        </p>
+                    </section>
+
+                    {/* Location */}
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h2 className="text-xl font-semibold text-slate-900">Location</h2>
+                        <p className="mt-3 text-sm text-slate-600">
+                            <MapPin className="mr-1 inline h-4 w-4 text-[#00BFA5]" />
+                            {breeder.address}
+                        </p>
+                        {breeder.lat && breeder.lng && (
+                            <div className="mt-4 h-72 overflow-hidden rounded-3xl">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    allowFullScreen
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&q=${breeder.lat},${breeder.lng}&zoom=14`}
+                                />
+                            </div>
+                        )}
+                    </section>
+                </div>
+
+                {/* Related searches */}
+                <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+                    <p className="mb-3 text-xs uppercase tracking-[0.3em] text-slate-500">Related searches</p>
+                    <div className="flex flex-wrap gap-2">
+                        {breeds.map((breed) => (
+                            <Link
+                                key={breed}
+                                href={`/search?breed=${encodeURIComponent(breed)}`}
+                                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
+                            >
+                                {breed} breeders
+                            </Link>
+                        ))}
+                        <Link
+                            href={`/search?q=${encodeURIComponent(breeder.town)}`}
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
+                        >
+                            Breeders in {breeder.town}
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Footer meta */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Last updated</p>
+                        <p className="mt-3 text-lg font-semibold text-slate-900">
+                            {breeder.last_updated_at
+                                ? new Date(breeder.last_updated_at).toLocaleDateString("en-GB")
+                                : "Unknown"}
+                        </p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Data sources</p>
+                        <p className="mt-3 text-sm text-slate-600">Google · Website · Admin curation</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
+                        <div className="mt-3 space-y-2 text-sm text-slate-600">
+                            <ClaimButton breederSlug={slug} breederName={breeder.name} />
+                            <Link href="/suggest-edit" className="block text-[#00BFA5] hover:text-[#008f7a]">Suggest an edit</Link>
+                            <Link href="/request-removal" className="block text-slate-500 hover:text-[#FF6B6B]">Request listing removal</Link>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </section>
         </div>
-
-        {/* Internal linking */}
-        <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500 mb-3">Related searches</p>
-          <div className="flex flex-wrap gap-2">
-            {breeder.breeds.map((b) => (
-              <Link key={b.name} href={`/search?breed=${encodeURIComponent(b.name)}`} className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#00BFA5] hover:text-[#00BFA5] transition">
-                {b.name} breeders
-              </Link>
-            ))}
-            <Link href={`/search?q=${encodeURIComponent(breeder.town.value)}`} className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#00BFA5] hover:text-[#00BFA5] transition">
-              Breeders in {breeder.town.value}
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Last updated</p>
-            <p className="mt-3 text-lg font-semibold text-slate-900">{breeder.last_updated_at}</p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Data sources</p>
-            <p className="mt-3 text-sm text-slate-600">Google · Website · Admin curation</p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
-            <div className="mt-3 space-y-2 text-sm text-slate-600">
-              <ClaimButton breederSlug={breeder.slug} breederName={breeder.name.value} />
-              <Link href="/suggest-edit" className="block text-[#00BFA5] hover:text-[#008f7a]">Suggest an edit</Link>
-              <Link href="/request-removal" className="block text-slate-500 hover:text-[#FF6B6B]">Request listing removal</Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 function InfoTile({ label, value, missing = "Found" }) {
-  const display = value ? value : missing;
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-4">
-      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{label}</p>
-      <p className="mt-3 text-sm font-semibold text-slate-900">{display}</p>
-    </div>
-  );
+    const display = value ? value : missing;
+    return (
+        <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{label}</p>
+            <p className="mt-3 text-sm font-semibold text-slate-900">{display}</p>
+        </div>
+    );
 }
