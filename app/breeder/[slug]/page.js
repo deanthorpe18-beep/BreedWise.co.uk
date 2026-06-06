@@ -5,6 +5,7 @@ import { Globe, Phone, Mail, Star, MapPin, ExternalLink } from "lucide-react";
 import ClaimProfileButton from "@components/ClaimProfileButton";
 import GoogleReviews from "@components/GoogleReviews";
 import BreederPhotos from "@components/BreederPhotos";
+import ProfileTracker, { TrackedLink } from "@components/ProfileTracker";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -60,6 +61,7 @@ export default async function BreederProfilePage({ params }) {
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
+            <ProfileTracker breederSlug={slug} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -77,14 +79,14 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                     <div className="mt-4 flex gap-3 sm:mt-0">
                         {breeder.website && (
-                            <a href={breeder.website} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-3xl bg-[#00BFA5] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/15 transition hover:bg-[#00a98e]">
+                            <TrackedLink href={breeder.website} breederSlug={slug} actionType="website" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-3xl bg-[#00BFA5] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/15 transition hover:bg-[#00a98e]">
                                 <Globe className="mr-2 h-4 w-4" /> Visit website
-                            </a>
+                            </TrackedLink>
                         )}
                         {breeder.phone && (
-                            <a href={`tel:${breeder.phone}`} className="inline-flex items-center justify-center rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                            <TrackedLink href={`tel:${breeder.phone}`} breederSlug={slug} actionType="call" className="inline-flex items-center justify-center rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                 <Phone className="mr-2 h-4 w-4" /> Call
-                            </a>
+                            </TrackedLink>
                         )}
                     </div>
                 </div>

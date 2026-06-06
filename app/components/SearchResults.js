@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MapPin, Phone, Star, Heart, Globe, ChevronRight, Layers, Image as ImageIcon } from "lucide-react";
+import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
 
@@ -45,6 +46,7 @@ export default function SearchResults({ breeders, query, breed }) {
       const isAdding = !current.includes(slug);
       if (isAdding) {
         trackSaveBreeder(slug, breederName);
+        trackCtaClick(slug, "save");
       }
       return isAdding ? [...current, slug] : current.filter((item) => item !== slug);
     });
@@ -179,7 +181,7 @@ export default function SearchResults({ breeders, query, breed }) {
                       View profile
                     </Link>
                     {breeder.phone ? (
-                      <a href={`tel:${breeder.phone}`} className="rounded-3xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                      <a href={`tel:${breeder.phone}`} onClick={() => trackCtaClick(breeder.slug, "call")} className="rounded-3xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                         Call
                       </a>
                     ) : (

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import MainNav from "@components/MainNav";
 import CookieConsent from "@components/CookieConsent";
+import SessionTracker from "@components/SessionTracker";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }) {
             </div>
           </header>
 
+          <SessionTracker />
           <main className="flex-grow">{children}</main>
           <CookieConsent />
 
