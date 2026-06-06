@@ -29,7 +29,7 @@ export async function POST(request) {
     }
 
     const supabase = createClient();
-    await supabase.auth.resend({
+    const { data, error } = await supabase.auth.resend({
       type: "signup",
       email,
       options: {
@@ -37,8 +37,28 @@ export async function POST(request) {
       },
     });
 
+    if (error) {
+      // Supabase enforces a 60-second cooldown between resends
+      const isRateLimited =
+        error.message?.toLowerCase().includes("once every") ||
+        error.message?.toLowerCase().includes("rate limit") ||
+        error.status === 429;
+
+      if (isRateLimited) {
+        return NextResponse.json(
+          { error: "Please wait 60 seconds before requesting another email." },
+          { status: 429 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: error.message || "Unable to resend email. Please try again." },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
-      message: "If an account exists with this email, a verification link has been sent.",
+      message: "Verification email sent. Please check your inbox.",
     });
   } catch (err) {
     return NextResponse.json(

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +16,23 @@ export default function LoginPage() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
+  const [resendError, setResendError] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,6 +44,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     setNeedsVerification(false);
+    setResendMessage("");
+    setResendError(false);
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -49,9 +70,13 @@ export default function LoginPage() {
     }
   };
 
-  const handleResend = async () => {
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
     setResendLoading(true);
     setResendMessage("");
+    setResendError(false);
+
     try {
       const res = await fetch("/api/auth/resend", {
         method: "POST",
@@ -59,13 +84,26 @@ export default function LoginPage() {
         body: JSON.stringify({ email: form.email }),
       });
       const data = await res.json();
-      setResendMessage(data.message || "Verification email sent.");
+
+      if (!res.ok) {
+        setResendError(true);
+        setResendMessage(data.error || "Unable to resend email. Please try again.");
+        // If rate-limited by Supabase (429), start the 60s cooldown anyway
+        if (res.status === 429) {
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+        }
+      } else {
+        setResendError(false);
+        setResendMessage(data.message || "Verification email sent.");
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      }
     } catch {
+      setResendError(true);
       setResendMessage("Something went wrong. Please try again.");
     } finally {
       setResendLoading(false);
     }
-  };
+  }, [form.email, resendCooldown, resendLoading]);
 
   return (
     <div className="mx-auto max-w-md px-4 py-12 sm:px-6">
@@ -84,15 +122,25 @@ export default function LoginPage() {
             <div>
               <p>{error}</p>
               {needsVerification && (
-                <button
-                  onClick={handleResend}
-                  disabled={resendLoading}
-                  className="mt-2 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a] disabled:opacity-50"
-                >
-                  {resendLoading ? "Sending..." : "Resend verification email"}
-                </button>
+                <div className="mt-2">
+                  <button
+                    onClick={handleResend}
+                    disabled={resendLoading || resendCooldown > 0}
+                    className="text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resendLoading
+                      ? "Sending..."
+                      : resendCooldown > 0
+                      ? `Resend available in ${resendCooldown}s`
+                      : "Resend verification email"}
+                  </button>
+                  {resendMessage && (
+                    <p className={`mt-1 text-xs ${resendError ? "text-red-600" : "text-slate-600"}`}>
+                      {resendMessage}
+                    </p>
+                  )}
+                </div>
               )}
-              {resendMessage && <p className="mt-1 text-xs text-slate-600">{resendMessage}</p>}
             </div>
           </div>
         )}
