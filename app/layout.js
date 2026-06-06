@@ -4,6 +4,7 @@ import Link from "next/link";
 import MainNav from "@components/MainNav";
 import CookieConsent from "@components/CookieConsent";
 import SessionTracker from "@components/SessionTracker";
+import CacheBuster from "@components/CacheBuster";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -17,9 +18,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://breedwise.co.uk" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -37,6 +40,7 @@ export default function RootLayout({ children }) {
             </div>
           </header>
 
+          <CacheBuster />
           <SessionTracker />
           <main className="flex-grow">{children}</main>
           <CookieConsent />
