@@ -2,15 +2,31 @@ import { NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request) {
-  // Update Supabase session and get response with refreshed cookies
-  const response = await updateSession(request);
+  let response;
+
+  try {
+    // Update Supabase session and get response with refreshed cookies
+    response = await updateSession(request);
+  } catch (err) {
+    console.error("[middleware] Fatal error in updateSession:", err.message);
+    // Fallback: return a basic response without session updates
+    response = NextResponse.next({
+      request: { headers: request.headers },
+    });
+  }
 
   // Security headers
   const headers = response.headers;
   headers.set("X-Frame-Options", "DENY");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+
+  // TEMPORARY: Use no-store while debugging availability issues
+  // This prevents ANY caching of HTML pages, ensuring fresh responses
+  headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  headers.set("Pragma", "no-cache");
+  headers.set("Expires", "0");
+
   headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
@@ -36,8 +52,6 @@ export async function middleware(request) {
 
   // Protect admin routes
   if (pathname.startsWith("/admin")) {
-    // Allow access to admin page itself; the page component will handle role checks server-side
-    // via Supabase RLS and server components.
     return response;
   }
 

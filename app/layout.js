@@ -22,6 +22,7 @@ export default function RootLayout({ children }) {
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="build-version" content="20250606-v2" />
         <link rel="preconnect" href="https://breedwise.co.uk" />
         <script
           type="application/ld+json"

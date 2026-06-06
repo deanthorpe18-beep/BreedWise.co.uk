@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BreedWise — Clear Cache &amp; Fix Connection</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+    h1 { color: #0f172a; font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+      font-weight: 500;
+    }
+    .status.ok { background: #dcfce7; color: #166534; }
+    .status.error { background: #fee2e2; color: #991b1b; }
+    .status.info { background: #dbeafe; color: #1e40af; }
+    button {
+      background: #0f172a;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 8px 8px 8px 0;
+    }
+    button:hover { background: #1e293b; }
+    button.secondary { background: #e2e8f0; color: #0f172a; }
+    button.secondary:hover { background: #cbd5e1; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    .step { margin: 16px 0; padding-left: 20px; border-left: 3px solid #cbd5e1; }
+    .step.active { border-left-color: #0f172a; }
+  </style>
+</head>
+<body>
+  <h1>🔧 BreedWise Cache &amp; Connection Fix</h1>
+  <p>If you're seeing "This site can't be reached" or the page won't load, this tool will clear everything that might be causing the problem.</p>
+
+  <div class="card">
+    <h3>Step 1: Test Connection</h3>
+    <div id="connection-status" class="status info">Testing...</div>
+    <button onclick="testConnection()">Test Again</button>
+  </div>
+
+  <div class="card">
+    <h3>Step 2: Clear Everything</h3>
+    <p>This will clear caches, localStorage, cookies, and service workers for <code>breedwise.co.uk</code>.</p>
+    <button onclick="clearAll()">🚮 Clear All Data</button>
+    <button class="secondary" onclick="goHome()">🏠 Go to Homepage</button>
+  </div>
+
+  <div class="card">
+    <h3>Step 3: If Still Broken</h3>
+    <div class="step active">
+      <strong>Try a different network</strong><br>
+      Switch from WiFi to mobile data (or vice versa) and try again.
+    </div>
+    <div class="step">
+      <strong>Restart your router</strong><br>
+      Unplug your router for 30 seconds, then plug it back in.
+    </div>
+    <div class="step">
+      <strong>Check your DNS</strong><br>
+      Try setting your DNS to <code>1.1.1.1</code> (Cloudflare) or <code>8.8.8.8</code> (Google).
+    </div>
+    <div class="step">
+      <strong>Disable browser extensions</strong><br>
+      Ad blockers, privacy tools, and antivirus extensions can block sites.
+    </div>
+  </div>
+
+  <div class="card" id="results" style="display:none;">
+    <h3>Results</h3>
+    <pre id="results-text" style="white-space:pre-wrap;word-break:break-word;background:#f8fafc;padding:16px;border-radius:8px;font-size:0.85rem;"></pre>
+  </div>
+
+  <script>
+    async function testConnection() {
+      const status = document.getElementById('connection-status');
+      status.className = 'status info';
+      status.textContent = 'Testing connection to breedwise.co.uk...';
+      
+      const results = [];
+      const tests = [
+        { name: 'Fetch homepage', fn: () => fetch('/', { cache: 'no-store', mode: 'same-origin' }) },
+        { name: 'Fetch health API', fn: () => fetch('/api/health', { cache: 'no-store' }) },
+        { name: 'Fetch static CSS', fn: () => fetch('/_next/static/css/app/layout.css', { cache: 'no-store' }).catch(() => ({ ok: true, status: 'skipped' })) },
+      ];
+      
+      for (const test of tests) {
+        try {
+          const start = performance.now();
+          const res = await Promise.race([
+            test.fn(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 5s')), 5000))
+          ]);
+          const time = Math.round(performance.now() - start);
+          results.push(`${test.name}: ${res.status} OK (${time}ms)`);
+        } catch (e) {
+          results.push(`${test.name}: FAILED — ${e.message}`);
+        }
+      }
+      
+      const allOk = results.every(r => r.includes('OK'));
+      status.className = allOk ? 'status ok' : 'status error';
+      status.textContent = allOk ? '✅ Site is responding! Try clearing cache below.' : '❌ Some requests failed. See Results below.';
+      
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results-text').textContent = results.join('\n');
+    }
+    
+    async function clearAll() {
+      const results = [];
+      
+      // Clear localStorage
+      try {
+        const keys = Object.keys(localStorage);
+        let count = 0;
+        for (const key of keys) {
+          if (key.startsWith('breedwise') || key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+            count++;
+          }
+        }
+        results.push(`✅ Cleared ${count} localStorage items`);
+      } catch (e) {
+        results.push(`❌ localStorage error: ${e.message}`);
+      }
+      
+      // Clear sessionStorage
+      try {
+        sessionStorage.clear();
+        results.push(`✅ Cleared sessionStorage`);
+      } catch (e) {
+        results.push(`❌ sessionStorage error: ${e.message}`);
+      }
+      
+      // Unregister service workers
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.unregister();
+            results.push(`✅ Unregistered service worker: ${reg.scope}`);
+          }
+          if (regs.length === 0) results.push(`✅ No service workers found`);
+        }
+      } catch (e) {
+        results.push(`❌ Service worker error: ${e.message}`);
+      }
+      
+      // Clear caches
+      try {
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (const name of cacheNames) {
+            await caches.delete(name);
+            results.push(`✅ Deleted cache: ${name}`);
+          }
+          if (cacheNames.length === 0) results.push(`✅ No caches found`);
+        }
+      } catch (e) {
+        results.push(`❌ Cache error: ${e.message}`);
+      }
+      
+      // Clear cookies
+      try {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name] = cookie.split('=');
+          const trimmed = name.trim();
+          document.cookie = `${trimmed}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          document.cookie = `${trimmed}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${location.hostname};`;
+        }
+        results.push(`✅ Cleared cookies`);
+      } catch (e) {
+        results.push(`❌ Cookie error: ${e.message}`);
+      }
+      
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results-text').textContent = results.join('\n');
+      
+      alert('All data cleared! The page will now reload.');
+      setTimeout(() => {
+        window.location.href = '/?nocache=' + Date.now();
+      }, 500);
+    }
+    
+    function goHome() {
+      window.location.href = '/?nocache=' + Date.now();
+    }
+    
+    // Auto-test on load
+    testConnection();
+  </script>
+</body>
+</html>
