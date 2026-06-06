@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { Globe, Phone, Mail, Star, MapPin, ExternalLink } from "lucide-react";
-import ClaimButton from "@components/ClaimButton";
+import ClaimProfileButton from "@components/ClaimProfileButton";
 import GoogleReviews from "@components/GoogleReviews";
 import BreederPhotos from "@components/BreederPhotos";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
@@ -71,9 +71,14 @@ export default async function BreederProfilePage({ params }) {
                     <div>
                         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            {breeder.town}{breeder.county ? `, ${breeder.county}` : ""} · {statusLabel}
-                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                            <p className="text-sm text-slate-500">
+                                {breeder.town}{breeder.county ? `, ${breeder.county}` : ""} · {statusLabel}
+                            </p>
+                            {breeder.status !== "claimed_profile" && (
+                                <ClaimProfileButton breederSlug={slug} breederName={breeder.name} variant="button" />
+                            )}
+                        </div>
                     </div>
                     <div className="mt-4 flex gap-3 sm:mt-0">
                         {breeder.website && (
@@ -88,6 +93,11 @@ export default async function BreederProfilePage({ params }) {
                         )}
                     </div>
                 </div>
+
+                {/* Prominent Claim Banner */}
+                {breeder.status !== "claimed_profile" && (
+                    <ClaimProfileButton breederSlug={slug} breederName={breeder.name} variant="banner" />
+                )}
 
                 {/* Hero Image */}
                 {hasHeroImage && (
@@ -217,8 +227,10 @@ export default async function BreederProfilePage({ params }) {
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
                         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
                         <div className="mt-3 space-y-2 text-sm text-slate-600">
-                            <ClaimButton breederSlug={slug} breederName={breeder.name} />
-                            <Link href="/suggest-edit" className="block text-[#00BFA5] hover:text-[#008f7a]">Suggest an edit</Link>
+                            {breeder.status !== "claimed_profile" && (
+                                <Link href={`/claim?slug=${encodeURIComponent(slug)}&name=${encodeURIComponent(breeder.name)}`} className="block font-semibold text-[#00BFA5] hover:text-[#008f7a]">Claim this profile</Link>
+                            )}
+                            <Link href="/suggest-edit" className="block text-slate-600 hover:text-[#00BFA5]">Suggest an edit</Link>
                             <Link href="/request-removal" className="block text-slate-500 hover:text-[#FF6B6B]">Request listing removal</Link>
                         </div>
                     </div>

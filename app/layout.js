@@ -25,8 +25,8 @@ export default function RootLayout({ children }) {
         <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
             <div className="mx-auto relative flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 md:px-8">
-              <Link href="/" className="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-[#2D3436]">
-                <span className="h-10 w-10 rounded-2xl bg-[#00BFA5] text-white flex items-center justify-center font-black">BW</span>
+              <Link href="/" className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#2D3436]">
+                <img src="/logo.svg" alt="BreedWise" className="h-10 w-10" />
                 <span>BreedWise.co.uk</span>
               </Link>
               <MainNav />
