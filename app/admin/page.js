@@ -619,6 +619,21 @@ export default function AdminPage() {
                       <StatCard title="Avg Views/Day" value={analytics.dailyStats.length > 0 ? Math.round(analytics.totalPageViews / analytics.dailyStats.length) : 0} icon={TrendingUp} color="text-orange-500" />
                     </div>
 
+                    {/* Unique Visitors */}
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                      <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                        <Users className="h-5 w-5 text-[#00BFA5]" />
+                        Unique Visitors
+                      </h3>
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                        <VisitorCard label="Today" value={analytics.uniqueVisitors?.today ?? 0} />
+                        <VisitorCard label="This Week" value={analytics.uniqueVisitors?.week ?? 0} />
+                        <VisitorCard label="This Month" value={analytics.uniqueVisitors?.month ?? 0} />
+                        <VisitorCard label="This Year" value={analytics.uniqueVisitors?.year ?? 0} />
+                        <VisitorCard label="Total" value={analytics.uniqueVisitors?.total ?? 0} />
+                      </div>
+                    </div>
+
                     {/* Most viewed breeders */}
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                       <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -922,6 +937,15 @@ function StatCard({ title, value, icon: Icon, color }) {
           <p className={`text-xs font-medium ${color}`}>{title}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function VisitorCard({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-[#F1F4F6] p-4 text-center">
+      <p className="text-2xl font-bold text-slate-900">{value.toLocaleString()}</p>
+      <p className="text-xs font-medium text-slate-500 mt-1">{label}</p>
     </div>
   );
 }

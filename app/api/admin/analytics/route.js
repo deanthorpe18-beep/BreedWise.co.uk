@@ -12,6 +12,29 @@ async function isAdmin(supabase) {
   return profile?.role === "admin";
 }
 
+async function countUniqueVisitors(adminClient, sinceDate) {
+  // Fetch all ip_hash values since the given date and count distinct ones
+  // Paginate in case of large datasets
+  const allHashes = [];
+  let from = 0;
+  const batchSize = 1000;
+
+  while (true) {
+    const { data, error } = await adminClient
+      .from("page_views")
+      .select("ip_hash")
+      .gte("created_at", sinceDate)
+      .range(from, from + batchSize - 1);
+
+    if (error || !data || data.length === 0) break;
+    allHashes.push(...data);
+    if (data.length < batchSize) break;
+    from += batchSize;
+  }
+
+  return new Set(allHashes.map((d) => d.ip_hash).filter(Boolean)).size;
+}
+
 export async function GET(request) {
   try {
     const supabase = createClient();
@@ -25,25 +48,47 @@ export async function GET(request) {
 
     const adminClient = createAdminClient();
 
-    // Online users (active in last 5 minutes)
+    // ── Time boundaries for visitor counters ──
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
+    const allTimeStart = "1970-01-01T00:00:00Z";
+
+    // ── Online users (active in last 5 minutes) ──
     const { count: onlineUsers } = await adminClient
       .from("user_sessions")
       .select("*", { count: "exact", head: true })
       .gte("last_active_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
 
-    // Total page views in period
+    // ── Unique visitors by period ──
+    const [
+      visitorsToday,
+      visitorsWeek,
+      visitorsMonth,
+      visitorsYear,
+      visitorsTotal,
+    ] = await Promise.all([
+      countUniqueVisitors(adminClient, todayStart),
+      countUniqueVisitors(adminClient, weekStart),
+      countUniqueVisitors(adminClient, monthStart),
+      countUniqueVisitors(adminClient, yearStart),
+      countUniqueVisitors(adminClient, allTimeStart),
+    ]);
+
+    // ── Total page views in period ──
     const { count: totalPageViews } = await adminClient
       .from("page_views")
       .select("*", { count: "exact", head: true })
       .gte("created_at", since);
 
-    // Most viewed breeders
+    // ── Most viewed breeders ──
     const { data: mostViewed } = await adminClient.rpc("get_most_viewed_breeders", {
       since_date: since,
       limit_count: 10,
     });
 
-    // Fallback if RPC doesn't exist yet
     let topBreeders = mostViewed || [];
     if (topBreeders.length === 0) {
       const { data: pvData } = await adminClient
@@ -62,7 +107,7 @@ export async function GET(request) {
         .map(([slug, views]) => ({ breeder_slug: slug, views }));
     }
 
-    // CTA clicks by type
+    // ── CTA clicks by type ──
     const { data: ctaData } = await adminClient
       .from("cta_clicks")
       .select("action_type, breeder_slug")
@@ -76,7 +121,6 @@ export async function GET(request) {
       ctaByBreeder[c.breeder_slug][c.action_type] = (ctaByBreeder[c.breeder_slug][c.action_type] || 0) + 1;
     });
 
-    // Top breeders by CTA clicks
     const topCtaBreeders = Object.entries(ctaByBreeder)
       .map(([slug, actions]) => ({
         breeder_slug: slug,
@@ -86,7 +130,7 @@ export async function GET(request) {
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
 
-    // Daily stats for chart
+    // ── Daily stats for chart ──
     const { data: dailyViews } = await adminClient
       .from("page_views")
       .select("created_at")
@@ -100,6 +144,13 @@ export async function GET(request) {
 
     return NextResponse.json({
       onlineUsers: onlineUsers || 0,
+      uniqueVisitors: {
+        today: visitorsToday,
+        week: visitorsWeek,
+        month: visitorsMonth,
+        year: visitorsYear,
+        total: visitorsTotal,
+      },
       totalPageViews: totalPageViews || 0,
       totalCtaClicks: (ctaData || []).length,
       topBreeders: topBreeders,
