@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/server";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Globe, Phone, Mail, Star, MapPin, ExternalLink } from "lucide-react";
 import ClaimProfileButton from "@components/ClaimProfileButton";
@@ -11,35 +11,54 @@ import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata({ params }) {
     const { slug } = await params;
-    const supabase = createClient();
-    const { data: breeder } = await supabase
-        .from("breeders")
-        .select("name, town, county")
-        .eq("slug", slug)
-        .in("status", ["public_listing", "claimed_profile"])
-        .single();
+    try {
+        const supabase = createClient();
+        const { data: breeder } = await supabase
+            .from("breeders")
+            .select("name, town, county")
+            .eq("slug", slug)
+            .in("status", ["public_listing", "claimed_profile"])
+            .single();
 
-    if (!breeder) return baseMetadata({ title: "Breeder not found" });
-    return baseMetadata({
-        title: `${breeder.name} — ${breeder.town}`,
-        description: `Public listing for ${breeder.name} in ${breeder.town}, ${breeder.county}. Compare breeder information, photos and reviews on BreedWise.`,
-        path: `/breeder/${slug}`,
-    });
+        if (!breeder) return baseMetadata({ title: "Breeder not found" });
+        return baseMetadata({
+            title: `${breeder.name} — ${breeder.town}`,
+            description: `Public listing for ${breeder.name} in ${breeder.town}, ${breeder.county}. Compare breeder information, photos and reviews on BreedWise.`,
+            path: `/breeder/${slug}`,
+        });
+    } catch (err) {
+        console.warn("[breeder metadata] Auth error for", slug, err?.message || err);
+        return baseMetadata({ title: "Breeder not found" });
+    }
 }
 
 export default async function BreederProfilePage({ params }) {
     const { slug } = await params;
-    const supabase = createClient();
+    let breeder = null;
 
-    const { data: breeder, error } = await supabase
-        .from("breeders")
-        .select("*, breeder_breeds(breed), breeder_photos(*)")
-        .eq("slug", slug)
-        .in("status", ["public_listing", "claimed_profile"])
-        .single();
+    try {
+        const supabase = createClient();
 
-    if (error || !breeder) {
-        return notFound();
+        const { data, error } = await supabase
+            .from("breeders")
+            .select("*, breeder_breeds(breed), breeder_photos(*)")
+            .eq("slug", slug)
+            .in("status", ["public_listing", "claimed_profile"])
+            .single();
+
+        if (error || !data) {
+            notFound();
+        }
+        breeder = data;
+    } catch (err) {
+        // Auth errors (e.g. refresh token not found) should not crash the page.
+        // The breeder profile is public — it doesn't require authentication.
+        console.warn("[breeder page] Auth or DB error for", slug, err?.message || err);
+        notFound();
+    }
+
+    if (!breeder) {
+        notFound();
     }
 
     const breeds = breeder.breeder_breeds?.map((bb) => bb.breed) || [];
