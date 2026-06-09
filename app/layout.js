@@ -5,6 +5,8 @@ import MainNav from "@components/MainNav";
 import CookieConsent from "@components/CookieConsent";
 import SessionTracker from "@components/SessionTracker";
 import CacheBuster from "@components/CacheBuster";
+import { AuthProvider } from "@components/AuthProvider";
+import { ToastProvider } from "@components/Toast";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -41,10 +43,14 @@ export default function RootLayout({ children }) {
             </div>
           </header>
 
-          <CacheBuster />
-          <SessionTracker />
-          <main className="flex-grow">{children}</main>
-          <CookieConsent />
+          <AuthProvider>
+            <ToastProvider>
+              <CacheBuster />
+              <SessionTracker />
+              <main className="flex-grow">{children}</main>
+              <CookieConsent />
+            </ToastProvider>
+          </AuthProvider>
 
           <footer className="border-t border-slate-200 bg-[#F1F4F6] px-4 py-10 sm:px-6 md:px-8">
             <div className="mx-auto max-w-6xl space-y-6 text-sm text-slate-600">

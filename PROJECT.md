@@ -1,525 +1,403 @@
-# BreedWise — Project Source of Truth
+# BreedWise.co.uk — Project Documentation
 
-> A living document for developers, AI assistants, and team members.  
-> Last updated: 2026-06-06
+> **Source of truth** for architecture, database schema, auth flows, deployment, and environment configuration.
 
 ---
 
 ## 1. Project Overview
 
-**BreedWise** is a UK dog breeder directory. It helps prospective dog buyers compare public breeder information before making contact. It also gives breeders a way to claim their profile, improve accuracy, or request removal.
+**BreedWise** is a UK-wide dog breeder directory built on:
 
-**Target audience**
-- Dog buyers searching for breeders by town, postcode, or breed
-- UK dog breeders who want to manage or remove their public listing
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14.2 (App Router, React 18) |
+| Styling | Tailwind CSS |
+| Database | Supabase PostgreSQL (eu-west-2) |
+| Auth | Supabase Auth (email/password + OAuth) |
+| Email | Resend |
+| Hosting | Railway (custom domain via Cloudflare) |
+| Analytics | Self-hosted (page_views, cta_clicks, user_sessions) |
 
-**Business model**
-- Free directory with public listings
-- Future premium listings (not yet implemented)
-- AdSense integration (feature-flagged, not yet enabled)
-
-**Geographic focus**
-- Currently West Sussex and surrounding areas
-- Scalable to UK-wide rollout via dynamic SEO landing pages
-
-**Core principles**
-- Transparency: clearly show data sources and last-updated dates
-- No endorsement: inclusion does not mean recommendation, vetting, or guarantee
-- No puppy sales: BreedWise is a directory only, not a marketplace
-- Compliance-first: UK GDPR, PECR, and Google API terms are respected
+### Philosophy
+- **Directory only** — we do not sell puppies or endorse breeders.
+- **Public-first** — breeder profiles are public pages; auth is only required for claims, admin, and account management.
+- **Low cost** — no Redis, no external analytics SaaS, no unnecessary services.
 
 ---
 
-## 2. Tech Stack
+## 2. Database Schema
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Frontend | Next.js (App Router) | 14.2.3 |
-| React | React | 18 |
-| Styling | Tailwind CSS | 3.4.1 |
-| UI Icons | Lucide React | 0.378.0 |
-| Backend / API | Next.js API Routes + Server Actions | — |
-| Database | Supabase (Postgres) | — |
-| Auth | Supabase Auth | — |
-| Email | Resend | 3.2.0 |
-| Validation | Zod | 3.23.0 |
-| Hosting | Vercel | — |
-| External APIs | Google Places API (New) | — |
-
----
-
-## 3. Repository Structure
-
-```
-├── app/
-│   ├── [country]/[region]/[county]/[town]/
-│   │   ├── dog-breeders/page.js           # Location landing page
-│   │   └── [breed]-breeders/page.js       # Breed + location landing page
-│   ├── admin/page.js                      # Admin dashboard (claims & removals)
-│   ├── api/
-│   │   ├── admin/claims/route.js          # Admin claims API
-│   │   ├── admin/removals/route.js        # Admin removals API
-│   │   ├── admin/removals/hard-delete/    # GDPR hard delete endpoint
-│   │   ├── auth/                          # Signup, login, logout, me, forgot, reset, resend
-│   │   ├── claims/route.js                # Public claim submission
-│   │   ├── contact/route.js               # Contact form
-│   │   ├── cron/google-refresh/route.js   # Weekly Google Places refresh
-│   │   ├── places/[placeId]/route.js      # Google Places proxy
-│   │   ├── removals/route.js              # Public removal submission
-│   │   ├── robots/route.js                # robots.txt
-│   │   └── sitemap/route.js               # sitemap.xml
-│   ├── auth/
-│   │   ├── callback/route.js              # Supabase auth callback
-│   │   ├── forgot/page.js                 # Password reset request
-│   │   ├── login/page.js                  # Login
-│   │   ├── reset/page.js                  # Password reset confirmation
-│   │   ├── signup/page.js                 # Signup
-│   │   └── verify/page.js                 # Email verification prompt
-│   ├── breeder/[slug]/page.js             # Individual breeder profile
-│   ├── breeder-benefits/page.js           # Why claim your profile
-│   ├── breeders/
-│   │   ├── [slug]/page.js                 # Breed or location landing page
-│   │   └── [slug]/[subSlug]/page.js       # Breed + location landing page
-│   ├── claim/page.js                      # Claim listing flow
-│   ├── components/                        # Reusable React components
-│   ├── corrections-removals/page.js       # Policy page
-│   ├── data-sources/page.js               # Policy page
-│   ├── disclaimer/page.js                 # Policy page
-│   ├── editorial-policy/page.js           # Policy page
-│   ├── education/                         # Buyer guides hub + 5 guides
-│   ├── listing-policy/page.js             # Policy page
-│   ├── privacy/page.js                    # Policy page
-│   ├── request-removal/page.js            # Removal request flow
-│   ├── search/page.js                     # Search results
-│   ├── suggest-edit/page.js               # Suggest an edit
-│   └── terms/page.js                      # Policy page
-├── lib/
-│   ├── analytics.js                       # Client-side analytics (localStorage)
-│   ├── api.js                             # TCGDex API helpers (legacy)
-│   ├── breeders.js                        # In-memory breeder data + helpers
-│   ├── emails/resend.js                   # Resend email wrappers
-│   ├── rate-limit.js                      # In-memory rate limiter
-│   ├── security.js                        # Input sanitisation + CSRF
-│   ├── server-analytics.js                # Server-side analytics helpers
-│   ├── seo/metadata.js                    # Metadata generator
-│   ├── seo/schema.js                      # JSON-LD schema builders
-│   ├── supabase/
-│   │   ├── client.js                      # Browser Supabase client
-│   │   ├── middleware.js                  # Session refresh middleware
-│   │   └── server.js                      # Server Supabase client + admin client
-│   └── validation.js                      # Zod schemas
-├── supabase/
-│   ├── migrations/                        # Schema migrations (001, 002, 003)
-│   ├── config.toml                        # Supabase CLI config
-│   └── seed.sql                           # Seed data (minimal)
-├── middleware.js                          # Next.js middleware (auth, CSP, headers)
-├── next.config.js                         # Next.js config (headers, aliases)
-├── vercel.json                            # Vercel config (cron, headers, rewrites)
-├── tailwind.config.js                     # Tailwind theme
-├── postcss.config.js                      # PostCSS config
-├── .env.example                           # Required environment variables
-└── PROJECT.md                             # This file
+### Role Enum
+```sql
+CREATE TYPE public.app_role AS ENUM ('public', 'buyer', 'breeder', 'admin', 'super_admin');
 ```
 
----
+### Core Tables
 
-## 4. Database Schema
+#### `profiles` (extends `auth.users`)
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK, FK → `auth.users` |
+| `display_name` | text | Defaults to email |
+| `role` | app_role | Default `'breeder'` |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
 
-### 4.1 Tables
-
-#### `profiles`
-Extends Supabase Auth users.
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | uuid | PK, references auth.users ON DELETE CASCADE |
-| display_name | text | |
-| role | app_role | NOT NULL DEFAULT 'breeder' (enum: public, breeder, admin) |
-| created_at | timestamptz | DEFAULT now() |
-| updated_at | timestamptz | DEFAULT now() |
-
-**Trigger**: `on_auth_user_created` auto-creates a profile on signup with role `breeder`.
-
-#### `claims`
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | uuid | PK DEFAULT uuid_generate_v4() |
-| breeder_slug | text | NOT NULL |
-| breeder_name | text | |
-| claimant_email | text | NOT NULL |
-| claimant_name | text | |
-| claimant_user_id | uuid | FK profiles(id) ON DELETE SET NULL |
-| status | text | DEFAULT 'pending' CHECK ('pending','under_review','approved','rejected') |
-| notes | text | |
-| admin_reason | text | |
-| admin_notes | text | |
-| submitted_at | timestamptz | DEFAULT now() |
-| reviewed_at | timestamptz | |
-| reviewed_by | uuid | FK profiles(id) ON DELETE SET NULL |
-| status_update_sent_at | timestamptz | |
-
-#### `removals`
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | uuid | PK DEFAULT uuid_generate_v4() |
-| breeder_slug | text | NOT NULL |
-| breeder_name | text | |
-| requester_email | text | NOT NULL |
-| requester_name | text | |
-| requester_user_id | uuid | FK profiles(id) ON DELETE SET NULL |
-| reason | text | |
-| status | text | DEFAULT 'pending' CHECK ('pending','under_review','approved','rejected') |
-| admin_notes | text | |
-| admin_reason | text | |
-| gdpr_article_17 | boolean | DEFAULT false |
-| submitted_at | timestamptz | DEFAULT now() |
-| reviewed_at | timestamptz | |
-| reviewed_by | uuid | FK profiles(id) ON DELETE SET NULL |
-| hard_deleted_at | timestamptz | |
-| hard_deleted_by | uuid | FK profiles(id) ON DELETE SET NULL |
-| status_update_sent_at | timestamptz | |
+**Trigger:** `on_auth_user_created` auto-creates a `profiles` row on `auth.users` INSERT.
 
 #### `breeders`
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | uuid | PK DEFAULT uuid_generate_v4() |
-| slug | text | NOT NULL UNIQUE |
-| name | text | NOT NULL |
-| address | text | |
-| town | text | NOT NULL |
-| postcode | text | |
-| county | text | NOT NULL |
-| region | text | NOT NULL |
-| country | text | DEFAULT 'england' |
-| lat | numeric(10,6) | |
-| lng | numeric(10,6) | |
-| website | text | |
-| phone | text | |
-| email | text | |
-| google_rating | numeric(2,1) | |
-| google_place_id | text | |
-| kennel_club | text | |
-| council_licence | text | |
-| health_testing | text | |
-| about | text | |
-| location_notes | text | |
-| status | text | DEFAULT 'public_listing' CHECK ('public_listing','claimed_profile','hidden','archived') |
-| claimed | boolean | DEFAULT false |
-| last_updated_at | timestamptz | DEFAULT now() |
-| source_tags | text[] | DEFAULT '{}' |
-| confidence_score | numeric(3,2) | DEFAULT 0.85 |
-| created_at | timestamptz | DEFAULT now() |
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK |
+| `slug` | text | Unique, URL-safe |
+| `name` | text | Business name |
+| `address`, `town`, `postcode`, `county`, `region`, `country` | text | Location |
+| `lat`, `lng` | numeric | GPS coordinates |
+| `website`, `phone`, `email` | text | Contact info |
+| `google_rating` | numeric(2,1) | From Google Places |
+| `google_review_count` | integer | From Google Places |
+| `business_type` | text | From Google Places (e.g. "Pet Store") |
+| `google_place_id` | text | Google Places ID |
+| `status` | text | `public_listing`, `claimed_profile`, `hidden`, `archived` |
+| `claimed` | boolean | |
+| `hero_image_url` | text | Primary photo |
+| `google_photo_urls` | text[] | Additional photo URLs |
+| `source_tags` | text[] | `['google_places', 'uk_wide']` |
+| `confidence_score` | numeric | 0–1 quality score |
 
 #### `breeder_breeds`
-Many-to-many lookup.
+Many-to-many linker: `breeder_id` + `breed` (unique pair).
 
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | uuid | PK |
-| breeder_id | uuid | FK breeders(id) ON DELETE CASCADE |
-| breed | text | NOT NULL |
+#### `breeder_photos`
+Stored photo metadata: `photo_reference`, `photo_url`, `width`, `height`, `is_primary`.
 
-#### `auth_attempts`
-Server-side brute-force tracking.
+### Admin & Audit Tables
 
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | uuid | PK |
-| email_hash | text | |
-| ip_hash | text | |
-| succeeded | boolean | DEFAULT false |
-| created_at | timestamptz | DEFAULT now() |
+#### `admin_audit_log`
+Admin actions: `action`, `target_table`, `target_id`, `old_values`, `new_values`, `admin_id`, `ip_address`.
 
-### 4.2 Row Level Security (RLS)
+#### `user_audit_log`
+User-facing audit log (new in migration 011). Same shape as `admin_audit_log` but for all user actions.
 
-All tables have RLS enabled. Key policies:
+#### `breeder_audit_log`
+Auto-populated by trigger on `breeders` table. Captures `create`/`update`/`delete` with before/after JSON diffs.
 
-- **profiles**: users read/update own; admins read all
-- **claims**: authenticated users insert; users read own; admins read/update all
-- **removals**: authenticated users insert; users read own; admins read/update all
-- **breeders**: public read active listings only (`public_listing`, `claimed_profile`); admins manage all
-- **auth_attempts**: no public access (server-only)
+### Claims & Removals
 
----
+#### `claims`
+| Column | Notes |
+|--------|-------|
+| `breeder_slug` | Target listing |
+| `claimant_email`, `claimant_name`, `claimant_user_id` | Who is claiming |
+| `status` | `pending`, `under_review`, `approved`, `rejected` |
+| `reviewed_by`, `reviewed_at` | Admin decision |
 
-## 5. Authentication & Authorisation
+#### `removals`
+Same structure as `claims` but for removal/GDPR requests. Includes `gdpr_article_17` flag and `hard_deleted_at`/`hard_deleted_by` for GDPR erasure.
 
-### 5.1 Roles
+### Analytics Tables
 
-| Role | Capabilities |
-|------|-------------|
-| public | Search, browse directory, view policy pages, submit contact form |
-| breeder | All public capabilities + submit claim/removal for own listing, view own submissions |
-| admin | All breeder capabilities + full admin panel, review claims/removals, manage listings, hard delete |
+#### `page_views`
+| Column | Notes |
+|--------|-------|
+| `breeder_slug` | Which profile was viewed (nullable) |
+| `page_path` | Generic page path |
+| `ip_hash` | Hashed for privacy |
+| `user_agent`, `referrer` | |
 
-### 5.2 How admin access is granted
+#### `cta_clicks`
+| Column | Notes |
+|--------|-------|
+| `breeder_slug` | |
+| `action_type` | `call`, `website`, `save`, `claim`, `email`, `directions` |
 
-Admin role is **never** self-assignable. It must be granted via:
-1. Supabase dashboard direct SQL update, or
-2. A secure server-side migration run by the site owner
+#### `user_sessions`
+Heartbeat table for "users online" count. Updated every 2 minutes by `SessionTracker`.
 
-### 5.3 Auth flows
+### Email Templates
 
-**Signup**
-1. User fills display name, email, password, confirms Terms/Privacy
-2. `POST /api/auth/signup` validates with Zod, rate limits by IP and email
-3. Supabase Auth creates user; trigger creates profile with role `breeder`
-4. Supabase sends verification email via Resend
-5. User sees "Check your email" page
+#### `email_templates` (migration 011)
+| Column | Notes |
+|--------|-------|
+| `template_key` | Unique identifier |
+| `subject`, `html_body`, `text_body` | Content with `{{variable}}` placeholders |
+| `from_address` | Defaults to `BreedWise <noreply@breedwise.co.uk>` |
+| `active` | Toggle on/off |
 
-**Email verification**
-1. User clicks link in email from `noreply@breedwise.co.uk`
-2. Link routes to `/auth/callback?code=...`
-3. Server exchanges code for session
-4. User is redirected to app
+**Seeded templates:** `verification`, `password_reset`, `claim_approved`, `claim_rejected`, `removal_approved`, `removal_rejected`, `message_notification`, `welcome`.
 
-**Login**
-1. `POST /api/auth/login` validates credentials
-2. Checks for account lockout via `auth_attempts` table (5 failures in 30 min)
-3. Checks `email_confirmed_at`; blocks unverified users with option to resend
-4. Returns generic error messages (no email enumeration)
-5. Redirects to `/admin` if role is admin, otherwise to home
+### Notifications
 
-**Password reset**
-1. `POST /api/auth/forgot` accepts email
-2. Returns identical success message regardless of email existence
-3. Sends reset email from `noreply@breedwise.co.uk` (1-hour expiry)
-4. User sets new password at `/auth/reset`
-
-**Session management**
-- Supabase Auth sessions stored in httpOnly cookies via `@supabase/ssr`
-- Automatic token refresh via middleware (`lib/supabase/middleware.js`)
-- Logout invalidates session immediately
+#### `user_notifications` (migration 011)
+In-app notification system: `type`, `title`, `message`, `action_url`, `read`.
 
 ---
 
-## 6. Key User Flows
+## 3. Auth Flow
 
-### 6.1 Search flow
-1. User enters town/postcode and optional breed on homepage or `/search`
-2. Client navigates to `/search?q={location}&breed={breed}`
-3. Server renders `SearchPage` with results from `lib/breeders.js`
-4. `SearchResults` component displays list or map view with filters
-5. Analytics event tracked in localStorage
-
-### 6.2 Claim flow
-1. Breeder navigates to `/claim`
-2. Must be logged in; otherwise shown auth prompt
-3. Fills breeder slug, name, email, notes
-4. `POST /api/claims` validates with Zod, checks auth, inserts into `claims` table
-5. Emails sent: claim confirmation to breeder, admin notification to admin
-6. Admin reviews in `/admin` and approves/rejects
-7. Status update email sent to breeder on decision
-
-### 6.3 Removal flow
-1. Breeder navigates to `/request-removal`
-2. Must be logged in
-3. Fills breeder slug, name, reason, optional GDPR Article 17 checkbox
-4. `POST /api/removals` validates, checks auth, inserts into `removals` table
-5. Emails sent: removal confirmation to requester, admin notification
-6. Admin reviews and approves (hides listing) or rejects
-7. For GDPR erasure, admin can execute hard delete which archives the listing
-8. Status update email sent on decision
-
-### 6.4 Admin review flow
-1. Admin logs in and navigates to `/admin`
-2. Client-side role check redirects non-admins to home
-3. Admin views claims and removals in review queue
-4. Clicks approve/reject; PATCH request updates status
-5. System sends status update email automatically
-6. For removals, admin can additionally trigger hard delete for GDPR compliance
-
-### 6.5 Google API refresh flow
-1. Vercel Cron triggers `GET /api/cron/google-refresh` Sundays at 03:00 UTC
-2. Endpoint verifies `Authorization: Bearer {CRON_SECRET}`
-3. Fetches breeders with `google_place_id` from Supabase
-4. Calls Google Places Details API for each
-5. Updates permitted fields: name, address, phone, website, rating
-6. Logs run result in `google_refresh_log`
-7. Does NOT store review text or user-generated content
-
----
-
-## 7. Email Flows
-
-| Email | Trigger | Recipient | From | Content |
-|-------|---------|-----------|------|---------|
-| Verification | Supabase Auth signup | User | noreply@breedwise.co.uk | Verification link (24h expiry) |
-| Password reset | Supabase Auth reset | User | noreply@breedwise.co.uk | Reset link (1h expiry) |
-| Claim confirmation | Claim submitted | Claimant | noreply@breedwise.co.uk | Claim received, review timeline |
-| Claim admin notification | Claim submitted | Admin | noreply@breedwise.co.uk | Summary + admin panel link |
-| Removal confirmation | Removal submitted | Requester | noreply@breedwise.co.uk | Request received, GDPR note |
-| Removal admin notification | Removal submitted | Admin | noreply@breedwise.co.uk | Summary + admin panel link |
-| Claim status update | Admin updates claim status | Claimant | noreply@breedwise.co.uk | Approved/rejected/under review + reason |
-| Removal status update | Admin updates removal status | Requester | noreply@breedwise.co.uk | Approved/rejected/under review + reason |
-| Contact confirmation | Contact form submitted | User | noreply@breedwise.co.uk | Message received |
-
-**Resend domain**: `breedwise.co.uk`
-
----
-
-## 8. Environment Variables
-
-| Variable | Purpose | Required for |
-|----------|---------|--------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | local, preview, prod |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (public) | local, preview, prod |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role (server-only) | local, preview, prod |
-| `GOOGLE_PLACES_API_KEY` | Google Places API key (server-only) | local, preview, prod |
-| `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` | Google Places API key (client maps) | local, preview, prod |
-| `RESEND_API_KEY` | Resend API key | local, preview, prod |
-| `RESEND_FROM_EMAIL` | Sender for transactional emails | local, preview, prod |
-| `RESEND_ADMIN_EMAIL` | Admin notification recipient | local, preview, prod |
-| `NEXT_PUBLIC_SITE_URL` | Canonical site URL | local, preview, prod |
-| `ADMIN_SECRET_KEY` | Extra admin route protection (optional) | prod |
-| `CRON_SECRET` | Secures cron job endpoint | prod |
-| `NEXT_PUBLIC_ADSENSE_ENABLED` | Feature flag for AdSense | prod (optional) |
-
-See `.env.example` for a template.
-
----
-
-## 9. Deployment
-
-### 9.1 Local development setup
-
-```bash
-# Install dependencies
-npm install
-
-# Start Supabase locally
-npx supabase start
-
-# Copy environment variables
-cp .env.example .env.local
-# Fill in real values
-
-# Run dev server
-npm run dev
+### Role Hierarchy
+```
+super_admin  → can do everything + manage admins + reset passwords + change emails
+admin        → can manage breeders, claims, removals, view analytics
+breeder      → default registered user, can claim listings
+buyer        → can save favourites (future)
+public       → anonymous visitor (no DB row)
 ```
 
-### 9.2 Database migrations
+### Registration Flow
+1. User fills signup form → `POST /api/auth/signup`
+2. Server validates (Zod schema), rate-limits, calls `supabase.auth.signUp()`
+3. Supabase sends verification email with magic link
+4. User clicks link → `/auth/callback?code=xxx` → `exchangeCodeForSession(code)`
+5. Trigger `on_auth_user_created` creates `profiles` row with `role = 'breeder'`
+6. User is now authenticated
 
+### Login Flow
+1. `POST /api/auth/login` → `signInWithPassword()`
+2. Server checks `email_confirmed_at` — unverified users get `needsVerification: true`
+3. Server fetches `profiles.role` → returns `{ redirectTo: "/admin" }` for admins, `"/"` for breeders
+4. Client calls `router.push()` + `router.refresh()` → `AuthProvider` re-fetches `/api/auth/me`
+5. `MainNav` instantaneously updates (dropdown with avatar + role badge)
+
+### OAuth (Google / Apple)
+Supabase Auth supports OAuth providers natively. To enable:
+1. Go to Supabase Dashboard → Authentication → Providers
+2. Enable **Google** and/or **Apple**
+3. Add Client ID + Secret
+4. Set redirect URL: `https://breedwise.co.uk/auth/callback`
+5. No code changes needed — the existing `/auth/callback` route handles all OAuth flows
+
+### Session Management
+- **Middleware** refreshes session cookies on every request via `supabase.auth.getUser()`
+- **Cookie cleanup** on auth failure: clears `sb-{project-ref}-auth-token` and related cookies
+- **Session tracker** sends heartbeat every 2 minutes for analytics
+
+---
+
+## 4. Security Architecture
+
+### Rate Limiting (in-memory, Railway-safe)
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| `/api/auth/login` | 5 attempts | 5 min |
+| `/api/auth/signup` | 5 attempts | 60 sec |
+| `/api/auth/forgot` | 3 attempts | 60 sec |
+| `/api/auth/resend` | 3 attempts | 60 sec |
+| `/api/places/[placeId]` | 30 requests | 60 sec |
+| `/api/track/*` | 60 requests | 60 sec |
+| `/api/cookie-consent` | 10 requests | 60 sec |
+| `/api/claims` | 5 attempts | 60 sec |
+| `/api/removals` | 5 attempts | 60 sec |
+
+**Note:** In-memory rate limiting is safe on Railway because Railway runs persistent processes (not serverless). A TTL cleanup runs every 10 minutes to prevent memory leaks.
+
+### SQL Injection Prevention
+- **Never** interpolate user input into `.or()` strings directly.
+- Search queries sanitize: `query.replace(/[%_(),&]/g, "")` before interpolation.
+- Admin API routes use parameterized queries only.
+
+### XSS Protection
+- **CSP** header set in middleware:
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com`
+  - `style-src 'self' 'unsafe-inline'`
+  - `img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co`
+  - `frame-ancestors 'none'`
+- **X-Frame-Options: DENY**
+- **X-Content-Type-Options: nosniff**
+
+### Admin Route Protection
+- **Middleware** blocks `/admin` for non-authenticated users (redirects to login)
+- **Middleware** blocks `/admin` for non-admin roles (redirects to home)
+- **API routes** use shared `requireAdmin()` / `requireSuperAdmin()` helpers
+- **Service role key** (`SUPABASE_SERVICE_ROLE_KEY`) is **never** exposed to client — only used server-side in API routes
+
+### Audit Logging
+- **Admin actions** logged to `admin_audit_log`
+- **Breeder changes** auto-logged by trigger to `breeder_audit_log`
+- **User actions** logged to `user_audit_log` (migration 011)
+
+---
+
+## 5. Admin & Super Admin System
+
+### Admin Dashboard (`/admin`)
+Tabs:
+1. **Review Queue** — claims & removals with approve/reject/hard-delete
+2. **Breeders** — CRUD + search/filter + add manually
+3. **Analytics** — unique visitors (today/week/month/year/total), page views, CTA clicks, top breeders
+4. **Audit Log** — breeder change history with before/after diffs
+5. **Statistics** — total breeders, claims, removals, users
+6. **Admins** — list admins, add/remove, super admin actions
+
+### Super Admin Powers
+Only users with `role = 'super_admin'` can:
+- Reset any user's password (`POST /api/admin/users/reset-password`)
+- Change any user's email (`POST /api/admin/users/change-email`)
+- Create/remove other admins
+- View full audit logs
+
+### Creating the First Super Admin
+Use the setup endpoint:
 ```bash
-# Apply pending migrations
-npx supabase migration up
-
-# Reset local db (caution: deletes data)
-npx supabase db reset
+curl -X POST https://breedwise.co.uk/api/admin/setup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"secure123","secret":"YOUR_ADMIN_SETUP_SECRET"}'
 ```
 
-### 9.3 Deploy to Vercel
-
-1. Push to Git repository connected to Vercel
-2. Vercel auto-deploys on push
-3. Configure environment variables in Vercel dashboard
-4. Ensure `CRON_SECRET` is set for production
-
-### 9.4 Rollback
-
-- Use Vercel dashboard to promote a previous deployment
-- Or revert commit and push
+Then manually promote to super_admin in Supabase SQL Editor:
+```sql
+UPDATE public.profiles SET role = 'super_admin' WHERE email = 'you@example.com';
+```
 
 ---
 
-## 10. SEO Architecture
+## 6. Railway Infrastructure
 
-### 10.1 URL structure
+### Deployment
+- **Platform:** Railway (persistent Node.js container)
+- **Build command:** `npm run build`
+- **Start command:** `npm start` (Next.js production server)
+- **Health check:** `GET /api/health` returns `{ status: "ok" }`
 
-| Pattern | Example | Page |
-|---------|---------|------|
-| `/` | `/` | Homepage |
-| `/search?q={q}&breed={breed}` | `/search?q=Chichester&breed=Labrador` | Search results |
-| `/breeder/{slug}` | `/breeder/chichester-labrador-kennels-chichester` | Profile |
-| `/breeders/{slug}` | `/breeders/labrador-retriever` | Breed or location landing (detected at runtime) |
-| `/breeders/{slug}/{subSlug}` | `/breeders/labrador-retriever/chichester` | Breed + location landing |
-| `/{country}/{region}/{county}/{town}/dog-breeders` | `/england/west-sussex/west-sussex/chichester/dog-breeders` | Town landing |
-| `/{country}/{region}/{county}/{town}/{breed}-breeders` | `/england/west-sussex/west-sussex/chichester/labrador-retriever-breeders` | Town + breed |
+### Environment Variables (Railway)
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://zbvwqsjgasgxpphljahs.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-### 10.2 Dynamic metadata
+# Google Places
+GOOGLE_PLACES_API_KEY=your_key
+NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=your_key
 
-Every page uses `generateMetadata` from `lib/seo/metadata.js`:
-- Dynamic title and description
-- Canonical URL
-- Open Graph and Twitter cards
-- `robots: index, follow` by default
+# Resend
+RESEND_API_KEY=your_key
+RESEND_FROM_EMAIL=info@breedwise.co.uk
+RESEND_NOREPLY_EMAIL=noreply@breedwise.co.uk
+RESEND_ADMIN_EMAIL=admin@breedwise.co.uk
 
-### 10.3 Structured data
+# Admin
+ADMIN_SETUP_SECRET=your_random_secret
 
-- **WebSite** + **Organization** schema on homepage
-- **BreadcrumbList** on all inner pages
-- **LocalBusiness** on breeder profile pages
-- **FAQPage** where applicable
+# Cron
+CRON_SECRET=your_random_secret
 
-### 10.4 Sitemap & robots
+# Site
+NEXT_PUBLIC_SITE_URL=https://breedwise.co.uk
+```
 
-- `/api/sitemap` generates XML sitemap dynamically
-- `/api/robots` serves `robots.txt`
-- Rewrites in `vercel.json` map `/sitemap.xml` and `/robots.txt` to API routes
+### Scheduled Jobs
+Use Railway's native cron or an external scheduler (e.g., cron-job.org) to hit:
+```
+GET https://breedwise.co.uk/api/cron/google-refresh
+Authorization: Bearer {CRON_SECRET}
+```
 
----
-
-## 11. Compliance & Legal
-
-### 11.1 Policy pages
-
-| Page | Coverage |
-|------|----------|
-| `/disclaimer` | Directory-only disclaimer, no endorsement, third-party data limits |
-| `/terms` | Terms of use, user responsibility, prohibited use, liability |
-| `/privacy` | UK GDPR, data collection, cookies, retention, erasure rights |
-| `/editorial-policy` | Sourcing, impartiality, corrections |
-| `/listing-policy` | Inclusion criteria, claim rules, removal rules |
-| `/data-sources` | Public sources, Google API refresh, storage |
-| `/corrections-removals` | Claim process, removal process, GDPR Article 17 |
-
-### 11.2 UK GDPR
-
-- Minimum data collection
-- Email verification required
-- RLS policies protect all user data
-- Removal requests treated as potential Article 17 requests
-- Hard delete available for explicit erasure
-- Data retention: 6 years for claims/removals (legal/audit), active until deletion for accounts
-
-### 11.3 Google API compliance
-
-- Weekly refresh only
-- No long-term storage of review text or user-generated content
-- Attribution displayed on listings
-- Caching restricted to permitted fields
+### No Vercel Dependencies
+- All `vercel.json` headers are ignored on Railway
+- All cache control is handled by `next.config.js` and `middleware.js`
+- The `no-store` Cache-Control is temporary during active development
 
 ---
 
-## 12. Feature Flags
+## 7. Resend Email Integration
 
-| Flag | How to enable | Default |
-|------|--------------|---------|
-| `NEXT_PUBLIC_ADSENSE_ENABLED` | Set to `"true"` in Vercel env | `false` |
+### Sent Emails
+| Trigger | Template | Recipient |
+|---------|----------|-----------|
+| Signup | Verification | User |
+| Forgot password | Password reset | User |
+| Claim submitted | Claim confirmation | User |
+| Claim submitted | Admin notification | Admin |
+| Claim approved/rejected | Status update | User |
+| Removal submitted | Removal confirmation | User |
+| Removal submitted | Admin notification | Admin |
+| Removal approved/rejected | Status update | User |
+| Contact form | Confirmation | User |
 
-When enabled, homepage shows AdSense placeholder instead of "How BreedWise works" module.
+### Template System (migration 011)
+Templates are stored in `email_templates` table. Placeholders use `{{variable}}` syntax:
+- `{{name}}` — user display name
+- `{{verification_url}}` — magic link
+- `{{reset_url}}` — password reset link
+- `{{breeder_name}}` — breeder business name
+- `{{profile_url}}` — link to breeder profile
+- `{{reason}}` — admin decision reason
 
 ---
 
-## 13. Known Limitations & Future Work
+## 8. Migrations Order
 
-- **Geographic scope**: Currently West Sussex demo data only. UK-wide expansion requires populating `breeders` and `breeder_breeds` tables with real data.
-- **Analytics**: Client-side localStorage only. Future: server-side analytics with privacy-preserving aggregation.
-- **Maps**: Static placeholder map on profiles. Future: interactive Google Map with attribution.
-- **Premium listings**: Not yet implemented.
-- **Real-time chat/messaging**: Not planned.
-- **Breeder dashboard**: Claimed breeders cannot yet self-serve updates; all updates go through admin review.
+Run in Supabase SQL Editor in this order:
+
+1. `001_initial_schema.sql`
+2. `002_breeders_and_hardening.sql`
+3. `003_admin_status_updates.sql`
+4. `004_idempotent_fix.sql`
+5. `005_cookie_consent_email_audit.sql`
+6. `006_apply_missing.sql`
+7. `007_fix_profiles_rls_recursion.sql`
+8. `008_admin_analytics.sql`
+9. `009_enrich_breeders.sql`
+10. `010_visitor_analytics.sql`
+11. `011_comprehensive_auth_roles_security.sql` ⭐ **NEW**
 
 ---
 
-## 14. Changelog
+## 9. File Structure (key paths)
 
-| Date | Change |
-|------|--------|
-| 2026-05-10 | Initial schema and auth system |
-| 2026-05-15 | Claims, removals, admin panel, Resend emails |
-| 2026-05-20 | Google Places cron job, security headers, rate limiting |
-| 2026-06-06 | Dynamic SEO landing pages (/breeders/{breed}, /breeders/{location}), admin status update emails, GDPR hard delete, PROJECT.md, production hardening |
+```
+app/
+  layout.js                 → Root layout with AuthProvider + ToastProvider
+  middleware.js             → Session refresh + security headers + admin protection
+  page.js                   → Homepage
+  search/page.js            → Search results with pagination
+  breeder/[slug]/page.js    → Public breeder profile
+  auth/
+    login/page.js           → Login with toast
+    signup/page.js          → Signup with toast
+    callback/route.js       → OAuth/email verification callback
+    forgot/page.js          → Password reset request
+    reset/page.js           → Password reset form
+  admin/page.js             → Admin dashboard (6 tabs)
+  api/
+    auth/                   → Login, logout, signup, me, forgot, reset, resend
+    admin/                  → Analytics, breeders, claims, removals, users, audit
+    track/                  → page-view, cta, session
+    places/[placeId]        → Google Places proxy (rate-limited)
+    cron/google-refresh     → Weekly breeder refresh
+lib/
+  auth.js                   → Shared requireAdmin / requireSuperAdmin helpers
+  supabase/
+    server.js               → createClient() + createAdminClient()
+    middleware.js           → updateSession() for Next.js middleware
+    client.js               → Browser-side Supabase client
+  rate-limit.js             → In-memory rate limiter with TTL cleanup
+  validation.js             → Zod schemas for forms
+  emails/resend.js          → Email sending functions
+  seo/                      → Metadata, structured data helpers
+components/
+  AuthProvider.js           → React context for auth state
+  Toast.js                  → Toast notification system
+  MainNav.js                → Header with user dropdown + role badge
+  SearchForm.js             → Search with geolocation + distance
+  SearchResults.js          → Results with pagination
+```
+
+---
+
+## 10. Known Limitations & Future Work
+
+| Limitation | Reason | Future Fix |
+|------------|--------|------------|
+| In-memory rate limiter | No Redis (cost) | Add Upstash Redis if traffic scales |
+| No real-time updates | No WebSocket | Add Supabase Realtime for notifications |
+| Google Places API quota | Costs money | Cache photos aggressively; consider paid tier |
+| OAuth requires dashboard config | Supabase provider settings | Documented in Auth Flow section |
+| No buyer role usage | Not yet implemented | Add favourites, saved searches, messaging |
+| `no-store` Cache-Control | Active debugging | Switch to `max-age=0, must-revalidate` when stable |
+
+---
+
+*Last updated: 2026-06-06 by Kimi Code CLI*

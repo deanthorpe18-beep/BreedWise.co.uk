@@ -77,7 +77,10 @@ export default async function SearchPage({ searchParams }) {
         .in("status", ["public_listing", "claimed_profile"]);
 
     if (query && query !== "My location") {
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,town.ilike.%${query}%,postcode.ilike.%${query}%,address.ilike.%${query}%`);
+        const safe = query.replace(/[%_(),&]/g, "");
+        if (safe) {
+            dbQuery = dbQuery.or(`name.ilike.%${safe}%,town.ilike.%${safe}%,postcode.ilike.%${safe}%,address.ilike.%${safe}%`);
+        }
     }
 
     dbQuery = dbQuery.order("name", { ascending: true });

@@ -1,31 +1,33 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-
-async function isAdmin(supabase) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-    return profile?.role === "admin";
-}
+import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 
 export async function GET() {
     try {
-        const supabase = createClient();
-        if (!(await isAdmin(supabase))) {
+        const auth = await requireSuperAdmin();
+        if (auth.error) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const { data, error } = await supabase
+        const adminClient = createAdminClient();
+        const { data: profiles, error } = await adminClient
             .from("profiles")
             .select("id, display_name, role, created_at")
-            .eq("role", "admin");
+            .in("role", ["admin", "super_admin"]);
 
         if (error) throw error;
-        return NextResponse.json({ admins: data || [] });
+
+        // Fetch emails from auth.users
+        const admins = [];
+        for (const p of (profiles || [])) {
+          const { data: userData } = await adminClient.auth.admin.getUserById(p.id);
+          admins.push({
+            ...p,
+            email: userData?.user?.email || null,
+          });
+        }
+
+        return NextResponse.json({ admins });
     } catch (err) {
         return NextResponse.json({ error: "Unable to fetch admins." }, { status: 500 });
     }
@@ -34,7 +36,8 @@ export async function GET() {
 export async function POST(request) {
     try {
         const supabase = createClient();
-        if (!(await isAdmin(supabase))) {
+        const auth = await requireSuperAdmin();
+        if (auth.error) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

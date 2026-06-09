@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { useToast } from "@components/Toast";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { success: showSuccess } = useToast();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,6 +62,7 @@ export default function LoginPage() {
         }
         setError(data.error || "Invalid email or password.");
       } else {
+        showSuccess("Logged in successfully!");
         router.push(data.redirectTo || "/");
         router.refresh();
       }

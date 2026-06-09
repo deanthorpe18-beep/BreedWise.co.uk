@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 import { sendRemovalStatusUpdate } from "@/lib/emails/resend";
-
-async function isAdmin(supabase) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return profile?.role === "admin";
-}
 
 export async function GET() {
   try {
     const supabase = createClient();
-    if (!(await isAdmin(supabase))) {
+    const auth = await requireAdmin();
+    if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -35,7 +26,8 @@ export async function GET() {
 export async function PATCH(request) {
   try {
     const supabase = createClient();
-    if (!(await isAdmin(supabase))) {
+    const auth = await requireAdmin();
+    if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

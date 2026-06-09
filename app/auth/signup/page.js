@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { UserPlus, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { useToast } from "@components/Toast";
 
 export default function SignupPage() {
+  const { success: showSuccess } = useToast();
   const [form, setForm] = useState({
     displayName: "",
     email: "",
@@ -37,6 +39,7 @@ export default function SignupPage() {
       if (!res.ok) {
         setError(data.error || "Something went wrong.");
       } else {
+        showSuccess("Account created! Check your email to verify.");
         setSuccess(true);
       }
     } catch {

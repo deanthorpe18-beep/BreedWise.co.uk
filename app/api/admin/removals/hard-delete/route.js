@@ -1,16 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-
-async function isAdmin(supabase) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return profile?.role === "admin";
-}
+import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 
 /**
  * POST /api/admin/removals/hard-delete
@@ -20,7 +10,8 @@ async function isAdmin(supabase) {
 export async function POST(request) {
   try {
     const supabase = createClient();
-    if (!(await isAdmin(supabase))) {
+    const auth = await requireAdmin();
+    if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

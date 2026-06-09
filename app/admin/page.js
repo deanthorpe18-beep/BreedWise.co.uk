@@ -53,13 +53,21 @@ export default function AdminPage() {
   const [createAdminError, setCreateAdminError] = useState("");
   const [createAdminLoading, setCreateAdminLoading] = useState(false);
 
+  // Super admin actions state
+  const [superAction, setSuperAction] = useState(null); // 'reset' | 'email' | null
+  const [superTargetId, setSuperTargetId] = useState("");
+  const [superValue, setSuperValue] = useState("");
+  const [superLoading, setSuperLoading] = useState(false);
+  const [superMessage, setSuperMessage] = useState("");
+  const [superError, setSuperError] = useState("");
+
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
         setUser(data.user);
         setLoadingUser(false);
-        if (!data.user || data.user.role !== "admin") {
+        if (!data.user || (data.user.role !== "admin" && data.user.role !== "super_admin")) {
           router.push("/");
         }
       })
@@ -267,6 +275,38 @@ export default function AdminPage() {
     } catch {}
   };
 
+  const handleSuperAction = async (e) => {
+    e.preventDefault();
+    setSuperMessage("");
+    setSuperError("");
+    setSuperLoading(true);
+    try {
+      const endpoint = superAction === "reset" ? "/api/admin/users/reset-password" : "/api/admin/users/change-email";
+      const body = superAction === "reset"
+        ? { userId: superTargetId, newPassword: superValue }
+        : { userId: superTargetId, newEmail: superValue };
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSuperError(data.error || "Action failed.");
+      } else {
+        setSuperMessage(data.message || "Done successfully.");
+        setSuperValue("");
+        setSuperTargetId("");
+        setSuperAction(null);
+        loadData();
+      }
+    } catch (err) {
+      setSuperError(err.message || "Something went wrong.");
+    } finally {
+      setSuperLoading(false);
+    }
+  };
+
   const handleCreateBreeder = async (e) => {
     e.preventDefault();
     setCreateBreederMessage("");
@@ -362,7 +402,19 @@ export default function AdminPage() {
               <p className="mt-2 text-sm leading-6 text-slate-600">Manage listings, review claims, monitor analytics, and track site activity.</p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFA5]/10 px-3 py-1.5 text-xs font-semibold text-[#00BFA5]">
+              {user?.role === "super_admin" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-600">
+                  <Shield className="h-3 w-3" />
+                  Super Admin
+                </span>
+              )}
+              {user?.role === "admin" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFA5]/10 px-3 py-1.5 text-xs font-semibold text-[#00BFA5]">
+                  <Shield className="h-3 w-3" />
+                  Admin
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
                 <Activity className="h-3 w-3" />
                 {analytics?.onlineUsers ?? 0} online
               </span>
@@ -842,6 +894,30 @@ export default function AdminPage() {
                   </form>
                 )}
 
+                {superAction && user?.role === "super_admin" && (
+                  <form onSubmit={handleSuperAction} className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6 space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {superAction === "reset" ? "Reset user password" : "Change user email"}
+                    </h3>
+                    {superMessage && <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{superMessage}</div>}
+                    {superError && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{superError}</div>}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700">User ID</label>
+                      <input type="text" required value={superTargetId} onChange={(e) => setSuperTargetId(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]" placeholder="User UUID" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700">
+                        {superAction === "reset" ? "New password (min 8 chars)" : "New email address"}
+                      </label>
+                      <input type={superAction === "reset" ? "password" : "email"} required value={superValue} onChange={(e) => setSuperValue(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]" />
+                    </div>
+                    <div className="flex gap-3">
+                      <button type="submit" disabled={superLoading} className="rounded-3xl bg-[#00BFA5] px-5 py-2 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-50">{superLoading ? "Working..." : "Confirm"}</button>
+                      <button type="button" onClick={() => setSuperAction(null)} className="rounded-3xl border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                    </div>
+                  </form>
+                )}
+
                 {admins.length === 0 ? (
                   <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No admin users found.</div>
                 ) : (
@@ -851,15 +927,29 @@ export default function AdminPage() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold text-slate-900">{admin.display_name || "Unnamed"}</p>
-                            <p className="text-xs text-slate-500">ID: {admin.id}</p>
+                            <p className="text-xs text-slate-500">{admin.email || "No email"}</p>
                             <p className="text-xs text-slate-400">Created {new Date(admin.created_at).toLocaleDateString()}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-600">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${admin.role === "super_admin" ? "bg-purple-100 text-purple-600" : "bg-green-100 text-green-600"}`}>
                               <CheckCircle className="h-3 w-3" />
-                              Admin
+                              {admin.role === "super_admin" ? "Super Admin" : "Admin"}
                             </span>
-                            {admin.id !== user?.id && (
+                            {user?.role === "super_admin" && admin.id !== user?.id && (
+                              <>
+                                <button onClick={() => { setSuperAction("reset"); setSuperTargetId(admin.id); setSuperValue(""); setSuperMessage(""); setSuperError(""); }} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                                  Reset password
+                                </button>
+                                <button onClick={() => { setSuperAction("email"); setSuperTargetId(admin.id); setSuperValue(""); setSuperMessage(""); setSuperError(""); }} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                                  Change email
+                                </button>
+                                <button onClick={() => handleRemoveAdmin(admin.id)} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                                  <UserMinus className="h-3 w-3" />
+                                  Remove
+                                </button>
+                              </>
+                            )}
+                            {user?.role === "admin" && admin.id !== user?.id && admin.role !== "super_admin" && (
                               <button onClick={() => handleRemoveAdmin(admin.id)} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
                                 <UserMinus className="h-3 w-3" />
                                 Remove

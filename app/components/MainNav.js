@@ -1,31 +1,103 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { useAuth } from "@components/AuthProvider";
+import { Menu, X, User, LogOut, Shield, ChevronDown, Settings } from "lucide-react";
+
+function getInitials(name) {
+  if (!name) return "?";
+  return name
+    .split(/[\s@]+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function UserDropdown({ user, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isSuper = user?.role === "super_admin";
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">
+          {getInitials(user.displayName || user.email)}
+        </span>
+        <span className="hidden sm:inline max-w-[140px] truncate">
+          {user.displayName || user.email}
+        </span>
+        <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+        {isAdmin && (
+          <span className="ml-1 inline-flex items-center rounded-full bg-[#00BFA5]/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#00BFA5]">
+            {isSuper ? "SUPER" : "ADMIN"}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white py-2 shadow-xl z-50">
+          <div className="px-4 py-2 border-b border-slate-100">
+            <p className="text-sm font-semibold text-slate-900 truncate">
+              {user.displayName || user.email}
+            </p>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
+          <div className="py-1">
+            <Link
+              href="/account/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            >
+              <Settings className="h-4 w-4 text-slate-400" />
+              Account settings
+            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-[#00BFA5] hover:bg-[#E6FFFB]"
+              >
+                <Shield className="h-4 w-4" />
+                Admin dashboard
+              </Link>
+            )}
+          </div>
+          <div className="border-t border-slate-100 py-1">
+            <button
+              onClick={() => { setOpen(false); onLogout(); }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4" />
+              Log out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function MainNav() {
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data.user);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
-    window.location.href = "/";
-  };
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -37,7 +109,7 @@ export default function MainNav() {
   return (
     <div className="relative w-full">
       <div className="flex items-center gap-3 justify-end">
-        <nav className="hidden gap-4 md:flex text-sm font-medium text-slate-600 items-center">
+        <nav className="hidden gap-5 md:flex text-sm font-medium text-slate-600 items-center">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -53,28 +125,20 @@ export default function MainNav() {
               </Link>
             );
           })}
-          {!loading && user ? (
-            <div className="flex items-center gap-3 ml-2 pl-3 border-l border-slate-200">
-              <span className="text-xs text-slate-500 truncate max-w-[120px]">{user.displayName || user.email}</span>
-              {user.role === "admin" && (
-                <Link href="/admin" className="text-xs font-semibold text-[#00BFA5] hover:text-[#008f7a]">Admin</Link>
+          {!loading && (
+            <div className="ml-2 pl-3 border-l border-slate-200">
+              {user ? (
+                <UserDropdown user={user} onLogout={logout} />
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                >
+                  <User className="h-4 w-4" />
+                  Log in
+                </Link>
               )}
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-[#FF6B6B] transition"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Log out
-              </button>
             </div>
-          ) : (
-            <Link
-              href="/auth/login"
-              className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-            >
-              <User className="h-4 w-4" />
-              Log in
-            </Link>
           )}
         </nav>
 
@@ -89,7 +153,7 @@ export default function MainNav() {
         </button>
       </div>
 
-      {isOpen ? (
+      {isOpen && (
         <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg md:hidden z-50">
           <div className="flex flex-col gap-3 text-sm font-medium text-slate-700">
             {navItems.map((item) => {
@@ -101,7 +165,6 @@ export default function MainNav() {
                   key={item.href}
                   href={item.href}
                   className={`rounded-2xl px-4 py-3 transition ${isActive ? "bg-[#E6FFFB] text-[#00BFA5] font-semibold" : "hover:bg-slate-50 hover:text-[#00BFA5]"}`}
-                  aria-current={isActive ? "page" : undefined}
                   onClick={() => setIsOpen(false)}
                 >
                   {item.label}
@@ -110,17 +173,31 @@ export default function MainNav() {
             })}
             {!loading && user ? (
               <>
-                {user.role === "admin" && (
-                  <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin</Link>
+                <div className="flex items-center gap-3 px-4 py-2 border-t border-slate-100 mt-1">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">
+                    {getInitials(user.displayName || user.email)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{user.displayName || user.email}</p>
+                    {(user.role === "admin" || user.role === "super_admin") && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#00BFA5]">
+                        {user.role === "super_admin" ? "Super Admin" : "Admin"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Link href="/account/settings" className="rounded-2xl px-4 py-3 hover:bg-slate-50" onClick={() => setIsOpen(false)}>Account settings</Link>
+                {(user.role === "admin" || user.role === "super_admin") && (
+                  <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin dashboard</Link>
                 )}
-                <button onClick={() => { handleLogout(); setIsOpen(false); }} className="rounded-2xl px-4 py-3 text-left text-red-500 hover:bg-red-50">Log out</button>
+                <button onClick={() => { logout(); setIsOpen(false); }} className="rounded-2xl px-4 py-3 text-left text-red-500 hover:bg-red-50">Log out</button>
               </>
             ) : (
               <Link href="/auth/login" className="rounded-2xl px-4 py-3 bg-[#F1F4F6] text-slate-700 font-semibold hover:bg-slate-200" onClick={() => setIsOpen(false)}>Log in</Link>
             )}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

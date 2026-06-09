@@ -1,38 +1,62 @@
 import { NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request) {
-  let response;
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
-  try {
-    // Update Supabase session and get response with refreshed cookies
-    response = await updateSession(request);
-  } catch (err) {
-    console.error("[middleware] Fatal error in updateSession:", err.message);
-    // Fallback: return a basic response without session updates
-    response = NextResponse.next({
-      request: { headers: request.headers },
-    });
+  // Create Supabase client for middleware (uses request/response cookie API)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          request.cookies.set({ name, value, ...options });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          request.cookies.set({ name, value: "", ...options });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          response.cookies.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
+  // Refresh session if expired
+  const { data: { user }, error: sessionError } = await supabase.auth.getUser();
+
+  // Clear corrupted auth cookies on failure
+  if (sessionError) {
+    try {
+      const projectRef = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").match(/https:\/\/([^.]+)/)?.[1] || "";
+      const cookiePrefix = projectRef ? `sb-${projectRef}` : "sb";
+      response.cookies.set({ name: `${cookiePrefix}-auth-token`, value: "", maxAge: 0, path: "/" });
+      response.cookies.set({ name: `${cookiePrefix}-refresh-token`, value: "", maxAge: 0, path: "/" });
+    } catch {
+      // ignore
+    }
   }
 
-  // Security headers
+  const pathname = request.nextUrl.pathname;
   const headers = response.headers;
+
+  // Security headers
   headers.set("X-Frame-Options", "DENY");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), interest-cohort=()");
 
-  // TEMPORARY: Use no-store while debugging availability issues
-  // This prevents ANY caching of HTML pages, ensuring fresh responses
-  headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  headers.set("Pragma", "no-cache");
-  headers.set("Expires", "0");
-
-  headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
-  );
-
-  // Content Security Policy (adjust as needed for Google Maps, Supabase, etc.)
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com",
@@ -47,12 +71,23 @@ export async function middleware(request) {
   ].join("; ");
   headers.set("Content-Security-Policy", csp);
 
-  // Route protection checks
-  const pathname = request.nextUrl.pathname;
-
-  // Protect admin routes
+  // Admin route protection
   if (pathname.startsWith("/admin")) {
-    return response;
+    if (!user) {
+      return NextResponse.redirect(new URL("/auth/login?redirect=/admin", request.url));
+    }
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL("/auth/login?redirect=/admin", request.url));
+    }
   }
 
   return response;
@@ -60,13 +95,6 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api (API routes should handle their own auth)
-     */
     "/((?!_next/static|_next/image|favicon.ico|api).*)",
   ],
 };

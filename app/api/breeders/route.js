@@ -19,7 +19,10 @@ export async function GET(request) {
             .in("status", ["public_listing", "claimed_profile"]);
 
         if (query) {
-            dbQuery = dbQuery.or(`name.ilike.%${query}%,town.ilike.%${query}%,postcode.ilike.%${query}%,address.ilike.%${query}%`);
+            const safe = query.replace(/[%_(),&]/g, "");
+            if (safe) {
+                dbQuery = dbQuery.or(`name.ilike.%${safe}%,town.ilike.%${safe}%,postcode.ilike.%${safe}%,address.ilike.%${safe}%`);
+            }
         }
         if (town) {
             dbQuery = dbQuery.ilike("town", `%${town}%`);

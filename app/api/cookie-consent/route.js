@@ -1,8 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function POST(request) {
     try {
+        const ip = request.headers.get("x-forwarded-for") || "unknown";
+        const limit = rateLimitByIp(ip, 10, 60000);
+        if (!limit.allowed) {
+          return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: { "Retry-After": String(limit.retryAfter) } });
+        }
+
         const body = await request.json();
         const supabase = createClient();
 
