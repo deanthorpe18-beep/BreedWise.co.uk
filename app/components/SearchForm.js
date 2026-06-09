@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Crosshair, Loader2 } from "lucide-react";
+import { Search, MapPin, Crosshair, Loader2, Dog } from "lucide-react";
 
 const DISTANCE_OPTIONS = [
   { value: "", label: "Any distance" },
@@ -27,6 +27,7 @@ export default function SearchForm({
   initialSort = "relevance",
   initialUserLat = "",
   initialUserLng = "",
+  variant = "default", // "default" | "hero"
 }) {
   const router = useRouter();
   const [locationQuery, setLocationQuery] = useState(initialLocation);
@@ -49,6 +50,8 @@ export default function SearchForm({
       })
       .catch(() => setLoadingBreeds(false));
   }, []);
+
+  const hasCriteria = !!(breed || locationQuery.trim() || userLat);
 
   const handleGeolocation = useCallback(() => {
     setGeoLoading(true);
@@ -77,6 +80,7 @@ export default function SearchForm({
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    if (!hasCriteria) return;
     const query = new URLSearchParams();
     if (locationQuery.trim() && locationQuery !== "My location") query.set("q", locationQuery.trim());
     if (breed) query.set("breed", breed);
@@ -87,17 +91,25 @@ export default function SearchForm({
     router.push(`/search?${query.toString()}`);
   };
 
+  const isHero = variant === "hero";
+
   return (
     <form
-      className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+      className={`space-y-4 ${
+        isHero
+          ? "rounded-3xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-sm sm:p-8"
+          : "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+      }`}
       onSubmit={handleSubmit}
     >
       {/* Location input + geolocation */}
       <div className="space-y-2">
-        <label htmlFor="location" className="text-sm font-semibold text-slate-700">
+        <label htmlFor="location" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
           Enter town or postcode
         </label>
-        <div className="relative rounded-3xl border border-slate-200 bg-[#F1F4F6] px-4 py-3 shadow-sm focus-within:border-[#00BFA5] focus-within:ring-2 focus-within:ring-[#00BFA5]/20">
+        <div className={`relative rounded-3xl border px-4 py-3 shadow-sm focus-within:border-[#00BFA5] focus-within:ring-2 focus-within:ring-[#00BFA5]/20 ${
+          isHero ? "border-slate-200 bg-white" : "border-slate-200 bg-[#F1F4F6]"
+        }`}>
           <MapPin className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
             id="location"
@@ -110,7 +122,7 @@ export default function SearchForm({
                 setUserLng("");
               }
             }}
-            placeholder="Enter town or postcode"
+            placeholder="e.g. London, SW1A 1AA, Manchester"
           />
           <button
             type="button"
@@ -130,8 +142,11 @@ export default function SearchForm({
 
       {/* Breed filter */}
       <div className="space-y-2">
-        <label htmlFor="breed" className="text-sm font-semibold text-slate-700">
-          Optional breed filter
+        <label htmlFor="breed" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
+          <span className="inline-flex items-center gap-1.5">
+            <Dog className="h-4 w-4 text-[#00BFA5]" />
+            Select a breed
+          </span>
         </label>
         <select
           id="breed"
@@ -140,7 +155,7 @@ export default function SearchForm({
           onChange={(event) => setBreed(event.target.value)}
           disabled={loadingBreeds}
         >
-          <option value="">All breeds</option>
+          <option value="">Choose a breed...</option>
           {breeds.map((breedName) => (
             <option key={breedName} value={breedName}>
               {breedName}
@@ -152,7 +167,7 @@ export default function SearchForm({
       {/* Distance + Sort row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="maxDistance" className="text-sm font-semibold text-slate-700">
+          <label htmlFor="maxDistance" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
             Max distance
           </label>
           <select
@@ -170,7 +185,7 @@ export default function SearchForm({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="sortBy" className="text-sm font-semibold text-slate-700">
+          <label htmlFor="sortBy" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
             Sort by
           </label>
           <select
@@ -188,13 +203,25 @@ export default function SearchForm({
         </div>
       </div>
 
+      {/* Search button — disabled until criteria entered */}
       <button
         type="submit"
-        className="inline-flex w-full items-center justify-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/20 transition hover:bg-[#00a98e]"
+        disabled={!hasCriteria}
+        className={`inline-flex w-full items-center justify-center gap-2 rounded-3xl px-5 py-4 text-sm font-semibold shadow-lg transition ${
+          hasCriteria
+            ? "bg-[#00BFA5] text-white shadow-[#00BFA5]/20 hover:bg-[#00a98e]"
+            : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+        }`}
       >
         <Search className="h-4 w-4" />
-        Search breeders
+        {hasCriteria ? "Search breeders" : "Select a breed or location to search"}
       </button>
+
+      {!hasCriteria && (
+        <p className="text-center text-xs text-slate-400">
+          Please select a breed or enter a location to find breeders
+        </p>
+      )}
     </form>
   );
 }

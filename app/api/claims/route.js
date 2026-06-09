@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { claimSchema } from "@/lib/validation";
 import { rateLimitByIp } from "@/lib/rate-limit";
 import { sendClaimConfirmation, sendClaimAdminNotification } from "@/lib/emails/resend";
@@ -47,6 +47,22 @@ export async function POST(request) {
     const { data, error } = await supabase.from("claims").insert(claimData).select().single();
     if (error) {
       return NextResponse.json({ error: "Unable to submit claim. Please try again." }, { status: 500 });
+    }
+
+    // Store evidence if provided
+    const evidence = body.evidence || {};
+    const evidenceEntries = Object.entries(evidence).filter(([, v]) => v?.url);
+    if (evidenceEntries.length > 0) {
+      const adminClient = createAdminClient();
+      await adminClient.from("claim_evidence").insert(
+        evidenceEntries.map(([type, file]) => ({
+          claim_id: data.id,
+          evidence_type: type,
+          file_url: file.url,
+          file_name: file.name,
+          file_size: file.size,
+        }))
+      );
     }
 
     // Send emails asynchronously; do not block response on email delivery

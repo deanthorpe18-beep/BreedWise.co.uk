@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, Heart, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft } from "lucide-react";
+import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle } from "lucide-react";
+import SaveBreederButton from "./SaveBreederButton";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
@@ -33,31 +34,10 @@ export default function SearchResults({
   pageSize = 24,
 }) {
   const [mapView, setMapView] = useState(false);
-  const [saved, setSaved] = useState([]);
   const [filters, setFilters] = useState({
     maxDistance: 50,
   });
   const [tracked, setTracked] = useState(false);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem("breedwise-saved") || "[]";
-    setSaved(JSON.parse(stored));
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("breedwise-saved", JSON.stringify(saved));
-  }, [saved]);
-
-  const toggleSave = (slug, breederName) => {
-    setSaved((current) => {
-      const isAdding = !current.includes(slug);
-      if (isAdding) {
-        trackSaveBreeder(slug, breederName);
-        trackCtaClick(slug, "save");
-      }
-      return isAdding ? [...current, slug] : current.filter((item) => item !== slug);
-    });
-  };
 
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);

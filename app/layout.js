@@ -7,6 +7,7 @@ import SessionTracker from "@components/SessionTracker";
 import CacheBuster from "@components/CacheBuster";
 import { AuthProvider } from "@components/AuthProvider";
 import { ToastProvider } from "@components/Toast";
+import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -47,7 +48,21 @@ export default function RootLayout({ children }) {
             <ToastProvider>
               <CacheBuster />
               <SessionTracker />
-              <main className="flex-grow">{children}</main>
+              <div className="flex flex-1">
+                {/* Desktop left skyscraper ad */}
+                <aside className="hidden xl:block w-[300px] flex-shrink-0">
+                  <div className="sticky top-24 p-4">
+                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
+                  </div>
+                </aside>
+                <main className="flex-grow min-w-0">{children}</main>
+                {/* Desktop right skyscraper ad */}
+                <aside className="hidden xl:block w-[300px] flex-shrink-0">
+                  <div className="sticky top-24 p-4">
+                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
+                  </div>
+                </aside>
+              </div>
               <CookieConsent />
             </ToastProvider>
           </AuthProvider>

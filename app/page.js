@@ -1,153 +1,277 @@
 import Link from "next/link";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
+import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { getBreeds } from "@lib/breeders";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
+import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight } from "lucide-react";
 
 export default function HomePage() {
   const breeds = getBreeds().slice(0, 6);
   const adSenseEnabled = process.env.NEXT_PUBLIC_ADSENSE_ENABLED === "true";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
+    <div>
       <PageViewTracker page="home" />
 
-      <section className="space-y-6 pb-8">
-        <div className="max-w-3xl space-y-6">
-          <span className="inline-flex rounded-full bg-[#00BFA5]/10 px-3 py-1 text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">
-            UK Dog Breeder Directory
-          </span>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Search for a dog breeder near you
-          </h1>
-          <p className="max-w-2xl text-lg leading-8 text-slate-600">
-            Compare public breeder information before making contact. BreedWise is a directory only — we do not sell puppies, endorse breeders, or guarantee the accuracy of third-party information.
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0]">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:px-8 sm:py-16 lg:py-20">
+          <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] items-center">
+            {/* Left: Copy */}
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5]/10 px-4 py-2">
+                <span className="h-2 w-2 rounded-full bg-[#00BFA5] animate-pulse" />
+                <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#00BFA5]">
+                  UK Dog Breeder Directory
+                </span>
+              </div>
+              
+              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                Find your perfect <span className="text-[#00BFA5]">companion</span>
+              </h1>
+              
+              <p className="max-w-xl text-lg leading-8 text-slate-600">
+                Connect with trusted dog breeders across the UK. Compare listings, read reviews, and find the right breeder for your family.
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/search"
+                  className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#00BFA5]/25 transition hover:bg-[#00a98e] hover:shadow-xl hover:shadow-[#00BFA5]/30"
+                >
+                  <Search className="h-4 w-4" />
+                  Search breeders
+                </Link>
+                <Link
+                  href="/education"
+                  className="inline-flex items-center gap-2 rounded-3xl border-2 border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
+                >
+                  <Heart className="h-4 w-4" />
+                  Buyer guides
+                </Link>
+              </div>
+
+              {/* Trust indicators */}
+              <div className="flex flex-wrap items-center gap-6 pt-4 text-sm text-slate-500">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-[#00BFA5]" />
+                  <span>1,632 verified listings</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-[#00BFA5]" />
+                  <span>Across the UK</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-[#FFB545]" />
+                  <span>Real reviews</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Search form */}
+            <div>
+              <SearchForm variant="hero" />
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative blobs */}
+        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[#00BFA5]/5 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#FF6B6B]/5 blur-3xl" />
+      </section>
+
+      {/* Mobile ad below hero */}
+      <div className="lg:hidden">
+        <div className="mx-auto max-w-6xl px-4 py-4">
+          <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
+        </div>
+      </div>
+
+      {/* Benefits Section */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
+        <div className="text-center mb-12">
+          <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#00BFA5]">Why BreedWise</span>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">Everything you need to find a breeder</h2>
+          <p className="mt-4 max-w-2xl mx-auto text-slate-600">
+            We make it easier to compare breeders, save your favourites, and make informed decisions.
           </p>
         </div>
 
-        <SearchForm />
-
-        {/* AdSense or content module */}
-        {adSenseEnabled ? (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
-            <p className="font-semibold text-slate-700">Ad space reserved</p>
-            <p className="mt-1">AdSense content will appear here when enabled.</p>
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">How BreedWise works</p>
-                <p className="mt-1 text-sm text-slate-600 max-w-xl">
-                  We collect public information about dog breeders to help you compare listings. Always do your own checks before contacting any breeder.
-                </p>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { icon: Search, title: "Smart Search", desc: "Filter by breed, location, and distance to find breeders near you." },
+            { icon: Heart, title: "Save Favourites", desc: "Create an account to save breeders and compare them later." },
+            { icon: Star, title: "Real Reviews", desc: "See Google ratings and review counts for transparent comparison." },
+            { icon: MessageCircle, title: "Message Breeders", desc: "Contact breeders directly through our secure messaging system." },
+            { icon: Shield, title: "Verified Claims", desc: "Breeders can claim profiles with evidence for added trust." },
+            { icon: Award, title: "Buyer Guides", desc: "Learn what to ask, red flags to watch for, and how to stay safe." },
+          ].map((benefit) => (
+            <div key={benefit.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6FFFB] transition group-hover:bg-[#00BFA5]">
+                <benefit.icon className="h-6 w-6 text-[#00BFA5] transition group-hover:text-white" />
               </div>
-              <Link
-                href="/education"
-                className="inline-flex items-center justify-center rounded-full bg-[#F1F4F6] px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-              >
-                Read buyer guides
-              </Link>
+              <h3 className="mt-4 text-lg font-bold text-slate-900">{benefit.title}</h3>
+              <p className="mt-2 text-sm text-slate-600 leading-relaxed">{benefit.desc}</p>
             </div>
-          </div>
-        )}
-
-        {/* Primary + Secondary CTAs */}
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            href="/search"
-            className="inline-flex items-center justify-center rounded-full bg-[#00BFA5] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#00a98e]"
-          >
-            Search now
-          </Link>
-          <Link
-            href="/claim"
-            className="inline-flex items-center justify-center rounded-full border border-[#00BFA5] bg-white px-6 py-3 text-sm font-semibold text-[#00BFA5] transition hover:bg-[#E6FFFB]"
-          >
-            Claim your breeder profile
-          </Link>
+          ))}
         </div>
       </section>
 
-      {/* Trust and compliance strip */}
-      <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 h-2 w-2 rounded-full bg-[#00BFA5] flex-shrink-0" />
-            <p>BreedWise is a directory only. We do not sell puppies.</p>
+      {/* Dual Journey Section */}
+      <section className="bg-[#F1F4F6]">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">Two journeys, one platform</h2>
+            <p className="mt-4 text-slate-600">Whether you are looking for a puppy or managing your breeding business, we have got you covered.</p>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 h-2 w-2 rounded-full bg-[#00BFA5] flex-shrink-0" />
-            <p>Inclusion does not equal endorsement, vetting, or recommendation.</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 h-2 w-2 rounded-full bg-[#00BFA5] flex-shrink-0" />
-            <p>Always do your own checks before contacting any breeder.</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 h-2 w-2 rounded-full bg-[#00BFA5] flex-shrink-0" />
-            <p>Breeders can claim listings to improve accuracy. <Link href="/claim" className="font-semibold text-[#00BFA5] hover:text-[#008f7a]">Learn more</Link></p>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Buyer Journey */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6FFFB]">
+                  <Users className="h-6 w-6 text-[#00BFA5]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">For Buyers</h3>
+                  <p className="text-sm text-slate-500">Find your new family member</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { step: "1", title: "Search breeders", desc: "Filter by breed and location across the UK" },
+                  { step: "2", title: "Compare listings", desc: "Read reviews, check licences, and view photos" },
+                  { step: "3", title: "Save favourites", desc: "Create a free account to save and compare breeders" },
+                  { step: "4", title: "Make contact", desc: "Message breeders directly through our secure system" },
+                ].map((item) => (
+                  <div key={item.step} className="flex gap-4">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">
+                      {item.step}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="text-sm text-slate-500">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/search"
+                className="mt-6 inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#00BFA5]/20 transition hover:bg-[#00a98e]"
+              >
+                Start searching
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            {/* Breeder Journey */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F0]">
+                  <Dog className="h-6 w-6 text-[#FF6B6B]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">For Breeders</h3>
+                  <p className="text-sm text-slate-500">Grow your breeding business</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { step: "1", title: "Claim your profile", desc: "Submit evidence to verify your listing" },
+                  { step: "2", title: "Update your details", desc: "Add photos, health testing info, and more" },
+                  { step: "3", title: "Get discovered", desc: "Appear in search results for your breeds" },
+                  { step: "4", title: "Receive enquiries", desc: "Get messages from potential buyers directly" },
+                ].map((item) => (
+                  <div key={item.step} className="flex gap-4">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#FF6B6B] text-xs font-bold text-white">
+                      {item.step}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="text-sm text-slate-500">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/claim"
+                className="mt-6 inline-flex items-center gap-2 rounded-3xl bg-[#FF6B6B] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#FF6B6B]/20 transition hover:bg-[#e55a5a]"
+              >
+                Claim your profile
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-semibold text-slate-900">Search made simple</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-semibold text-slate-700">Browse by location</p>
-              <p className="mt-2 text-sm text-slate-500">Start with town or postcode and expand across the UK later.</p>
+      {/* Popular Breeds + Locations */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Popular breeds</h3>
+              <p className="mt-1 text-sm text-slate-500">Quick links to the most searched breeds</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-semibold text-slate-700">Filter by breed</p>
-              <p className="mt-2 text-sm text-slate-500">Choose from over 30 popular UK breeds, including Labradors, Cockapoos and more.</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {breeds.map((breedName) => (
+                <Link
+                  key={breedName}
+                  href={`/search?breed=${encodeURIComponent(breedName)}`}
+                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
+                >
+                  <Dog className="h-4 w-4 flex-shrink-0" />
+                  {breedName}
+                </Link>
+              ))}
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-semibold text-slate-700">Compare quickly</p>
-              <p className="mt-2 text-sm text-slate-500">Review public ratings, contact options, and available details at a glance.</p>
-            </div>
-            <Link
-              href="/claim"
-              className="rounded-3xl border border-[#00BFA5] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md block"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-900">Claim listings</p>
-                <span className="inline-flex rounded-full bg-[#00BFA5]/10 px-2 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">New</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500">Breeders can search for their profile and request approval to update information.</p>
-            </Link>
           </div>
-        </div>
 
-        <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h3 className="text-xl font-semibold text-slate-900">Popular breeds</h3>
-            <p className="mt-2 text-sm text-slate-500">Quick jump links to the most requested UK breeds.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {breeds.map((breedName) => (
-              <Link
-                key={breedName}
-                href={`/search?breed=${encodeURIComponent(breedName)}`}
-                className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-white"
-              >
-                {breedName}
-              </Link>
-            ))}
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
-            <p className="text-sm font-semibold text-slate-700">West Sussex towns</p>
-            <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              {["London", "Birmingham", "Manchester", "Leeds", "Bristol", "Glasgow", "Cardiff", "Belfast"].map((town) => (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Popular locations</h3>
+              <p className="mt-1 text-sm text-slate-500">Search breeders in major UK cities</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {["London", "Birmingham", "Manchester", "Leeds", "Bristol", "Glasgow", "Cardiff", "Belfast", "Edinburgh", "Liverpool", "Sheffield", "Newcastle"].map((town) => (
                 <Link
                   key={town}
                   href={`/search?q=${encodeURIComponent(town)}`}
-                  className="rounded-2xl bg-white px-3 py-2 text-slate-700 hover:bg-[#E6FFFB] transition"
+                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
                 >
+                  <MapPin className="h-4 w-4 flex-shrink-0" />
                   {town}
                 </Link>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust strip */}
+      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 md:px-8">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
+            <div className="flex items-start gap-3">
+              <Shield className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
+              <p>BreedWise is a directory only. We do not sell puppies or endorse breeders.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <Search className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
+              <p>All listings are public information. Always do your own independent checks.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <MessageCircle className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
+              <p>Message breeders securely through our platform. Your email stays private.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <Award className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
+              <p>Claimed profiles show verified badges for added transparency.</p>
             </div>
           </div>
         </div>

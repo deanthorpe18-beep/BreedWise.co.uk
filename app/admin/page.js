@@ -390,6 +390,10 @@ export default function AdminPage() {
     { id: "admins", label: "Admins", icon: Users },
   ];
 
+  const extraLinks = [
+    { href: "/admin/places", label: "Google Cache", icon: Globe },
+  ];
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8">
       <div className="space-y-6">
@@ -442,6 +446,16 @@ export default function AdminPage() {
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
                 </button>
+              ))}
+              {extraLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-2 px-5 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                </a>
               ))}
             </nav>
           </div>

@@ -4,6 +4,7 @@ import PageViewTracker from "@components/PageViewTracker";
 import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { createClient } from "@/lib/supabase/server";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
+import { Dog, MapPin, SearchX } from "lucide-react";
 
 export function generateMetadata({ searchParams }) {
     const query = searchParams?.q || "";
@@ -70,57 +71,57 @@ export default async function SearchPage({ searchParams }) {
     const userLng = searchParams?.userLng || "";
     const page = Math.max(1, parseInt(searchParams?.page || "1", 10));
 
-    const supabase = createClient();
-    let dbQuery = supabase
-        .from("breeders")
-        .select("*, breeder_breeds(breed)", { count: "exact" })
-        .in("status", ["public_listing", "claimed_profile"]);
-
-    if (query && query !== "My location") {
-        const safe = query.replace(/[%_(),&]/g, "");
-        if (safe) {
-            dbQuery = dbQuery.or(`name.ilike.%${safe}%,town.ilike.%${safe}%,postcode.ilike.%${safe}%,address.ilike.%${safe}%`);
-        }
-    }
-
-    dbQuery = dbQuery.order("name", { ascending: true });
-    const { data, error, count } = await dbQuery;
+    // NEW: Only execute search if breed OR location is provided
+    const hasSearchCriteria = !!(breed || query.trim() || userLat);
 
     let breeders = [];
     let totalCount = 0;
     let totalPages = 0;
 
-    if (!error && data) {
-        totalCount = count || data.length;
-        breeders = data.map((b) => ({
-            ...b,
-            breeds: b.breeder_breeds?.map((bb) => bb.breed) || [],
-            breeder_breeds: undefined,
-        }));
+    if (hasSearchCriteria) {
+        const supabase = createClient();
+        let dbQuery = supabase
+            .from("breeders")
+            .select("*, breeder_breeds(breed)", { count: "exact" })
+            .in("status", ["public_listing", "claimed_profile"]);
 
-        if (breed) {
-            const breedLower = breed.toLowerCase();
-            breeders = breeders.filter((b) => b.breeds.some((br) => br.toLowerCase() === breedLower));
-            totalCount = breeders.length;
+        if (query && query !== "My location") {
+            const safe = query.replace(/[%_(),&]/g, "");
+            if (safe) {
+                dbQuery = dbQuery.or(`name.ilike.%${safe}%,town.ilike.%${safe}%,postcode.ilike.%${safe}%,address.ilike.%${safe}%`);
+            }
         }
 
-        // Calculate distance from user location if provided
-        breeders = calculateDistanceFromUser(breeders, userLat, userLng);
+        dbQuery = dbQuery.order("name", { ascending: true });
+        const { data, error, count } = await dbQuery;
 
-        // Apply max distance filter
-        if (maxDistance) {
-            const max = parseFloat(maxDistance);
-            breeders = breeders.filter((b) => b.distance !== null && b.distance <= max);
-            totalCount = breeders.length;
+        if (!error && data) {
+            totalCount = count || data.length;
+            breeders = data.map((b) => ({
+                ...b,
+                breeds: b.breeder_breeds?.map((bb) => bb.breed) || [],
+                breeder_breeds: undefined,
+            }));
+
+            if (breed) {
+                const breedLower = breed.toLowerCase();
+                breeders = breeders.filter((b) => b.breeds.some((br) => br.toLowerCase() === breedLower));
+                totalCount = breeders.length;
+            }
+
+            breeders = calculateDistanceFromUser(breeders, userLat, userLng);
+
+            if (maxDistance) {
+                const max = parseFloat(maxDistance);
+                breeders = breeders.filter((b) => b.distance !== null && b.distance <= max);
+                totalCount = breeders.length;
+            }
+
+            breeders = sortBreeders(breeders, sortBy);
+            totalPages = Math.ceil(totalCount / PAGE_SIZE);
+            const start = (page - 1) * PAGE_SIZE;
+            breeders = breeders.slice(start, start + PAGE_SIZE);
         }
-
-        // Sort
-        breeders = sortBreeders(breeders, sortBy);
-
-        // Pagination
-        totalPages = Math.ceil(totalCount / PAGE_SIZE);
-        const start = (page - 1) * PAGE_SIZE;
-        breeders = breeders.slice(start, start + PAGE_SIZE);
     }
 
     return (
@@ -152,18 +153,41 @@ export default async function SearchPage({ searchParams }) {
                 <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
                     {/* Main content column */}
                     <div className="space-y-8">
-                        <SearchResults
-                            breeders={breeders}
-                            query={query}
-                            breed={breed}
-                            sortBy={sortBy}
-                            userLat={userLat}
-                            userLng={userLng}
-                            currentPage={page}
-                            totalPages={totalPages}
-                            totalCount={totalCount}
-                            pageSize={PAGE_SIZE}
-                        />
+                        {!hasSearchCriteria ? (
+                            /* Empty search state */
+                            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
+                                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#E6FFFB]">
+                                    <SearchX className="h-10 w-10 text-[#00BFA5]" />
+                                </div>
+                                <h2 className="mt-6 text-xl font-semibold text-slate-900">Start your search</h2>
+                                <p className="mt-2 max-w-md mx-auto text-sm text-slate-500">
+                                    Select a breed from the dropdown or enter a location to find breeders near you. You can also use both to narrow your results.
+                                </p>
+                                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                                    <div className="flex items-center gap-2 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm text-slate-600">
+                                        <Dog className="h-4 w-4 text-[#00BFA5]" />
+                                        Choose a breed
+                                    </div>
+                                    <div className="flex items-center gap-2 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm text-slate-600">
+                                        <MapPin className="h-4 w-4 text-[#00BFA5]" />
+                                        Enter a location
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <SearchResults
+                                breeders={breeders}
+                                query={query}
+                                breed={breed}
+                                sortBy={sortBy}
+                                userLat={userLat}
+                                userLng={userLng}
+                                currentPage={page}
+                                totalPages={totalPages}
+                                totalCount={totalCount}
+                                pageSize={PAGE_SIZE}
+                            />
+                        )}
 
                         {/* Educational content block */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

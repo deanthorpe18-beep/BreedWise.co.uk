@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Globe, Phone, Mail, Star, MapPin, ExternalLink } from "lucide-react";
+import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award } from "lucide-react";
+import JustClaimedBadge, { isJustClaimed } from "@components/JustClaimedBadge";
 import ClaimProfileButton from "@components/ClaimProfileButton";
 import GoogleReviews from "@components/GoogleReviews";
 import BreederPhotos from "@components/BreederPhotos";
@@ -67,6 +68,7 @@ export default async function BreederProfilePage({ params }) {
     const photos = breeder.breeder_photos || [];
     const hasHeroImage = !!breeder.hero_image_url;
     const statusLabel = breeder.status === "claimed_profile" ? "Claimed Profile" : "Public Listing";
+    const justClaimed = isJustClaimed(breeder.claimed_at);
 
     const structuredData = [
         localBusinessSchema({
@@ -88,11 +90,14 @@ export default async function BreederProfilePage({ params }) {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
             />
 
-            <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className={`space-y-6 rounded-3xl border bg-white p-6 shadow-sm ${justClaimed ? "border-purple-300 ring-2 ring-purple-100" : "border-slate-200"}`}>
                 {/* Header */}
                 <div className="sm:flex sm:items-start sm:justify-between sm:gap-6">
                     <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
+                          {justClaimed && <JustClaimedBadge claimedAt={breeder.claimed_at} />}
+                        </div>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
                         <p className="mt-2 text-sm text-slate-500">
                             {breeder.town}{breeder.county ? `, ${breeder.county}` : ""}
@@ -109,7 +114,8 @@ export default async function BreederProfilePage({ params }) {
                             </div>
                         )}
                     </div>
-                    <div className="mt-4 flex gap-3 sm:mt-0">
+                    <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
+                        <MessageBreederButton breederId={breeder.id} breederName={breeder.name} />
                         {breeder.website && (
                             <TrackedLink href={breeder.website} breederSlug={slug} actionType="website" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-3xl bg-[#00BFA5] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/15 transition hover:bg-[#00a98e]">
                                 <Globe className="mr-2 h-4 w-4" /> Visit website
@@ -283,5 +289,33 @@ function InfoTile({ label, value }) {
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{label}</p>
             <p className="mt-3 text-sm font-semibold text-slate-900">{value}</p>
         </div>
+    );
+}
+
+function MessageBreederButton({ breederId, breederName }) {
+    return (
+        <form action={`/api/messages/conversations`} method="POST"
+            onSubmit={async (e) => {
+                e.preventDefault();
+                const res = await fetch("/api/messages/conversations", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ breeder_id: breederId, subject: `Enquiry about ${breederName}` }),
+                });
+                const data = await res.json();
+                if (data.conversation?.id) {
+                    window.location.href = `/messages/${data.conversation.id}`;
+                } else if (data.error === "Unauthorized") {
+                    window.location.href = `/auth/login?redirect=/breeder/${breederName}`;
+                }
+            }}
+        >
+            <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-3xl border border-purple-200 bg-purple-50 px-5 py-3 text-sm font-semibold text-purple-700 transition hover:bg-purple-100"
+            >
+                <MessageCircle className="mr-2 h-4 w-4" /> Message
+            </button>
+        </form>
     );
 }

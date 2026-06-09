@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@components/AuthProvider";
-import { Menu, X, User, LogOut, Shield, ChevronDown, Settings } from "lucide-react";
+import { Menu, X, User, LogOut, Shield, ChevronDown, Settings, Heart, MessageCircle } from "lucide-react";
 
 function getInitials(name) {
   if (!name) return "?";
@@ -60,6 +60,22 @@ function UserDropdown({ user, onLogout }) {
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
           </div>
           <div className="py-1">
+            <Link
+              href="/account/saved-breeders"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            >
+              <Heart className="h-4 w-4 text-slate-400" />
+              Saved breeders
+            </Link>
+            <Link
+              href="/messages"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            >
+              <MessageCircle className="h-4 w-4 text-slate-400" />
+              Messages
+            </Link>
             <Link
               href="/account/settings"
               onClick={() => setOpen(false)}
@@ -186,6 +202,8 @@ export default function MainNav() {
                     )}
                   </div>
                 </div>
+                <Link href="/account/saved-breeders" className="rounded-2xl px-4 py-3 hover:bg-slate-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Heart className="h-4 w-4" /> Saved breeders</Link>
+                <Link href="/messages" className="rounded-2xl px-4 py-3 hover:bg-slate-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><MessageCircle className="h-4 w-4" /> Messages</Link>
                 <Link href="/account/settings" className="rounded-2xl px-4 py-3 hover:bg-slate-50" onClick={() => setIsOpen(false)}>Account settings</Link>
                 {(user.role === "admin" || user.role === "super_admin") && (
                   <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin dashboard</Link>

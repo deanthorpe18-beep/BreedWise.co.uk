@@ -1,55 +1,76 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-/**
- * Responsive AdSense placeholder.
- * Renders a horizontal placeholder on mobile, vertical on desktop.
- * Swap the <ins> block for real AdSense code once approved.
- */
 export default function AdSensePlaceholder({
-  slot,
   mobileFormat = "horizontal",
   desktopFormat = "vertical",
   className = "",
 }) {
-  // Mobile: 728x90 or 320x100 (leaderboard / large mobile banner)
-  // Desktop: 300x600 or 160x600 (half-page / wide skyscraper)
-  const mobileSizes = { horizontal: "w-full h-[100px]", vertical: "w-[160px] h-[600px]" };
-  const desktopSizes = { horizontal: "w-full h-[90px]", vertical: "w-[300px] h-[600px]" };
-
-  const mobileClass = mobileSizes[mobileFormat] || mobileSizes.horizontal;
-  const desktopClass = desktopSizes[desktopFormat] || desktopSizes.vertical;
+  const [isMobile, setIsMobile] = useState(false);
+  const [adConfig, setAdConfig] = useState(null);
 
   useEffect(() => {
-    try {
-      if (window.adsbygoogle) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      }
-    } catch {
-      // AdSense not loaded yet — placeholder stays visible
-    }
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
-  return (
-    <div className={`mx-auto ${className}`}>
-      {/* Mobile view */}
-      <div className={`block sm:hidden ${mobileClass}`}>
-        <div className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Ad · Mobile Banner
-          </span>
-        </div>
-      </div>
+  useEffect(() => {
+    fetch("/api/ad-config")
+      .then((r) => r.json())
+      .then((data) => setAdConfig(data))
+      .catch(() => setAdConfig({ enabled: false }));
+  }, []);
 
-      {/* Desktop view */}
-      <div className={`hidden sm:block ${desktopClass}`}>
-        <div className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Ad · Desktop Skyscraper
-          </span>
-        </div>
+  const format = isMobile ? mobileFormat : desktopFormat;
+
+  // If ads not enabled, show subtle placeholder
+  if (!adConfig?.enabled) {
+    const dims = format === "vertical"
+      ? "min-h-[600px] w-[300px]"
+      : "min-h-[90px] w-full";
+
+    return (
+      <div className={`rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center ${dims} ${className}`}>
+        <p className="text-xs text-slate-400 text-center px-4">
+          Ad space
+          <br />
+          <span className="text-[10px]">{format}</span>
+        </p>
       </div>
+    );
+  }
+
+  // Render actual AdSense
+  const adClient = adConfig?.clientId || "";
+  const slot = format === "vertical"
+    ? adConfig?.desktopSkyscraper
+    : adConfig?.mobileBanner;
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.adsbygoogle) {
+      try {
+        window.adsbygoogle.push({});
+      } catch {}
+    }
+  }, [format, slot]);
+
+  const dims = format === "vertical"
+    ? "min-h-[600px] w-[300px]"
+    : "min-h-[90px] w-full";
+
+  return (
+    <div className={`${dims} ${className}`}>
+      <ins
+        className="adsbygoogle"
+        style={{ display: "block" }}
+        data-ad-client={adClient}
+        data-ad-slot={slot}
+        data-ad-format={format === "vertical" ? "auto" : "auto"}
+        data-full-width-responsive={format !== "vertical" ? "true" : "false"}
+      />
     </div>
   );
 }
