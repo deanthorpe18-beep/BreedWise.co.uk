@@ -35,6 +35,7 @@ export async function generateMetadata({ params }) {
 export default async function BreederProfilePage({ params }) {
     const { slug } = await params;
     let breeder = null;
+    let fetchError = null;
 
     try {
         const supabase = createClient();
@@ -46,18 +47,19 @@ export default async function BreederProfilePage({ params }) {
             .in("status", ["public_listing", "claimed_profile"])
             .single();
 
-        if (error || !data) {
-            notFound();
+        if (error) {
+            fetchError = error;
+        } else {
+            breeder = data;
         }
-        breeder = data;
     } catch (err) {
         // Auth errors (e.g. refresh token not found) should not crash the page.
         // The breeder profile is public — it doesn't require authentication.
         console.warn("[breeder page] Auth or DB error for", slug, err?.message || err);
-        notFound();
+        fetchError = err;
     }
 
-    if (!breeder) {
+    if (fetchError || !breeder) {
         notFound();
     }
 
