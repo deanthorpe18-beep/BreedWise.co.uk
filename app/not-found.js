@@ -1,9 +1,5 @@
 import Link from "next/link";
 
-export const metadata = {
-  title: "Page not found | BreedWise",
-};
-
 export default function NotFound() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8 text-center">
