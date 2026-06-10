@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@components/AuthProvider";
 import {
   Lock, Shield, Users, FileText, BarChart3, Settings, CheckCircle, XCircle, Clock,
   AlertTriangle, Loader2, Trash2, UserCheck, UserPlus, UserMinus, Search, Eye,
@@ -11,8 +12,7 @@ import {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const { user, loading: loadingUser } = useAuth();
   const [activeTab, setActiveTab] = useState("queue");
   const [claims, setClaims] = useState([]);
   const [removals, setRemovals] = useState([]);
@@ -62,20 +62,10 @@ export default function AdminPage() {
   const [superError, setSuperError] = useState("");
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data.user);
-        setLoadingUser(false);
-        if (!data.user || (data.user.role !== "admin" && data.user.role !== "super_admin")) {
-          router.push("/");
-        }
-      })
-      .catch(() => {
-        setLoadingUser(false);
-        router.push("/");
-      });
-  }, [router]);
+    if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
+      router.push("/");
+    }
+  }, [loadingUser, user, router]);
 
   useEffect(() => {
     if (!user || user.role !== "admin") return;

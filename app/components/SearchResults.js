@@ -190,10 +190,32 @@ export default function SearchResults({
                     </p>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-4">
                     <Link href={`/breeder/${breeder.slug}`} className="rounded-3xl bg-[#00BFA5] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#00a98e]">
                       View profile
                     </Link>
+                    <form
+                      className="contents"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const res = await fetch("/api/messages/conversations", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ breeder_id: breeder.id, subject: `Enquiry about ${breeder.name}` }),
+                        });
+                        const data = await res.json();
+                        if (data.conversation?.id) {
+                          window.location.href = `/messages/${data.conversation.id}`;
+                        } else if (data.error === "Unauthorized") {
+                          window.location.href = `/auth/login?redirect=/search`;
+                        }
+                      }}
+                    >
+                      <button type="submit" className="rounded-3xl border border-purple-200 bg-purple-50 px-4 py-3 text-center text-sm font-semibold text-purple-700 transition hover:bg-purple-100">
+                        <MessageCircle className="inline h-4 w-4 mr-1" />
+                        Message
+                      </button>
+                    </form>
                     {breeder.phone ? (
                       <a href={`tel:${breeder.phone}`} onClick={() => trackCtaClick(breeder.slug, "call")} className="rounded-3xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                         Call
@@ -203,13 +225,7 @@ export default function SearchResults({
                         No phone
                       </span>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => toggleSave(breeder.slug, breeder.name)}
-                      className="rounded-3xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      {saved.includes(breeder.slug) ? "Saved" : "Save"}
-                    </button>
+                    <SaveBreederButton breederId={breeder.id} breederName={breeder.name} />
                   </div>
                 </div>
 
