@@ -74,28 +74,41 @@ export async function GET(request) {
       .gte("created_at", since);
 
     // ── Most viewed breeders ──
-    const { data: mostViewed } = await adminClient.rpc("get_most_viewed_breeders", {
-      since_date: since,
-      limit_count: 10,
+    const { data: pvData } = await adminClient
+      .from("page_views")
+      .select("breeder_slug")
+      .gte("created_at", since)
+      .not("breeder_slug", "is", null);
+
+    const counts = {};
+    (pvData || []).forEach((v) => {
+      counts[v.breeder_slug] = (counts[v.breeder_slug] || 0) + 1;
+    });
+    const topBreeders = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([slug, views]) => ({ breeder_slug: slug, views }));
+
+    // ── Search analytics ──
+    const { data: searchData } = await adminClient
+      .from("search_analytics")
+      .select("query, breed, location, created_at")
+      .gte("created_at", since);
+
+    const topSearchTerms = {};
+    const topSearchedBreeds = {};
+    const topSearchedLocations = {};
+    (searchData || []).forEach((s) => {
+      if (s.query) topSearchTerms[s.query] = (topSearchTerms[s.query] || 0) + 1;
+      if (s.breed) topSearchedBreeds[s.breed] = (topSearchedBreeds[s.breed] || 0) + 1;
+      if (s.location) topSearchedLocations[s.location] = (topSearchedLocations[s.location] || 0) + 1;
     });
 
-    let topBreeders = mostViewed || [];
-    if (topBreeders.length === 0) {
-      const { data: pvData } = await adminClient
-        .from("page_views")
-        .select("breeder_slug")
-        .gte("created_at", since)
-        .not("breeder_slug", "is", null);
-
-      const counts = {};
-      (pvData || []).forEach((v) => {
-        counts[v.breeder_slug] = (counts[v.breeder_slug] || 0) + 1;
-      });
-      topBreeders = Object.entries(counts)
+    const formatTop = (obj) =>
+      Object.entries(obj)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
-        .map(([slug, views]) => ({ breeder_slug: slug, views }));
-    }
+        .map(([name, count]) => ({ name, count }));
 
     // ── CTA clicks by type ──
     const { data: ctaData } = await adminClient
@@ -149,6 +162,10 @@ export async function GET(request) {
       dailyStats: Object.entries(dailyStats)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([date, views]) => ({ date, views })),
+      topSearchTerms: formatTop(topSearchTerms),
+      topSearchedBreeds: formatTop(topSearchedBreeds),
+      topSearchedLocations: formatTop(topSearchedLocations),
+      totalSearches: (searchData || []).length,
     });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Unable to fetch analytics." }, { status: 500 });

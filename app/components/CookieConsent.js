@@ -7,19 +7,19 @@ export default function CookieConsent() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem("breedwise-cookie-consent");
+    const consent = localStorage.getItem("breedwise_cookie_consent");
     if (!consent) {
       setShow(true);
     }
   }, []);
 
   const accept = () => {
-    localStorage.setItem("breedwise-cookie-consent", "accepted");
+    localStorage.setItem("breedwise_cookie_consent", JSON.stringify({ analytics: true, acceptedAt: new Date().toISOString() }));
     setShow(false);
   };
 
   const decline = () => {
-    localStorage.setItem("breedwise-cookie-consent", "declined");
+    localStorage.setItem("breedwise_cookie_consent", JSON.stringify({ analytics: false, acceptedAt: new Date().toISOString() }));
     setShow(false);
   };
 

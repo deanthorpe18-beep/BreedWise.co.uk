@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { trackPageView } from "@lib/analytics";
+import { trackPageView } from "@lib/analytics-client";
 
-export default function PageViewTracker({ page }) {
+export default function PageViewTracker({ page, breederSlug }) {
   useEffect(() => {
-    trackPageView(page);
-  }, [page]);
+    trackPageView(breederSlug || null, page === "home" ? "/" : `/${page}`);
+  }, [page, breederSlug]);
 
   return null;
 }

@@ -11,8 +11,10 @@ import ProfileTracker, { TrackedLink } from "@components/ProfileTracker";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }) {
-    const { slug } = await params;
+    const { slug } = params;
     try {
         const supabase = createClient();
         const { data: breeder } = await supabase
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function BreederProfilePage({ params }) {
-    const { slug } = await params;
+    const { slug } = params;
     let breeder = null;
     let fetchError = null;
 
@@ -49,7 +51,6 @@ export default async function BreederProfilePage({ params }) {
             .in("status", ["public_listing", "claimed_profile"])
             .single();
 
-        // Fetch related breeders (same breed) — separate query
         let relatedBreeders = [];
         let nearbyBreeders = [];
         if (data) {
@@ -92,8 +93,6 @@ export default async function BreederProfilePage({ params }) {
             breeder.nearbyBreeders = nearbyBreeders;
         }
     } catch (err) {
-        // Auth errors (e.g. refresh token not found) should not crash the page.
-        // The breeder profile is public — it doesn't require authentication.
         console.warn("[breeder page] Auth or DB error for", slug, err?.message || err);
         fetchError = err;
     }
@@ -105,9 +104,7 @@ export default async function BreederProfilePage({ params }) {
     const breeds = breeder.breeder_breeds?.map((bb) => bb.breed) || [];
     const photos = breeder.breeder_photos || [];
     const hasHeroImage = !!breeder.hero_image_url;
-    const statusLabel = breeder.status === "claimed_profile" ? "Claimed Profile" : "Public Listing";
     const justClaimed = isJustClaimed(breeder.claimed_at);
-
 
     const structuredData = [
         localBusinessSchema({
@@ -171,7 +168,7 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                 </div>
 
-                {/* Prominent Claim Banner (or Verified badge if claimed) */}
+                {/* Claim Banner */}
                 <ClaimProfileButton
                     breederSlug={slug}
                     breederName={breeder.name}
@@ -199,7 +196,7 @@ export default async function BreederProfilePage({ params }) {
                     <BreederPhotos photos={photos} breederName={breeder.name} />
                 )}
 
-                {/* Info Tiles — ONLY show fields that have real data */}
+                {/* Info Tiles */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {breeder.website && <InfoTile label="Website" value={breeder.website} />}
                     {breeder.phone && <InfoTile label="Phone" value={breeder.phone} />}

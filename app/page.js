@@ -1,17 +1,24 @@
 import Link from "next/link";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
+import SocialProofBanner from "@components/SocialProofBanner";
 import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { getBreeds } from "@lib/breeders";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
-import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight } from "lucide-react";
+import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight, Sparkles, TrendingUp } from "lucide-react";
 
 export default function HomePage() {
   const breeds = getBreeds().slice(0, 6);
   const adSenseEnabled = process.env.NEXT_PUBLIC_ADSENSE_ENABLED === "true";
 
+  const structuredData = [
+    websiteSchema(),
+    organizationSchema(),
+  ];
+
   return (
     <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <PageViewTracker page="home" />
 
       {/* Hero Section */}
@@ -82,11 +89,18 @@ export default function HomePage() {
       </section>
 
       {/* Mobile ad below hero */}
-      <div className="lg:hidden">
-        <div className="mx-auto max-w-6xl px-4 py-4">
-          <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
+      {adSenseEnabled && (
+        <div className="lg:hidden">
+          <div className="mx-auto max-w-6xl px-4 py-4">
+            <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Social Proof Banner */}
+      <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 md:px-8">
+        <SocialProofBanner />
+      </section>
 
       {/* Benefits Section */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
@@ -223,13 +237,19 @@ export default function HomePage() {
                 <Link
                   key={breedName}
                   href={`/search?breed=${encodeURIComponent(breedName)}`}
-                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
+                  className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
                 >
-                  <Dog className="h-4 w-4 flex-shrink-0" />
-                  {breedName}
+                  <span className="flex items-center gap-2">
+                    <Dog className="h-4 w-4 flex-shrink-0" />
+                    {breedName}
+                  </span>
+                  <Sparkles className="h-3 w-3 text-slate-300 transition group-hover:text-[#00BFA5]" />
                 </Link>
               ))}
             </div>
+            <Link href="/search" className="inline-flex items-center gap-1 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">
+              View all breeds <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
 
           <div className="space-y-4">
@@ -238,23 +258,83 @@ export default function HomePage() {
               <p className="mt-1 text-sm text-slate-500">Search breeders in major UK cities</p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {["London", "Birmingham", "Manchester", "Leeds", "Bristol", "Glasgow", "Cardiff", "Belfast", "Edinburgh", "Liverpool", "Sheffield", "Newcastle"].map((town) => (
+              {[
+                { name: "London", count: "200+" },
+                { name: "Birmingham", count: "80+" },
+                { name: "Manchester", count: "70+" },
+                { name: "Leeds", count: "50+" },
+                { name: "Bristol", count: "40+" },
+                { name: "Glasgow", count: "35+" },
+                { name: "Cardiff", count: "25+" },
+                { name: "Belfast", count: "20+" },
+                { name: "Edinburgh", count: "30+" },
+                { name: "Liverpool", count: "30+" },
+                { name: "Sheffield", count: "25+" },
+                { name: "Newcastle", count: "20+" },
+              ].map((town) => (
                 <Link
-                  key={town}
-                  href={`/search?q=${encodeURIComponent(town)}`}
-                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
+                  key={town.name}
+                  href={`/search?q=${encodeURIComponent(town.name)}`}
+                  className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
                 >
-                  <MapPin className="h-4 w-4 flex-shrink-0" />
-                  {town}
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    {town.name}
+                  </span>
+                  <span className="text-xs text-slate-400 group-hover:text-[#00BFA5]">{town.count}</span>
                 </Link>
               ))}
             </div>
+            <Link href="/search" className="inline-flex items-center gap-1 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">
+              Explore all locations <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Trending / Just Claimed Section */}
+      <section className="bg-[#F1F4F6]">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
+          <div className="flex items-center gap-2 mb-8">
+            <TrendingUp className="h-5 w-5 text-[#00BFA5]" />
+            <h2 className="text-2xl font-bold text-slate-900">Trending now</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { breed: "Labrador Retriever", reason: "Most searched this week", tag: "Popular" },
+              { breed: "French Bulldog", reason: "Rising interest", tag: "Trending" },
+              { breed: "Cocker Spaniel", reason: "High buyer activity", tag: "Active" },
+            ].map((item) => (
+              <Link
+                key={item.breed}
+                href={`/search?breed=${encodeURIComponent(item.breed)}`}
+                className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E6FFFB]">
+                      <Dog className="h-5 w-5 text-[#00BFA5]" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.breed}</p>
+                      <p className="text-xs text-slate-500">{item.reason}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-[#00BFA5]/10 px-2.5 py-0.5 text-xs font-semibold text-[#00BFA5]">
+                    {item.tag}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#00BFA5] opacity-0 transition group-hover:opacity-100">
+                  Search breeders <ArrowRight className="h-3 w-3" />
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Trust strip */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 md:px-8">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
             <div className="flex items-start gap-3">

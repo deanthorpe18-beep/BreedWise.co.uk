@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, MapPin, Crosshair, Loader2, Dog } from "lucide-react";
+import { saveSearch } from "./RecentSearches";
 
 const DISTANCE_OPTIONS = [
   { value: "", label: "Any distance" },
@@ -82,12 +83,14 @@ export default function SearchForm({
     event.preventDefault();
     if (!hasCriteria) return;
     const query = new URLSearchParams();
-    if (locationQuery.trim() && locationQuery !== "My location") query.set("q", locationQuery.trim());
+    const loc = locationQuery.trim() && locationQuery !== "My location" ? locationQuery.trim() : "";
+    if (loc) query.set("q", loc);
     if (breed) query.set("breed", breed);
     if (maxDistance) query.set("maxDistance", maxDistance);
     if (sortBy && sortBy !== "relevance") query.set("sort", sortBy);
     if (userLat) query.set("userLat", userLat);
     if (userLng) query.set("userLng", userLng);
+    saveSearch({ breed, location: loc, timestamp: new Date().toISOString() });
     router.push(`/search?${query.toString()}`);
   };
 

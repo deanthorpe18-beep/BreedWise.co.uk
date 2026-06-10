@@ -1,6 +1,8 @@
 import SearchResults from "@components/SearchResults";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
+import SearchAnalyticsTracker from "@components/SearchAnalyticsTracker";
+import RecentSearches from "@components/RecentSearches";
 import { createClient } from "@/lib/supabase/server";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { Dog, MapPin, SearchX } from "lucide-react";
@@ -47,7 +49,7 @@ function getTierPriority(tier) {
         case "silver": return 4;
         case "bronze": return 3;
         case "free": return 2;
-        default: return 1; // unclaimed
+        default: return 1;
     }
 }
 
@@ -78,7 +80,6 @@ function sortBreeders(breeders, sortBy) {
         case "name":
             return sorted.sort((a, b) => a.name.localeCompare(b.name));
         default:
-            // Relevance = tier ranking (Gold > Silver > Bronze > Just Claimed > Free > Unclaimed)
             return sorted.sort((a, b) => {
                 const rankA = getBreederRank(a);
                 const rankB = getBreederRank(b);
@@ -99,7 +100,7 @@ export default async function SearchPage({ searchParams }) {
     const userLng = searchParams?.userLng || "";
     const page = Math.max(1, parseInt(searchParams?.page || "1", 10));
 
-    // NEW: Only execute search if breed OR location is provided
+    // Allow search if breed, location, OR geolocation is provided
     const hasSearchCriteria = !!(breed || query.trim() || userLat);
 
     let breeders = [];
@@ -139,7 +140,7 @@ export default async function SearchPage({ searchParams }) {
 
             breeders = calculateDistanceFromUser(breeders, userLat, userLng);
 
-            if (maxDistance) {
+            if (maxDistance && userLat && userLng) {
                 const max = parseFloat(maxDistance);
                 breeders = breeders.filter((b) => b.distance !== null && b.distance <= max);
                 totalCount = breeders.length;
@@ -155,6 +156,15 @@ export default async function SearchPage({ searchParams }) {
     return (
         <>
             <PageViewTracker page="search" />
+            {hasSearchCriteria && (
+                <SearchAnalyticsTracker
+                    query={query}
+                    breed={breed}
+                    location={query}
+                    resultsCount={totalCount}
+                    page={page}
+                />
+            )}
             <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8">
                 {/* Header */}
                 <div className="space-y-2">
@@ -177,6 +187,10 @@ export default async function SearchPage({ searchParams }) {
                     />
                 </div>
 
+                <div className="mt-4">
+                    <RecentSearches />
+                </div>
+
                 <div className="mt-8">
                         {!hasSearchCriteria ? (
                             /* Empty search state */
@@ -186,7 +200,7 @@ export default async function SearchPage({ searchParams }) {
                                 </div>
                                 <h2 className="mt-6 text-xl font-semibold text-slate-900">Start your search</h2>
                                 <p className="mt-2 max-w-md mx-auto text-sm text-slate-500">
-                                    Select a breed from the dropdown or enter a location to find breeders near you. You can also use both to narrow your results.
+                                    Select a breed from the dropdown, enter a location, or click &quot;Use my location&quot; to find breeders near you. You can also combine filters.
                                 </p>
                                 <div className="mt-6 flex flex-wrap justify-center gap-3">
                                     <div className="flex items-center gap-2 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm text-slate-600">
@@ -196,6 +210,10 @@ export default async function SearchPage({ searchParams }) {
                                     <div className="flex items-center gap-2 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm text-slate-600">
                                         <MapPin className="h-4 w-4 text-[#00BFA5]" />
                                         Enter a location
+                                    </div>
+                                    <div className="flex items-center gap-2 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm text-slate-600">
+                                        <MapPin className="h-4 w-4 text-[#00BFA5]" />
+                                        Use my location
                                     </div>
                                 </div>
                             </div>
@@ -215,7 +233,7 @@ export default async function SearchPage({ searchParams }) {
                         )}
 
                         {/* Educational content block */}
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-900">Before you contact a breeder</h2>
                             <div className="mt-4 grid gap-4 sm:grid-cols-3 text-sm text-slate-600">
                                 <div className="rounded-2xl bg-[#F1F4F6] p-4">

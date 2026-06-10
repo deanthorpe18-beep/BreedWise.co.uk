@@ -7,7 +7,9 @@ import {
   Lock, Shield, Users, FileText, BarChart3, Settings, CheckCircle, XCircle, Clock,
   AlertTriangle, Loader2, Trash2, UserCheck, UserPlus, UserMinus, Search, Eye,
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
-  Globe, Phone, Mail, ArrowUpRight
+  Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
+  Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
+  CreditCard, Pencil
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -54,12 +56,28 @@ export default function AdminPage() {
   const [createAdminLoading, setCreateAdminLoading] = useState(false);
 
   // Super admin actions state
-  const [superAction, setSuperAction] = useState(null); // 'reset' | 'email' | null
+  const [superAction, setSuperAction] = useState(null);
   const [superTargetId, setSuperTargetId] = useState("");
   const [superValue, setSuperValue] = useState("");
   const [superLoading, setSuperLoading] = useState(false);
   const [superMessage, setSuperMessage] = useState("");
   const [superError, setSuperError] = useState("");
+
+  // New panel states
+  const [searchIntel, setSearchIntel] = useState(null);
+  const [searchIntelLoading, setSearchIntelLoading] = useState(false);
+  const [listingQuality, setListingQuality] = useState(null);
+  const [listingQualityLoading, setListingQualityLoading] = useState(false);
+  const [duplicates, setDuplicates] = useState(null);
+  const [duplicatesLoading, setDuplicatesLoading] = useState(false);
+  const [claimFraud, setClaimFraud] = useState(null);
+  const [claimFraudLoading, setClaimFraudLoading] = useState(false);
+  const [seoOpps, setSeoOpps] = useState(null);
+  const [seoOppsLoading, setSeoOppsLoading] = useState(false);
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [systemHealthLoading, setSystemHealthLoading] = useState(false);
+  const [funnel, setFunnel] = useState(null);
+  const [funnelLoading, setFunnelLoading] = useState(false);
 
   useEffect(() => {
     if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
@@ -75,24 +93,21 @@ export default function AdminPage() {
 
   useEffect(() => {
     const admin = user?.role === "admin" || user?.role === "super_admin";
-    if (activeTab === "breeders" && admin) {
-      loadBreeders();
-    }
-  }, [activeTab, breederSearch, breederStatus, breederOffset, user]);
-
-  useEffect(() => {
-    const admin = user?.role === "admin" || user?.role === "super_admin";
-    if (activeTab === "audit" && admin) {
-      loadAuditLog();
-    }
-  }, [activeTab, auditBreederSlug, auditOffset, user]);
-
-  useEffect(() => {
-    const admin = user?.role === "admin" || user?.role === "super_admin";
-    if (activeTab === "analytics" && admin) {
-      loadAnalytics();
-    }
-  }, [activeTab, user]);
+    if (!admin) return;
+    if (activeTab === "breeders") loadBreeders();
+    if (activeTab === "audit") loadAuditLog();
+    if (activeTab === "analytics") loadAnalytics();
+    if (activeTab === "search-intel") loadSearchIntel();
+    if (activeTab === "listing-quality") loadListingQuality();
+    if (activeTab === "duplicates") loadDuplicates();
+    if (activeTab === "claim-fraud") loadClaimFraud();
+    if (activeTab === "seo") loadSeoOpps();
+    if (activeTab === "health") loadSystemHealth();
+    if (activeTab === "funnel") loadFunnel();
+    if (activeTab === "members") loadMembers();
+    if (activeTab === "tiers") loadCms();
+    if (activeTab === "cms") loadCms();
+  }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user]);
 
   const loadData = async () => {
     setLoading(true);
@@ -187,6 +202,119 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadSearchIntel = async () => {
+    setSearchIntelLoading(true);
+    try {
+      const res = await fetch("/api/admin/search-intelligence?days=30");
+      const data = await res.json();
+      if (res.ok) setSearchIntel(data);
+    } catch {}
+    finally { setSearchIntelLoading(false); }
+  };
+
+  const loadListingQuality = async () => {
+    setListingQualityLoading(true);
+    try {
+      const res = await fetch("/api/admin/listing-quality?limit=100");
+      const data = await res.json();
+      if (res.ok) setListingQuality(data);
+    } catch {}
+    finally { setListingQualityLoading(false); }
+  };
+
+  const loadDuplicates = async () => {
+    setDuplicatesLoading(true);
+    try {
+      const res = await fetch("/api/admin/duplicates");
+      const data = await res.json();
+      if (res.ok) setDuplicates(data);
+    } catch {}
+    finally { setDuplicatesLoading(false); }
+  };
+
+  const loadClaimFraud = async () => {
+    setClaimFraudLoading(true);
+    try {
+      const res = await fetch("/api/admin/claim-fraud?days=90");
+      const data = await res.json();
+      if (res.ok) setClaimFraud(data);
+    } catch {}
+    finally { setClaimFraudLoading(false); }
+  };
+
+  const loadSeoOpps = async () => {
+    setSeoOppsLoading(true);
+    try {
+      const res = await fetch("/api/admin/seo-opportunities");
+      const data = await res.json();
+      if (res.ok) setSeoOpps(data);
+    } catch {}
+    finally { setSeoOppsLoading(false); }
+  };
+
+  const loadSystemHealth = async () => {
+    setSystemHealthLoading(true);
+    try {
+      const res = await fetch("/api/admin/system-health");
+      const data = await res.json();
+      if (res.ok) setSystemHealth(data);
+    } catch {}
+    finally { setSystemHealthLoading(false); }
+  };
+
+  const loadFunnel = async () => {
+    setFunnelLoading(true);
+    try {
+      const res = await fetch("/api/admin/funnel?days=30");
+      const data = await res.json();
+      if (res.ok) setFunnel(data);
+    } catch {}
+    finally { setFunnelLoading(false); }
+  };
+
+  const loadMembers = async () => {
+    setMembersLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", MEMBERS_LIMIT.toString());
+      params.set("offset", membersOffset.toString());
+      if (membersSearch) params.set("q", membersSearch);
+      const res = await fetch(`/api/admin/members?${params.toString()}`);
+      const data = await res.json();
+      if (res.ok) {
+        setMembers(data.members || []);
+        setMembersTotal(data.total || 0);
+      }
+    } catch {}
+    finally { setMembersLoading(false); }
+  };
+
+  const loadCms = async () => {
+    setCmsLoading(true);
+    try {
+      const res = await fetch("/api/admin/cms");
+      const data = await res.json();
+      if (res.ok) setCmsContent(data.content || {});
+    } catch {}
+    finally { setCmsLoading(false); }
+  };
+
+  const handleSaveCms = async () => {
+    if (!cmsKey.trim()) return;
+    try {
+      const res = await fetch("/api/admin/cms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: cmsKey.trim(), value: cmsValue }),
+      });
+      if (res.ok) {
+        setCmsKey("");
+        setCmsValue("");
+        loadCms();
+      }
+    } catch {}
   };
 
   const updateClaimStatus = async (id, status) => {
@@ -377,11 +505,21 @@ export default function AdminPage() {
   }
 
   const tabs = [
-    { id: "queue", label: "Review Queue", icon: Shield },
+    { id: "queue", label: "Queue", icon: Shield },
     { id: "breeders", label: "Breeders", icon: Building2 },
+    { id: "members", label: "Members", icon: Users },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
-    { id: "audit", label: "Audit Log", icon: FileText },
-    { id: "stats", label: "Statistics", icon: BarChart3 },
+    { id: "funnel", label: "Funnel", icon: Target },
+    { id: "search-intel", label: "Search", icon: Search },
+    { id: "listing-quality", label: "Quality", icon: Award },
+    { id: "duplicates", label: "Dups", icon: Layers },
+    { id: "claim-fraud", label: "Fraud", icon: AlertOctagon },
+    { id: "seo", label: "SEO", icon: Globe },
+    { id: "health", label: "Health", icon: Monitor },
+    { id: "audit", label: "Audit", icon: FileText },
+    { id: "stats", label: "Stats", icon: BarChart3 },
+    { id: "tiers", label: "Tiers", icon: CreditCard },
+    { id: "cms", label: "Editor", icon: Pencil },
     { id: "admins", label: "Admins", icon: Users },
   ];
 
@@ -400,7 +538,7 @@ export default function AdminPage() {
               <h1 className="mt-3 text-3xl font-semibold text-slate-900">BreedWise Management</h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">Manage listings, review claims, monitor analytics, and track site activity.</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {user?.role === "super_admin" && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-600">
                   <Shield className="h-3 w-3" />
@@ -432,7 +570,7 @@ export default function AdminPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap ${
                     activeTab === tab.id
                       ? "border-[#00BFA5] text-[#00BFA5]"
                       : "border-transparent text-slate-600 hover:text-slate-900"
@@ -446,7 +584,7 @@ export default function AdminPage() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="flex items-center gap-2 px-5 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
+                  className="flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
@@ -549,7 +687,6 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* Search & Filter */}
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -574,7 +711,6 @@ export default function AdminPage() {
                   </select>
                 </div>
 
-                {/* Create breeder form */}
                 {showCreateBreeder && (
                   <form onSubmit={handleCreateBreeder} className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6 space-y-4">
                     <h3 className="text-sm font-semibold text-slate-900">Create new breeder</h3>
@@ -604,7 +740,6 @@ export default function AdminPage() {
                   </form>
                 )}
 
-                {/* Breeders table */}
                 {breeders.length === 0 ? (
                   <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No breeders found.</div>
                 ) : (
@@ -638,24 +773,13 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Pagination */}
                 {breedersTotal > BREEDER_LIMIT && (
                   <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setBreederOffset((o) => Math.max(0, o - BREEDER_LIMIT))}
-                      disabled={breederOffset === 0}
-                      className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                    >
+                    <button onClick={() => setBreederOffset((o) => Math.max(0, o - BREEDER_LIMIT))} disabled={breederOffset === 0} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
                       <ChevronLeft className="h-4 w-4" /> Previous
                     </button>
-                    <span className="text-sm text-slate-500">
-                      {breederOffset + 1} – {Math.min(breederOffset + BREEDER_LIMIT, breedersTotal)} of {breedersTotal}
-                    </span>
-                    <button
-                      onClick={() => setBreederOffset((o) => o + BREEDER_LIMIT)}
-                      disabled={breederOffset + BREEDER_LIMIT >= breedersTotal}
-                      className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                    >
+                    <span className="text-sm text-slate-500">{breederOffset + 1} – {Math.min(breederOffset + BREEDER_LIMIT, breedersTotal)} of {breedersTotal}</span>
+                    <button onClick={() => setBreederOffset((o) => o + BREEDER_LIMIT)} disabled={breederOffset + BREEDER_LIMIT >= breedersTotal} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
                       Next <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
@@ -667,20 +791,16 @@ export default function AdminPage() {
             {activeTab === "analytics" && (
               <div className="space-y-6">
                 {analyticsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" />
-                  </div>
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
                 ) : analytics ? (
                   <>
-                    {/* Top stats row */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       <StatCard title="Users Online" value={analytics.onlineUsers} icon={Activity} color="text-[#00BFA5]" />
                       <StatCard title="Page Views (30d)" value={analytics.totalPageViews} icon={Eye} color="text-blue-500" />
                       <StatCard title="CTA Clicks (30d)" value={analytics.totalCtaClicks} icon={MousePointer} color="text-purple-500" />
-                      <StatCard title="Avg Views/Day" value={analytics.dailyStats.length > 0 ? Math.round(analytics.totalPageViews / analytics.dailyStats.length) : 0} icon={TrendingUp} color="text-orange-500" />
+                      <StatCard title="Searches (30d)" value={analytics.totalSearches || 0} icon={Search} color="text-orange-500" />
                     </div>
 
-                    {/* Unique Visitors */}
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                       <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
                         <Users className="h-5 w-5 text-[#00BFA5]" />
@@ -695,34 +815,102 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Most viewed breeders */}
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <Eye className="h-5 w-5 text-[#00BFA5]" />
-                        Most Viewed Breeders (30 days)
-                      </h3>
-                      {analytics.topBreeders.length === 0 ? (
-                        <p className="mt-4 text-sm text-slate-500">No page view data yet.</p>
-                      ) : (
-                        <div className="mt-4 space-y-3">
-                          {analytics.topBreeders.map((b, i) => (
-                            <div key={b.breeder_slug} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">{i + 1}</span>
-                                <span className="text-sm font-medium text-slate-900">{b.breeder_slug}</span>
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Eye className="h-5 w-5 text-[#00BFA5]" />
+                          Most Viewed Breeders (30d)
+                        </h3>
+                        {analytics.topBreeders.length === 0 ? (
+                          <p className="mt-4 text-sm text-slate-500">No page view data yet.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {analytics.topBreeders.map((b, i) => (
+                              <div key={b.breeder_slug} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">{i + 1}</span>
+                                  <span className="text-sm font-medium text-slate-900">{b.breeder_slug}</span>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700">{b.views} views</span>
                               </div>
-                              <span className="text-sm font-semibold text-slate-700">{b.views} views</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Search className="h-5 w-5 text-orange-500" />
+                          Top Search Terms (30d)
+                        </h3>
+                        {(analytics.topSearchTerms || []).length === 0 ? (
+                          <p className="mt-4 text-sm text-slate-500">No search data yet.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {analytics.topSearchTerms.map((t, i) => (
+                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">{i + 1}</span>
+                                  <span className="text-sm font-medium text-slate-900">{t.name}</span>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700">{t.count} searches</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* CTA clicks by type */}
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Dog className="h-5 w-5 text-blue-500" />
+                          Top Searched Breeds (30d)
+                        </h3>
+                        {(analytics.topSearchedBreeds || []).length === 0 ? (
+                          <p className="mt-4 text-sm text-slate-500">No breed search data yet.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {analytics.topSearchedBreeds.map((t, i) => (
+                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">{i + 1}</span>
+                                  <span className="text-sm font-medium text-slate-900">{t.name}</span>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700">{t.count} searches</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-green-500" />
+                          Top Searched Locations (30d)
+                        </h3>
+                        {(analytics.topSearchedLocations || []).length === 0 ? (
+                          <p className="mt-4 text-sm text-slate-500">No location search data yet.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {analytics.topSearchedLocations.map((t, i) => (
+                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">{i + 1}</span>
+                                  <span className="text-sm font-medium text-slate-900">{t.name}</span>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700">{t.count} searches</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                       <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <MousePointer className="h-5 w-5 text-purple-500" />
-                        CTA Clicks by Type (30 days)
+                        CTA Clicks by Type (30d)
                       </h3>
                       {Object.keys(analytics.ctaByType).length === 0 ? (
                         <p className="mt-4 text-sm text-slate-500">No CTA click data yet.</p>
@@ -737,29 +925,255 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load analytics.</div>
+                )}
+              </div>
+            )}
 
-                    {/* Top CTA breeders */}
+            {/* Funnel */}
+            {activeTab === "funnel" && (
+              <div className="space-y-6">
+                {funnelLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : funnel ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                      <StatCard title="Searches" value={funnel.funnel.searches} icon={Search} color="text-blue-500" />
+                      <StatCard title="Profile Views" value={funnel.funnel.profileViews} icon={Eye} color="text-[#00BFA5]" />
+                      <StatCard title="CTA Clicks" value={funnel.funnel.ctaClicks} icon={MousePointer} color="text-purple-500" />
+                      <StatCard title="Conversations" value={funnel.funnel.conversations} icon={MessageCircle} color="text-orange-500" />
+                      <StatCard title="Claims" value={funnel.funnel.claims} icon={Shield} color="text-green-500" />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <FunnelCard label="Search → Profile" rate={`${funnel.funnel.searchToProfile}%`} desc={`${funnel.funnel.profileViews} of ${funnel.funnel.searches} searches`} />
+                      <FunnelCard label="Profile → CTA" rate={`${funnel.funnel.profileToCta}%`} desc={`${funnel.funnel.ctaClicks} of ${funnel.funnel.profileViews} views`} />
+                      <FunnelCard label="CTA → Message" rate={`${funnel.funnel.ctaToConversation}%`} desc={`${funnel.funnel.conversations} of ${funnel.funnel.ctaClicks} clicks`} />
+                    </div>
+
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-orange-500" />
-                        Top Breeders by CTA Engagement
-                      </h3>
-                      {analytics.topCtaBreeders.length === 0 ? (
-                        <p className="mt-4 text-sm text-slate-500">No CTA data yet.</p>
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4">Daily Funnel Breakdown</h3>
+                      {funnel.daily.length === 0 ? (
+                        <p className="text-sm text-slate-500">No daily data yet.</p>
                       ) : (
-                        <div className="mt-4 space-y-3">
-                          {analytics.topCtaBreeders.map((b, i) => (
-                            <div key={b.breeder_slug} className="rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="text-sm font-medium text-slate-900">{b.breeder_slug}</span>
-                                </div>
-                                <span className="text-sm font-semibold text-slate-700">{b.total} clicks</span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                                <th className="pb-2 pr-4">Date</th>
+                                <th className="pb-2 pr-4">Searches</th>
+                                <th className="pb-2 pr-4">Profile Views</th>
+                                <th className="pb-2">CTA Clicks</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {funnel.daily.slice(-14).map((d) => (
+                                <tr key={d.date} className="border-b border-slate-100">
+                                  <td className="py-2 pr-4 font-medium">{d.date}</td>
+                                  <td className="py-2 pr-4">{d.searches}</td>
+                                  <td className="py-2 pr-4">{d.profileViews}</td>
+                                  <td className="py-2">{d.ctaClicks}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load funnel data.</div>
+                )}
+              </div>
+            )}
+
+            {/* Search Intelligence */}
+            {activeTab === "search-intel" && (
+              <div className="space-y-6">
+                {searchIntelLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : searchIntel ? (
+                  <>
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                          <SearchX className="h-5 w-5 text-red-500" />
+                          Zero-Result Searches ({searchIntel.zeroResults.length})
+                        </h3>
+                        {searchIntel.zeroResults.length === 0 ? (
+                          <p className="text-sm text-slate-500">No zero-result searches. Great!</p>
+                        ) : (
+                          <div className="space-y-2 max-h-80 overflow-y-auto">
+                            {searchIntel.zeroResults.map((s, i) => (
+                              <div key={i} className="flex items-center justify-between rounded-xl bg-red-50 px-4 py-2">
+                                <span className="text-sm text-slate-700">{s.query || s.breed || s.location || "(empty)"}</span>
+                                <span className="text-xs text-slate-400">{new Date(s.created_at).toLocaleDateString()}</span>
                               </div>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {Object.entries(b.actions).map(([action, count]) => (
-                                  <span key={action} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 capitalize">{action}: {count}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                          <AlertTriangle className="h-5 w-5 text-orange-500" />
+                          Low-Result Searches &lt;3 ({searchIntel.lowResults.length})
+                        </h3>
+                        {searchIntel.lowResults.length === 0 ? (
+                          <p className="text-sm text-slate-500">All searches return sufficient results.</p>
+                        ) : (
+                          <div className="space-y-2 max-h-80 overflow-y-auto">
+                            {searchIntel.lowResults.map((s, i) => (
+                              <div key={i} className="flex items-center justify-between rounded-xl bg-orange-50 px-4 py-2">
+                                <span className="text-sm text-slate-700">{s.query || s.breed || s.location || "(empty)"} ({s.results_count} results)</span>
+                                <span className="text-xs text-slate-400">{new Date(s.created_at).toLocaleDateString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                          <TrendingUp className="h-5 w-5 text-[#00BFA5]" />
+                          Trending Breeds (Week-over-Week)
+                        </h3>
+                        {searchIntel.trending.length === 0 ? (
+                          <p className="text-sm text-slate-500">No trending data yet.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {searchIntel.trending.map((t) => (
+                              <div key={t.breed} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <span className="text-sm font-medium text-slate-900">{t.breed}</span>
+                                <div className="text-right">
+                                  <span className="text-sm font-semibold text-slate-700">{t.recent} searches</span>
+                                  <span className={`ml-2 text-xs ${parseInt(t.change) >= 0 ? "text-green-600" : "text-red-600"}`}>{parseInt(t.change) >= 0 ? "+" : ""}{t.change}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                          <Crosshair className="h-5 w-5 text-purple-500" />
+                          Breed Gaps (Searched but no breeders)
+                        </h3>
+                        {searchIntel.breedGaps.length === 0 ? (
+                          <p className="text-sm text-slate-500">No breed gaps found. All searched breeds have listings.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {searchIntel.breedGaps.map((g) => (
+                              <div key={g.breed} className="flex items-center justify-between rounded-2xl bg-purple-50 px-4 py-3">
+                                <span className="text-sm font-medium text-slate-900">{g.breed}</span>
+                                <span className="text-sm text-purple-700">{g.searchCount} searches · no breeders</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load search intelligence.</div>
+                )}
+              </div>
+            )}
+
+            {/* Listing Quality */}
+            {activeTab === "listing-quality" && (
+              <div className="space-y-6">
+                {listingQualityLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : listingQuality ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-4">
+                      <QualityCard tier="excellent" count={listingQuality.distribution.excellent} color="bg-green-100 text-green-700" />
+                      <QualityCard tier="good" count={listingQuality.distribution.good} color="bg-blue-100 text-blue-700" />
+                      <QualityCard tier="fair" count={listingQuality.distribution.fair} color="bg-amber-100 text-amber-700" />
+                      <QualityCard tier="poor" count={listingQuality.distribution.poor} color="bg-red-100 text-red-700" />
+                    </div>
+
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4">Worst Listings (Improvement Priority)</h3>
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {listingQuality.listings.map((b) => (
+                          <div key={b.id} className="flex flex-col gap-2 rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ${b.score < 40 ? "bg-red-500" : b.score < 60 ? "bg-amber-500" : "bg-blue-500"}`}>{b.score}</span>
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">{b.name}</p>
+                                  <p className="text-xs text-slate-500">{b.town}{b.county ? `, ${b.county}` : ""}</p>
+                                </div>
+                              </div>
+                              <a href={`/breeder/${b.slug}`} target="_blank" rel="noreferrer" className="text-xs text-[#00BFA5] hover:underline">View</a>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {b.checks.map((c) => (
+                                <span key={c} className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">{c}</span>
+                              ))}
+                              {b.checks.length === 0 && <span className="text-[10px] text-red-500">No data fields</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load listing quality data.</div>
+                )}
+              </div>
+            )}
+
+            {/* Duplicates */}
+            {activeTab === "duplicates" && (
+              <div className="space-y-6">
+                {duplicatesLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : duplicates ? (
+                  <>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Layers className="h-5 w-5 text-[#00BFA5]" />
+                          Potential Duplicates ({duplicates.duplicatesFound} of {duplicates.total})
+                        </h3>
+                      </div>
+                      {duplicates.duplicates.length === 0 ? (
+                        <p className="text-sm text-slate-500">No potential duplicates detected.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {duplicates.duplicates.map((dup, i) => (
+                            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-900">{dup.a.name}</p>
+                                    <p className="text-xs text-slate-500">{dup.a.slug}</p>
+                                    <StatusBadge status={dup.a.status} />
+                                  </div>
+                                  <span className="text-slate-300">↔</span>
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-900">{dup.b.name}</p>
+                                    <p className="text-xs text-slate-500">{dup.b.slug}</p>
+                                    <StatusBadge status={dup.b.status} />
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${dup.confidence === "high" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
+                                    {dup.confidence} confidence
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {dup.reasons.map((r) => (
+                                  <span key={r} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">{r}</span>
                                 ))}
                               </div>
                             </div>
@@ -769,7 +1183,126 @@ export default function AdminPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load analytics.</div>
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load duplicate data.</div>
+                )}
+              </div>
+            )}
+
+            {/* Claim Fraud */}
+            {activeTab === "claim-fraud" && (
+              <div className="space-y-6">
+                {claimFraudLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : claimFraud ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <StatCard title="High Risk" value={claimFraud.highRisk.length} icon={AlertOctagon} color="text-red-500" />
+                      <StatCard title="Medium Risk" value={claimFraud.mediumRisk.length} icon={AlertTriangle} color="text-amber-500" />
+                      <StatCard title="Low Risk" value={claimFraud.lowRisk.length} icon={Shield} color="text-green-500" />
+                    </div>
+
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4">Risk-Scored Claims</h3>
+                      {claimFraud.claims.length === 0 ? (
+                        <p className="text-sm text-slate-500">No claims in the selected period.</p>
+                      ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {claimFraud.claims.map((c) => (
+                            <div key={c.id} className={`rounded-2xl border p-4 ${c.tier === "high" ? "border-red-200 bg-red-50" : c.tier === "medium" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">{c.breeder_name || "Unknown breeder"}</p>
+                                  <p className="text-xs text-slate-500">{c.requester_email} · {c.requester_name || "No name"}</p>
+                                  <p className="text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString()} · {c.evidence_type || "No evidence"}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${c.tier === "high" ? "bg-red-100 text-red-600" : c.tier === "medium" ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600"}`}>
+                                    Risk: {c.riskScore}
+                                  </span>
+                                  <StatusBadge status={c.status} />
+                                </div>
+                              </div>
+                              {c.riskFlags.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {c.riskFlags.map((f) => (
+                                    <span key={f} className="rounded-full bg-white px-2 py-0.5 text-[10px] text-slate-600 border border-slate-200">{f}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load claim fraud data.</div>
+                )}
+              </div>
+            )}
+
+            {/* SEO Opportunities */}
+            {activeTab === "seo" && (
+              <div className="space-y-6">
+                {seoOppsLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : seoOpps ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <StatCard title="Thin Breed Pages" value={seoOpps.summary.thinBreedPages} icon={SearchX} color="text-red-500" />
+                      <StatCard title="Rich Breed Pages" value={seoOpps.summary.richBreedPages} icon={Star} color="text-green-500" />
+                      <StatCard title="Missing Coords" value={seoOpps.summary.missingLocation} icon={MapPin} color="text-amber-500" />
+                      <StatCard title="No Description" value={seoOpps.summary.missingDescription} icon={FileText} color="text-blue-500" />
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <SeoPanel title="Thin Content Breed Pages (< 3 breeders)" items={seoOpps.thinBreedPages} icon={SearchX} bg="bg-red-50" />
+                      <SeoPanel title="High Opportunity Breed Pages (10+ breeders)" items={seoOpps.richBreedPages} icon={Star} bg="bg-green-50" />
+                      <SeoPanel title="Missing Coordinates" items={seoOpps.missingLocation} icon={MapPin} bg="bg-amber-50" />
+                      <SeoPanel title="Missing Descriptions" items={seoOpps.missingDescription} icon={FileText} bg="bg-blue-50" />
+                      <SeoPanel title="Missing Photos" items={seoOpps.missingPhotos} icon={Heart} bg="bg-purple-50" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load SEO data.</div>
+                )}
+              </div>
+            )}
+
+            {/* System Health */}
+            {activeTab === "health" && (
+              <div className="space-y-6">
+                {systemHealthLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : systemHealth ? (
+                  <>
+                    <div className={`rounded-3xl border p-6 shadow-sm ${systemHealth.overall === "healthy" ? "border-green-200 bg-green-50" : systemHealth.overall === "degraded" ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${systemHealth.overall === "healthy" ? "bg-green-100" : systemHealth.overall === "degraded" ? "bg-amber-100" : "bg-red-100"}`}>
+                          <Monitor className={`h-6 w-6 ${systemHealth.overall === "healthy" ? "text-green-600" : systemHealth.overall === "degraded" ? "text-amber-600" : "text-red-600"}`} />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-slate-900">System {systemHealth.overall}</p>
+                          <p className="text-xs text-slate-500">Last checked: {new Date(systemHealth.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {systemHealth.checks.map((check) => (
+                        <div key={check.name} className={`rounded-3xl border p-5 shadow-sm ${check.status === "ok" ? "border-green-200 bg-white" : check.status === "warning" ? "border-amber-200 bg-white" : "border-red-200 bg-white"}`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`h-2 w-2 rounded-full ${check.status === "ok" ? "bg-green-500" : check.status === "warning" ? "bg-amber-500" : "bg-red-500"}`} />
+                            <p className="text-sm font-semibold text-slate-900">{check.name}</p>
+                          </div>
+                          <p className="mt-2 text-xs text-slate-500">{check.detail}</p>
+                          {check.latency && <p className="mt-1 text-xs text-slate-400">{check.latency}ms latency</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load health data.</div>
                 )}
               </div>
             )}
@@ -831,17 +1364,15 @@ export default function AdminPage() {
                       ))}
                     </div>
 
-                    {auditTotal > AUDIT_LIMIT && (
-                      <div className="flex items-center justify-between">
-                        <button onClick={() => setAuditOffset((o) => Math.max(0, o - AUDIT_LIMIT))} disabled={auditOffset === 0} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                          <ChevronLeft className="h-4 w-4" /> Previous
-                        </button>
-                        <span className="text-sm text-slate-500">{auditOffset + 1} – {Math.min(auditOffset + AUDIT_LIMIT, auditTotal)} of {auditTotal}</span>
-                        <button onClick={() => setAuditOffset((o) => o + AUDIT_LIMIT)} disabled={auditOffset + AUDIT_LIMIT >= auditTotal} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                          Next <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setAuditOffset((o) => Math.max(0, o - AUDIT_LIMIT))} disabled={auditOffset === 0} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                        <ChevronLeft className="h-4 w-4" /> Previous
+                      </button>
+                      <span className="text-sm text-slate-500">{auditOffset + 1} – {Math.min(auditOffset + AUDIT_LIMIT, auditTotal)} of {auditTotal}</span>
+                      <button onClick={() => setAuditOffset((o) => o + AUDIT_LIMIT)} disabled={auditOffset + AUDIT_LIMIT >= auditTotal} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                        Next <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   </>
                 )}
               </div>
@@ -860,6 +1391,254 @@ export default function AdminPage() {
                     <StatCard title="Total Breeders" value={breedersTotal} icon={Building2} color="text-purple-500" />
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Members */}
+            {activeTab === "members" && (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-[#00BFA5]" />
+                    Standard Members ({membersTotal})
+                  </h2>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={membersSearch}
+                      onChange={(e) => { setMembersSearch(e.target.value); setMembersOffset(0); }}
+                      className="w-full rounded-2xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
+                    />
+                  </div>
+                </div>
+                {membersLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
+                ) : members.length === 0 ? (
+                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No members found.</div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {members.map((m) => (
+                        <div key={m.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{m.display_name || "Unnamed"}</p>
+                              <p className="text-xs text-slate-500">{m.email || "No email"}</p>
+                              <p className="text-xs text-slate-400">Joined {new Date(m.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600">
+                                <Users className="h-3 w-3" />
+                                {m.role || "breeder"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {membersTotal > MEMBERS_LIMIT && (
+                      <div className="flex items-center justify-between">
+                        <button onClick={() => setMembersOffset((o) => Math.max(0, o - MEMBERS_LIMIT))} disabled={membersOffset === 0} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                          <ChevronLeft className="h-4 w-4" /> Previous
+                        </button>
+                        <span className="text-sm text-slate-500">{membersOffset + 1} – {Math.min(membersOffset + MEMBERS_LIMIT, membersTotal)} of {membersTotal}</span>
+                        <button onClick={() => setMembersOffset((o) => o + MEMBERS_LIMIT)} disabled={membersOffset + MEMBERS_LIMIT >= membersTotal} className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                          Next <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Payment Tiers Preview */}
+            {activeTab === "tiers" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-[#00BFA5]" />
+                  Membership Tiers Preview
+                </h2>
+                <p className="text-sm text-slate-600">This is how payment tiers will appear to breeders. Stripe integration required for activation.</p>
+
+                <div className="grid gap-6 lg:grid-cols-3">
+                  {[
+                    {
+                      id: "bronze",
+                      name: "Bronze",
+                      price: "£19",
+                      period: "/month",
+                      color: "border-amber-200 bg-gradient-to-b from-amber-50 to-white",
+                      badge: "bg-amber-100 text-amber-700",
+                      features: ["Claimed profile badge", "Basic photo upload (3)", "Contact form enquiries", "Standard search ranking", "Email support"],
+                      cta: "Choose Bronze",
+                    },
+                    {
+                      id: "silver",
+                      name: "Silver",
+                      price: "£39",
+                      period: "/month",
+                      color: "border-slate-300 bg-gradient-to-b from-slate-50 to-white ring-2 ring-[#00BFA5]/20",
+                      badge: "bg-slate-200 text-slate-700",
+                      popular: true,
+                      features: ["Everything in Bronze", "Priority search ranking", "Up to 10 photos", "Enquiry analytics dashboard", "Featured rotation eligibility", "Priority email support"],
+                      cta: "Choose Silver",
+                    },
+                    {
+                      id: "gold",
+                      name: "Gold",
+                      price: "£79",
+                      period: "/month",
+                      color: "border-yellow-300 bg-gradient-to-b from-yellow-50 to-white",
+                      badge: "bg-yellow-100 text-yellow-700",
+                      features: ["Everything in Silver", "Top search ranking", "Unlimited photos", "Full analytics suite", "Permanent featured slot", "Dedicated support", "Verified badge"],
+                      cta: "Choose Gold",
+                    },
+                  ].map((tier) => (
+                    <div key={tier.id} className={`relative rounded-3xl border p-6 shadow-sm ${tier.color}`}>
+                      {tier.popular && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#00BFA5] px-3 py-1 text-xs font-bold text-white shadow-sm">
+                          Most Popular
+                        </span>
+                      )}
+                      <div className="text-center">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${tier.badge}`}>
+                          <Award className="h-3 w-3" /> {tier.name}
+                        </span>
+                        <div className="mt-4">
+                          <span className="text-4xl font-bold text-slate-900">{tier.price}</span>
+                          <span className="text-sm text-slate-500">{tier.period}</span>
+                        </div>
+                      </div>
+                      <ul className="mt-6 space-y-3">
+                        {tier.features.map((f) => (
+                          <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
+                            <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#00BFA5]" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        onClick={() => setSelectedTier(tier.id)}
+                        className={`mt-6 inline-flex w-full items-center justify-center rounded-3xl px-5 py-3 text-sm font-semibold transition ${
+                          selectedTier === tier.id
+                            ? "bg-[#00BFA5] text-white shadow-lg shadow-[#00BFA5]/20"
+                            : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {selectedTier === tier.id ? "Selected" : tier.cta}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
+                  <h3 className="text-sm font-semibold text-slate-900">Stripe Configuration Required</h3>
+                  <div className="mt-3 space-y-2 text-sm text-slate-600">
+                    <p>Add these environment variables on Railway to activate payments:</p>
+                    <ul className="list-disc pl-5 space-y-1 font-mono text-xs">
+                      <li>STRIPE_SECRET_KEY</li>
+                      <li>STRIPE_PRICE_BRONZE</li>
+                      <li>STRIPE_PRICE_SILVER</li>
+                      <li>STRIPE_PRICE_GOLD</li>
+                      <li>STRIPE_WEBHOOK_SECRET</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CMS Editor */}
+            {activeTab === "cms" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                  <Pencil className="h-5 w-5 text-[#00BFA5]" />
+                  Site Content Editor
+                </h2>
+                <p className="text-sm text-slate-600">Quickly update text across the site. Changes are saved in-memory and persist until server restart. For production persistence, a cms_content database table is recommended.</p>
+
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-4">Add or Edit Content</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700">Content Key</label>
+                      <input
+                        value={cmsKey}
+                        onChange={(e) => setCmsKey(e.target.value)}
+                        placeholder="e.g. hero_title"
+                        className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700">Content Value</label>
+                      <input
+                        value={cmsValue}
+                        onChange={(e) => setCmsValue(e.target.value)}
+                        placeholder="New text content..."
+                        className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    <button onClick={handleSaveCms} className="rounded-3xl bg-[#00BFA5] px-5 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]">Save Content</button>
+                    <button onClick={() => { setCmsKey(""); setCmsValue(""); }} className="rounded-3xl border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Clear</button>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-4">Current Content</h3>
+                  {cmsLoading ? (
+                    <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-[#00BFA5]" /></div>
+                  ) : Object.keys(cmsContent).length === 0 ? (
+                    <p className="text-sm text-slate-500">No custom content set yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {Object.entries(cmsContent).map(([key, value]) => (
+                        <div key={key} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-500 uppercase">{key}</p>
+                            <p className="text-sm text-slate-900 truncate">{value}</p>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => { setCmsKey(key); setCmsValue(value); }}
+                              className="rounded-full p-1.5 text-slate-400 hover:text-[#00BFA5] hover:bg-[#E6FFFB]"
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-2">Common Content Keys</h3>
+                  <div className="grid gap-2 sm:grid-cols-2 text-xs text-slate-600">
+                    <div className="rounded-xl bg-white p-3 border border-slate-200">
+                      <p className="font-semibold text-slate-900">hero_title</p>
+                      <p>Homepage main headline</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-3 border border-slate-200">
+                      <p className="font-semibold text-slate-900">hero_subtitle</p>
+                      <p>Homepage description text</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-3 border border-slate-200">
+                      <p className="font-semibold text-slate-900">trust_banner_text</p>
+                      <p>Footer trust disclaimer</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-3 border border-slate-200">
+                      <p className="font-semibold text-slate-900">contact_email</p>
+                      <p>Support email address</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1045,6 +1824,49 @@ function VisitorCard({ label, value }) {
     <div className="rounded-2xl bg-[#F1F4F6] p-4 text-center">
       <p className="text-2xl font-bold text-slate-900">{value.toLocaleString()}</p>
       <p className="text-xs font-medium text-slate-500 mt-1">{label}</p>
+    </div>
+  );
+}
+
+function FunnelCard({ label, rate, desc }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm text-center">
+      <p className="text-3xl font-bold text-[#00BFA5]">{rate}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{label}</p>
+      <p className="mt-1 text-xs text-slate-500">{desc}</p>
+    </div>
+  );
+}
+
+function QualityCard({ tier, count, color }) {
+  return (
+    <div className={`rounded-3xl border p-5 text-center ${color.replace("text", "border")} ${color.replace("text", "bg")}`}>
+      <p className="text-2xl font-bold capitalize">{tier}</p>
+      <p className="text-sm font-semibold">{count} listings</p>
+    </div>
+  );
+}
+
+function SeoPanel({ title, items, icon: Icon, bg }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
+        <Icon className="h-4 w-4" />
+        {title} ({items.length})
+      </h3>
+      {items.length === 0 ? (
+        <p className="text-xs text-slate-500">None found. Great!</p>
+      ) : (
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {items.slice(0, 10).map((item, i) => (
+            <div key={i} className={`rounded-xl ${bg} px-3 py-2`}>
+              <p className="text-sm font-medium text-slate-900">{item.name || item.breed || item.slug || "Unknown"}</p>
+              {item.suggestion && <p className="text-xs text-slate-500">{item.suggestion}</p>}
+              {item.count && <p className="text-xs text-slate-500">{item.count} breeders</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
