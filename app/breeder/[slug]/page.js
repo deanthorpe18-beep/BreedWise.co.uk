@@ -115,7 +115,9 @@ export default async function BreederProfilePage({ params }) {
                         )}
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
-                        <MessageBreederButton breederId={breeder.id} breederName={breeder.name} />
+                        {breeder.status === "claimed_profile" && (
+                          <MessageBreederButton breederId={breeder.id} breederName={breeder.name} />
+                        )}
                         {breeder.website && (
                             <TrackedLink href={breeder.website} breederSlug={slug} actionType="website" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-3xl bg-[#00BFA5] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/15 transition hover:bg-[#00a98e]">
                                 <Globe className="mr-2 h-4 w-4" /> Visit website

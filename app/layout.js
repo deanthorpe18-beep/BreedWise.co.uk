@@ -49,21 +49,7 @@ export default function RootLayout({ children }) {
               <CacheBuster />
               <SessionTracker />
 
-              <div className="flex flex-1">
-                {/* Desktop left skyscraper ad — only on very wide screens */}
-                <aside className="hidden 2xl:block w-[300px] flex-shrink-0">
-                  <div className="sticky top-24 p-4">
-                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
-                  </div>
-                </aside>
-                <main className="flex-grow min-w-0">{children}</main>
-                {/* Desktop right skyscraper ad */}
-                <aside className="hidden 2xl:block w-[300px] flex-shrink-0">
-                  <div className="sticky top-24 p-4">
-                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
-                  </div>
-                </aside>
-              </div>
+              <main className="flex-grow">{children}</main>
 
               <CookieConsent />
             </ToastProvider>
