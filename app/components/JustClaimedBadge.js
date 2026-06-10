@@ -1,22 +1,9 @@
 "use client";
 
 import { Award } from "lucide-react";
+import { isJustClaimed, getDaysRemaining } from "@lib/breeder-utils";
 
-export function isJustClaimed(claimedAt) {
-  if (!claimedAt) return false;
-  const claimed = new Date(claimedAt);
-  const now = new Date();
-  const daysDiff = (now - claimed) / (1000 * 60 * 60 * 24);
-  return daysDiff <= 14;
-}
-
-export function getDaysRemaining(claimedAt) {
-  if (!claimedAt) return 0;
-  const claimed = new Date(claimedAt);
-  const now = new Date();
-  const daysDiff = (now - claimed) / (1000 * 60 * 60 * 24);
-  return Math.max(0, Math.ceil(14 - daysDiff));
-}
+export { isJustClaimed, getDaysRemaining };
 
 export default function JustClaimedBadge({ claimedAt, size = "default" }) {
   if (!isJustClaimed(claimedAt)) return null;
