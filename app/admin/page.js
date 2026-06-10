@@ -9,7 +9,7 @@ import {
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
   Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
   Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
-  CreditCard, Pencil
+  CreditCard, Pencil, Dog
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -92,6 +92,7 @@ export default function AdminPage() {
   const [cmsLoading, setCmsLoading] = useState(false);
   const [cmsKey, setCmsKey] = useState("");
   const [cmsValue, setCmsValue] = useState("");
+  const [selectedTier, setSelectedTier] = useState(null);
 
   useEffect(() => {
     if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
