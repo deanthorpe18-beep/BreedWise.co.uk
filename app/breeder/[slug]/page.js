@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award } from "lucide-react";
+import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award, Dog } from "lucide-react";
 import JustClaimedBadge, { isJustClaimed } from "@components/JustClaimedBadge";
+import MembershipBadge from "@components/MembershipBadge";
 import ClaimProfileButton from "@components/ClaimProfileButton";
 import GoogleReviews from "@components/GoogleReviews";
 import BreederPhotos from "@components/BreederPhotos";
@@ -48,10 +49,47 @@ export default async function BreederProfilePage({ params }) {
             .in("status", ["public_listing", "claimed_profile"])
             .single();
 
+        // Fetch related breeders (same breed) — separate query
+        let relatedBreeders = [];
+        let nearbyBreeders = [];
+        if (data) {
+            const breedNames = data.breeder_breeds?.map((bb) => bb.breed) || [];
+            if (breedNames.length > 0) {
+                const { data: relatedIds } = await supabase
+                    .from("breeder_breeds")
+                    .select("breeder_id")
+                    .in("breed", breedNames)
+                    .neq("breeder_id", data.id)
+                    .limit(20);
+                const ids = [...new Set((relatedIds || []).map((r) => r.breeder_id))].slice(0, 4);
+                if (ids.length > 0) {
+                    const { data: related } = await supabase
+                        .from("breeders")
+                        .select("slug, name, town, county, hero_image_url, membership_tier")
+                        .in("id", ids)
+                        .in("status", ["public_listing", "claimed_profile"]);
+                    relatedBreeders = related || [];
+                }
+            }
+
+            const safeTown = data.town?.replace(/[%_(),&]/g, "") || "";
+            const safeCounty = data.county?.replace(/[%_(),&]/g, "") || "";
+            const { data: nearby } = await supabase
+                .from("breeders")
+                .select("slug, name, town, county, hero_image_url, membership_tier")
+                .neq("id", data.id)
+                .in("status", ["public_listing", "claimed_profile"])
+                .or(`town.ilike.%${safeTown}%,county.ilike.%${safeCounty}%`)
+                .limit(4);
+            nearbyBreeders = nearby || [];
+        }
+
         if (error) {
             fetchError = error;
         } else {
             breeder = data;
+            breeder.relatedBreeders = relatedBreeders;
+            breeder.nearbyBreeders = nearbyBreeders;
         }
     } catch (err) {
         // Auth errors (e.g. refresh token not found) should not crash the page.
@@ -69,6 +107,7 @@ export default async function BreederProfilePage({ params }) {
     const hasHeroImage = !!breeder.hero_image_url;
     const statusLabel = breeder.status === "claimed_profile" ? "Claimed Profile" : "Public Listing";
     const justClaimed = isJustClaimed(breeder.claimed_at);
+
 
     const structuredData = [
         localBusinessSchema({
@@ -97,12 +136,13 @@ export default async function BreederProfilePage({ params }) {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
                           {justClaimed && <JustClaimedBadge claimedAt={breeder.claimed_at} />}
+                          <MembershipBadge tier={breeder.membership_tier} size="md" />
                         </div>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
                         <p className="mt-2 text-sm text-slate-500">
                             {breeder.town}{breeder.county ? `, ${breeder.county}` : ""}
                             {breeder.business_type ? ` · ${breeder.business_type}` : ""}
-                            {breeder.status === "claimed_profile" ? " · Verified Profile" : ""}
+                            {breeder.status === "claimed_profile" ? " · Claimed Profile" : ""}
                         </p>
                         {breeder.google_rating && (
                             <div className="mt-2 flex items-center gap-2">
@@ -254,6 +294,56 @@ export default async function BreederProfilePage({ params }) {
                         </Link>
                     </div>
                 </div>
+
+                {/* Related breeders */}
+                {breeder.relatedBreeders?.length > 0 && (
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-semibold text-slate-900">More {breeds[0]} breeders</h2>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {breeder.relatedBreeders.map((b) => (
+                                <Link key={b.slug} href={`/breeder/${b.slug}`} className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+                                    <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200">
+                                        {b.hero_image_url ? (
+                                            <img src={b.hero_image_url} alt={b.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <Dog className="h-6 w-6 m-3 text-slate-400" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate font-semibold text-slate-900">{b.name}</p>
+                                        <p className="truncate text-xs text-slate-500">{b.town}{b.county ? `, ${b.county}` : ""}</p>
+                                    </div>
+                                    <MembershipBadge tier={b.membership_tier} size="sm" />
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Nearby breeders */}
+                {breeder.nearbyBreeders?.length > 0 && (
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-semibold text-slate-900">Breeders near {breeder.town}</h2>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {breeder.nearbyBreeders.map((b) => (
+                                <Link key={b.slug} href={`/breeder/${b.slug}`} className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+                                    <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200">
+                                        {b.hero_image_url ? (
+                                            <img src={b.hero_image_url} alt={b.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <Dog className="h-6 w-6 m-3 text-slate-400" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate font-semibold text-slate-900">{b.name}</p>
+                                        <p className="truncate text-xs text-slate-500">{b.town}{b.county ? `, ${b.county}` : ""}</p>
+                                    </div>
+                                    <MembershipBadge tier={b.membership_tier} size="sm" />
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Footer meta */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

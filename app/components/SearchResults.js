@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
+import MembershipBadge from "./MembershipBadge";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
@@ -148,6 +149,13 @@ export default function SearchResults({
                     <p className="text-sm text-slate-600">{breeder.town}{breeder.county ? `, ${breeder.county}` : ""}</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                    <MembershipBadge tier={breeder.membership_tier} size="sm" />
+                    {breeder.is_featured && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-amber-700 font-bold">
+                        <Crown className="h-3 w-3" />
+                        Featured
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{formatDistance(breeder.distance)}</span>
                     {breeder.google_rating ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">

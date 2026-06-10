@@ -1,7 +1,6 @@
 import SearchResults from "@components/SearchResults";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
-import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { createClient } from "@/lib/supabase/server";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { Dog, MapPin, SearchX } from "lucide-react";
@@ -42,6 +41,29 @@ function calculateDistanceFromUser(breeders, userLat, userLng) {
     }));
 }
 
+function getTierPriority(tier) {
+    switch (tier) {
+        case "gold": return 5;
+        case "silver": return 4;
+        case "bronze": return 3;
+        case "free": return 2;
+        default: return 1; // unclaimed
+    }
+}
+
+function isJustClaimed(claimedAt) {
+    if (!claimedAt) return false;
+    const days = (Date.now() - new Date(claimedAt).getTime()) / (1000 * 60 * 60 * 24);
+    return days <= 14;
+}
+
+function getBreederRank(breeder) {
+    const tierPriority = getTierPriority(breeder.membership_tier);
+    const justClaimedBonus = isJustClaimed(breeder.claimed_at) ? 0.5 : 0;
+    const featuredBonus = breeder.is_featured ? 0.3 : 0;
+    return tierPriority + justClaimedBonus + featuredBonus;
+}
+
 function sortBreeders(breeders, sortBy) {
     const sorted = [...breeders];
     switch (sortBy) {
@@ -56,7 +78,13 @@ function sortBreeders(breeders, sortBy) {
         case "name":
             return sorted.sort((a, b) => a.name.localeCompare(b.name));
         default:
-            return sorted;
+            // Relevance = tier ranking (Gold > Silver > Bronze > Just Claimed > Free > Unclaimed)
+            return sorted.sort((a, b) => {
+                const rankA = getBreederRank(a);
+                const rankB = getBreederRank(b);
+                if (rankB !== rankA) return rankB - rankA;
+                return a.name.localeCompare(b.name);
+            });
     }
 }
 
@@ -82,7 +110,7 @@ export default async function SearchPage({ searchParams }) {
         const supabase = createClient();
         let dbQuery = supabase
             .from("breeders")
-            .select("*, breeder_breeds(breed)", { count: "exact" })
+            .select("*, breeder_breeds(breed), breeder_photos(*)", { count: "exact" })
             .in("status", ["public_listing", "claimed_profile"]);
 
         if (query && query !== "My location") {
@@ -149,10 +177,7 @@ export default async function SearchPage({ searchParams }) {
                     />
                 </div>
 
-                {/* Main layout: content + sidebar ad */}
-                <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
-                    {/* Main content column */}
-                    <div className="space-y-8">
+                <div className="mt-8">
                         {!hasSearchCriteria ? (
                             /* Empty search state */
                             <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
@@ -210,19 +235,6 @@ export default async function SearchPage({ searchParams }) {
                                 <a href="/education" className="text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">Explore buyer guides →</a>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Sidebar ad — desktop only, sticky */}
-                    <aside className="hidden lg:block">
-                        <div className="sticky top-24">
-                            <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
-                        </div>
-                    </aside>
-                </div>
-
-                {/* Mobile ad — below content on small screens */}
-                <div className="mt-8 lg:hidden">
-                    <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
                 </div>
             </div>
         </>

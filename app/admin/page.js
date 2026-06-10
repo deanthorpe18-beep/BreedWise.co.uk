@@ -68,24 +68,28 @@ export default function AdminPage() {
   }, [loadingUser, user, router]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    const admin = user?.role === "admin" || user?.role === "super_admin";
+    if (!admin) return;
     loadData();
   }, [user, activeTab]);
 
   useEffect(() => {
-    if (activeTab === "breeders" && user?.role === "admin") {
+    const admin = user?.role === "admin" || user?.role === "super_admin";
+    if (activeTab === "breeders" && admin) {
       loadBreeders();
     }
   }, [activeTab, breederSearch, breederStatus, breederOffset, user]);
 
   useEffect(() => {
-    if (activeTab === "audit" && user?.role === "admin") {
+    const admin = user?.role === "admin" || user?.role === "super_admin";
+    if (activeTab === "audit" && admin) {
       loadAuditLog();
     }
   }, [activeTab, auditBreederSlug, auditOffset, user]);
 
   useEffect(() => {
-    if (activeTab === "analytics" && isAdmin) {
+    const admin = user?.role === "admin" || user?.role === "super_admin";
+    if (activeTab === "analytics" && admin) {
       loadAnalytics();
     }
   }, [activeTab, user]);
