@@ -39,6 +39,28 @@ export function AuthProvider({ children }) {
     refresh();
   }, [refresh]);
 
+  // Re-fetch when tab becomes visible (mobile app switching, login in other tab)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [refresh]);
+
+  // Re-fetch on storage events (login/logout in other tabs)
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === "breedwise-auth-change") {
+        refresh();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [refresh]);
+
   return (
     <AuthContext.Provider value={{ user, loading, refresh, logout }}>
       {children}

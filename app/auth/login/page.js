@@ -63,8 +63,8 @@ export default function LoginPage() {
         setError(data.error || "Invalid email or password.");
       } else {
         showSuccess("Logged in successfully!");
-        router.push(data.redirectTo || "/");
-        router.refresh();
+        // Full page reload so AuthProvider re-fetches user state
+        window.location.href = data.redirectTo || "/";
       }
     } catch {
       setError("Something went wrong. Please try again.");

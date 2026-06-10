@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="build-version" content="20250606-v2" />
+        <meta name="build-version" content="20250606-v3" />
         <link rel="preconnect" href="https://breedwise.co.uk" />
         <script
           type="application/ld+json"
@@ -34,35 +34,37 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`${inter.className} min-h-screen bg-white text-[#2D3436]`}>
         <div className="min-h-screen flex flex-col">
-          <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
-            <div className="mx-auto relative flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 md:px-8">
-              <Link href="/" className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#2D3436]">
-                <img src="/logo.svg" alt="BreedWise" className="h-10 w-10" />
-                <span>BreedWise.co.uk</span>
-              </Link>
-              <MainNav />
-            </div>
-          </header>
-
           <AuthProvider>
             <ToastProvider>
+              <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
+                <div className="mx-auto relative flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 md:px-8">
+                  <Link href="/" className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#2D3436]">
+                    <img src="/logo.svg" alt="BreedWise" className="h-10 w-10" />
+                    <span>BreedWise.co.uk</span>
+                  </Link>
+                  <MainNav />
+                </div>
+              </header>
+
               <CacheBuster />
               <SessionTracker />
+
               <div className="flex flex-1">
-                {/* Desktop left skyscraper ad */}
-                <aside className="hidden xl:block w-[300px] flex-shrink-0">
+                {/* Desktop left skyscraper ad — only on very wide screens */}
+                <aside className="hidden 2xl:block w-[300px] flex-shrink-0">
                   <div className="sticky top-24 p-4">
                     <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
                   </div>
                 </aside>
                 <main className="flex-grow min-w-0">{children}</main>
                 {/* Desktop right skyscraper ad */}
-                <aside className="hidden xl:block w-[300px] flex-shrink-0">
+                <aside className="hidden 2xl:block w-[300px] flex-shrink-0">
                   <div className="sticky top-24 p-4">
                     <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="vertical" />
                   </div>
                 </aside>
               </div>
+
               <CookieConsent />
             </ToastProvider>
           </AuthProvider>
