@@ -68,7 +68,7 @@ export default function AdminPage() {
   }, [loadingUser, user, router]);
 
   useEffect(() => {
-    if (!user || user.role !== "admin") return;
+    if (!isAdmin) return;
     loadData();
   }, [user, activeTab]);
 
@@ -85,7 +85,7 @@ export default function AdminPage() {
   }, [activeTab, auditBreederSlug, auditOffset, user]);
 
   useEffect(() => {
-    if (activeTab === "analytics" && user?.role === "admin") {
+    if (activeTab === "analytics" && isAdmin) {
       loadAnalytics();
     }
   }, [activeTab, user]);
@@ -358,7 +358,8 @@ export default function AdminPage() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F1F4F6]">
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm text-center max-w-md mx-4">

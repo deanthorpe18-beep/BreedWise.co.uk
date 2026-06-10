@@ -32,7 +32,7 @@ export default function HomePage() {
               </h1>
               
               <p className="max-w-xl text-lg leading-8 text-slate-600">
-                Connect with trusted dog breeders across the UK. Compare listings, read reviews, and find the right breeder for your family.
+                Compare dog breeder listings across the UK. Read reviews, filter by breed and location, and find the right breeder for your family.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -56,7 +56,7 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-6 pt-4 text-sm text-slate-500">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-[#00BFA5]" />
-                  <span>1,632 verified listings</span>
+                  <span>1,632 breeder listings</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-[#00BFA5]" />
@@ -104,7 +104,7 @@ export default function HomePage() {
             { icon: Heart, title: "Save Favourites", desc: "Create an account to save breeders and compare them later." },
             { icon: Star, title: "Real Reviews", desc: "See Google ratings and review counts for transparent comparison." },
             { icon: MessageCircle, title: "Message Breeders", desc: "Contact breeders directly through our secure messaging system." },
-            { icon: Shield, title: "Verified Claims", desc: "Breeders can claim profiles with evidence for added trust." },
+            { icon: Shield, title: "Claimed Profiles", desc: "Breeders can claim profiles with evidence for added transparency." },
             { icon: Award, title: "Buyer Guides", desc: "Learn what to ask, red flags to watch for, and how to stay safe." },
           ].map((benefit) => (
             <div key={benefit.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
@@ -271,7 +271,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-start gap-3">
               <Award className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
-              <p>Claimed profiles show verified badges for added transparency.</p>
+              <p>Claimed profiles show transparency badges for added clarity.</p>
             </div>
           </div>
         </div>
