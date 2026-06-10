@@ -79,6 +79,20 @@ export default function AdminPage() {
   const [funnel, setFunnel] = useState(null);
   const [funnelLoading, setFunnelLoading] = useState(false);
 
+  // Members tab state
+  const [members, setMembers] = useState([]);
+  const [membersTotal, setMembersTotal] = useState(0);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersSearch, setMembersSearch] = useState("");
+  const [membersOffset, setMembersOffset] = useState(0);
+  const MEMBERS_LIMIT = 20;
+
+  // CMS / Tiers tab state
+  const [cmsContent, setCmsContent] = useState({});
+  const [cmsLoading, setCmsLoading] = useState(false);
+  const [cmsKey, setCmsKey] = useState("");
+  const [cmsValue, setCmsValue] = useState("");
+
   useEffect(() => {
     if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
       router.push("/");
@@ -1470,7 +1484,7 @@ export default function AdminPage() {
                     {
                       id: "bronze",
                       name: "Bronze",
-                      price: "£19",
+                      price: "£5.99",
                       period: "/month",
                       color: "border-amber-200 bg-gradient-to-b from-amber-50 to-white",
                       badge: "bg-amber-100 text-amber-700",
@@ -1480,7 +1494,7 @@ export default function AdminPage() {
                     {
                       id: "silver",
                       name: "Silver",
-                      price: "£39",
+                      price: "£7.99",
                       period: "/month",
                       color: "border-slate-300 bg-gradient-to-b from-slate-50 to-white ring-2 ring-[#00BFA5]/20",
                       badge: "bg-slate-200 text-slate-700",
@@ -1491,7 +1505,7 @@ export default function AdminPage() {
                     {
                       id: "gold",
                       name: "Gold",
-                      price: "£79",
+                      price: "£9.99",
                       period: "/month",
                       color: "border-yellow-300 bg-gradient-to-b from-yellow-50 to-white",
                       badge: "bg-yellow-100 text-yellow-700",
