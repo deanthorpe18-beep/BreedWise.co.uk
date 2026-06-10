@@ -486,6 +486,7 @@ CREATE INDEX IF NOT EXISTS idx_saved_breeders_breeder ON public.saved_breeders(b
 
 ALTER TABLE public.saved_breeders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own saved breeders" ON public.saved_breeders;
 CREATE POLICY "Users can manage own saved breeders"
   ON public.saved_breeders
   FOR ALL
@@ -493,6 +494,7 @@ CREATE POLICY "Users can manage own saved breeders"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admins can view all saved breeders" ON public.saved_breeders;
 CREATE POLICY "Admins can view all saved breeders"
   ON public.saved_breeders
   FOR SELECT
@@ -518,6 +520,7 @@ CREATE INDEX IF NOT EXISTS idx_recent_searches_user ON public.recent_searches(us
 
 ALTER TABLE public.recent_searches ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own recent searches" ON public.recent_searches;
 CREATE POLICY "Users can manage own recent searches"
   ON public.recent_searches
   FOR ALL
@@ -545,6 +548,7 @@ CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON public.saved_searches(user
 
 ALTER TABLE public.saved_searches ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own saved searches" ON public.saved_searches;
 CREATE POLICY "Users can manage own saved searches"
   ON public.saved_searches
   FOR ALL
@@ -572,6 +576,7 @@ CREATE INDEX IF NOT EXISTS idx_claim_evidence_claim ON public.claim_evidence(cla
 
 ALTER TABLE public.claim_evidence ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own claim evidence" ON public.claim_evidence;
 CREATE POLICY "Users can view own claim evidence"
   ON public.claim_evidence
   FOR SELECT
@@ -582,6 +587,7 @@ CREATE POLICY "Users can view own claim evidence"
     AND (c.claimant_user_id = auth.uid() OR is_admin())
   ));
 
+DROP POLICY IF EXISTS "Admins can manage claim evidence" ON public.claim_evidence;
 CREATE POLICY "Admins can manage claim evidence"
   ON public.claim_evidence
   FOR ALL
@@ -618,6 +624,7 @@ CREATE INDEX IF NOT EXISTS idx_breeder_analytics_breeder ON public.breeder_analy
 
 ALTER TABLE public.breeder_analytics_daily ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Breeders can view own analytics" ON public.breeder_analytics_daily;
 CREATE POLICY "Breeders can view own analytics"
   ON public.breeder_analytics_daily
   FOR SELECT
@@ -634,6 +641,7 @@ CREATE POLICY "Breeders can view own analytics"
     )
   ));
 
+DROP POLICY IF EXISTS "Admins can view all analytics" ON public.breeder_analytics_daily;
 CREATE POLICY "Admins can view all analytics"
   ON public.breeder_analytics_daily
   FOR ALL
@@ -663,6 +671,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_breeder ON public.conversations(bre
 
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own conversations" ON public.conversations;
 CREATE POLICY "Users can view own conversations"
   ON public.conversations
   FOR SELECT
@@ -673,12 +682,14 @@ CREATE POLICY "Users can view own conversations"
     OR is_admin()
   );
 
+DROP POLICY IF EXISTS "Users can create conversations" ON public.conversations;
 CREATE POLICY "Users can create conversations"
   ON public.conversations
   FOR INSERT
   TO authenticated
   WITH CHECK (buyer_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update own conversations" ON public.conversations;
 CREATE POLICY "Users can update own conversations"
   ON public.conversations
   FOR UPDATE
@@ -714,6 +725,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_sender ON public.messages(sender_id);
 
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view messages in their conversations" ON public.messages;
 CREATE POLICY "Users can view messages in their conversations"
   ON public.messages
   FOR SELECT
@@ -724,6 +736,7 @@ CREATE POLICY "Users can view messages in their conversations"
     AND (c.buyer_id = auth.uid() OR c.breeder_user_id = auth.uid() OR is_admin())
   ));
 
+DROP POLICY IF EXISTS "Users can send messages in their conversations" ON public.messages;
 CREATE POLICY "Users can send messages in their conversations"
   ON public.messages
   FOR INSERT
@@ -734,6 +747,7 @@ CREATE POLICY "Users can send messages in their conversations"
     AND (c.buyer_id = auth.uid() OR c.breeder_user_id = auth.uid())
   ));
 
+DROP POLICY IF EXISTS "Users can update own messages (report)" ON public.messages;
 CREATE POLICY "Users can update own messages (report)"
   ON public.messages
   FOR UPDATE
@@ -744,6 +758,7 @@ CREATE POLICY "Users can update own messages (report)"
     AND (c.buyer_id = auth.uid() OR c.breeder_user_id = auth.uid())
   ));
 
+DROP POLICY IF EXISTS "Admins can manage all messages" ON public.messages;
 CREATE POLICY "Admins can manage all messages"
   ON public.messages
   FOR ALL
@@ -773,12 +788,14 @@ CREATE INDEX IF NOT EXISTS idx_google_places_cache_cached_at ON public.google_pl
 
 ALTER TABLE public.google_places_cache ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can read cache" ON public.google_places_cache;
 CREATE POLICY "Anyone can read cache"
   ON public.google_places_cache
   FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Only admins can write cache" ON public.google_places_cache;
 CREATE POLICY "Only admins can write cache"
   ON public.google_places_cache
   FOR ALL
@@ -810,12 +827,14 @@ ON CONFLICT (key) DO NOTHING;
 
 ALTER TABLE public.ad_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can read ad config" ON public.ad_config;
 CREATE POLICY "Anyone can read ad config"
   ON public.ad_config
   FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Only admins can manage ad config" ON public.ad_config;
 CREATE POLICY "Only admins can manage ad config"
   ON public.ad_config
   FOR ALL
@@ -836,9 +855,9 @@ ALTER TABLE public.removals
 -- ============================================================================
 -- 12. MESSAGING NOTIFICATIONS
 -- ============================================================================
-INSERT INTO public.email_templates (name, subject, body_text, body_html) VALUES
-  ('message_received', 'New message on BreedWise', 'You have a new message on BreedWise. Log in to read it.', '<p>You have a new message on <strong>BreedWise</strong>.</p><p><a href="https://breedwise.co.uk/messages">Log in to read it</a></p>')
-ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.email_templates (template_key, subject, html_body, text_body, description) VALUES
+  ('message_received', 'New message on BreedWise', '<p>You have a new message on <strong>BreedWise</strong>.</p><p><a href="https://breedwise.co.uk/messages">Log in to read it</a></p>', 'You have a new message on BreedWise. Log in to read it.', 'Notification sent when a buyer receives a new message')
+ON CONFLICT (template_key) DO NOTHING;
 
 -- ============================================================================
 -- 13. PERFORMANCE INDEXES

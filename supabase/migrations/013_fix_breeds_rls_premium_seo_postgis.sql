@@ -38,6 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_breeder_subs_tier ON public.breeder_subscriptions
 
 ALTER TABLE public.breeder_subscriptions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own subscriptions" ON public.breeder_subscriptions;
 CREATE POLICY "Users can manage own subscriptions"
   ON public.breeder_subscriptions
   FOR ALL
@@ -45,6 +46,7 @@ CREATE POLICY "Users can manage own subscriptions"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admins can view all subscriptions" ON public.breeder_subscriptions;
 CREATE POLICY "Admins can view all subscriptions"
   ON public.breeder_subscriptions
   FOR SELECT
@@ -98,12 +100,14 @@ CREATE INDEX IF NOT EXISTS idx_search_analytics_no_results ON public.search_anal
 
 ALTER TABLE public.search_analytics ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view search analytics" ON public.search_analytics;
 CREATE POLICY "Admins can view search analytics"
   ON public.search_analytics
   FOR SELECT
   TO authenticated
   USING (is_admin());
 
+DROP POLICY IF EXISTS "Users can insert own searches" ON public.search_analytics;
 CREATE POLICY "Users can insert own searches"
   ON public.search_analytics
   FOR INSERT
@@ -125,6 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_featured_rotation ON public.featured_rotation_log
 
 ALTER TABLE public.featured_rotation_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view rotation log" ON public.featured_rotation_log;
 CREATE POLICY "Admins can view rotation log"
   ON public.featured_rotation_log
   FOR SELECT
@@ -211,12 +216,14 @@ CREATE INDEX IF NOT EXISTS idx_seo_views_location ON public.seo_page_views(locat
 
 ALTER TABLE public.seo_page_views ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can read SEO stats" ON public.seo_page_views;
 CREATE POLICY "Anyone can read SEO stats"
   ON public.seo_page_views
   FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Anyone can insert SEO views" ON public.seo_page_views;
 CREATE POLICY "Anyone can insert SEO views"
   ON public.seo_page_views
   FOR INSERT
@@ -267,6 +274,7 @@ CREATE TABLE IF NOT EXISTS public.backup_log (
 
 ALTER TABLE public.backup_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view backup log" ON public.backup_log;
 CREATE POLICY "Admins can view backup log"
   ON public.backup_log
   FOR ALL
