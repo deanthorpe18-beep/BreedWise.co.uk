@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SearchIcon, UserCheck, CheckCircle, Mail, AlertCircle, Loader2, Upload, FileText, Shield, Award, Home } from "lucide-react";
 import PageViewTracker from "@components/PageViewTracker";
+import BreederSearchDropdown from "@components/BreederSearchDropdown";
 
 const EVIDENCE_TYPES = [
   { key: "licence", label: "Breeding Licence", icon: Shield, desc: "Local council breeding licence" },
@@ -40,7 +41,11 @@ export default function ClaimPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = useCallback(async (type, file) => {
+  const handleBreederSelect = (slug, name) => {
+    setForm((prev) => ({ ...prev, breederSlug: slug, breederName: name }));
+  };
+
+  const handleFileUpload = async (type, file) => {
     if (!file) return;
     setUploading((prev) => ({ ...prev, [type]: true }));
     try {
@@ -62,10 +67,14 @@ export default function ClaimPage() {
       setError("Upload failed. Please try again.");
     }
     setUploading((prev) => ({ ...prev, [type]: false }));
-  }, []);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.breederSlug) {
+      setError("Please select a breeder profile from the dropdown.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -133,18 +142,24 @@ export default function ClaimPage() {
                   <span>{error}</span>
                 </div>
               )}
+
+              {/* Breeder Dropdown Search */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700">Breeder slug or profile URL</label>
-                <input
-                  name="breederSlug"
-                  value={form.breederSlug}
-                  onChange={handleChange}
-                  required
-                  disabled={!user}
-                  placeholder="e.g. chichester-labrador-kennels-chichester"
-                  className="mt-2 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20 disabled:bg-slate-50 disabled:text-slate-400"
-                />
+                <label className="block text-sm font-semibold text-slate-700">
+                  Select your breeder profile <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-2">
+                  <BreederSearchDropdown
+                    value={form.breederSlug}
+                    onChange={handleBreederSelect}
+                    disabled={!user}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Search by breeder name, town, or location. All 1,600+ UK breeders are listed.
+                </p>
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700">Breeder name</label>
                 <input
@@ -156,6 +171,7 @@ export default function ClaimPage() {
                   className="mt-2 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20 disabled:bg-slate-50 disabled:text-slate-400"
                 />
               </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700">Your name</label>
@@ -181,6 +197,7 @@ export default function ClaimPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700">Notes (optional)</label>
                 <textarea
@@ -269,7 +286,7 @@ export default function ClaimPage() {
                   <SearchIcon className="h-5 w-5 text-white" />
                 </div>
                 <h3 className="font-semibold text-slate-900">1. Find your profile</h3>
-                <p className="mt-1 text-sm text-slate-600">Search for your listing and copy the profile URL or slug.</p>
+                <p className="mt-1 text-sm text-slate-600">Search our directory and select your listing from the dropdown above.</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00BFA5] mb-3">

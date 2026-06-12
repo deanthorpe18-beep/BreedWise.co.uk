@@ -145,6 +145,53 @@ export async function GET(request) {
       dailyStats[day] = (dailyStats[day] || 0) + 1;
     });
 
+    // ── Traffic sources (referrer domains) ──
+    const { data: referrerData } = await adminClient
+      .from("page_views")
+      .select("referrer")
+      .gte("created_at", since)
+      .not("referrer", "is", null);
+
+    const trafficSources = {};
+    (referrerData || []).forEach((r) => {
+      const ref = r.referrer || "";
+      let domain = "Direct / None";
+      if (ref) {
+        try {
+          domain = new URL(ref).hostname.replace(/^www\./, "");
+        } catch {
+          domain = ref.length > 40 ? ref.slice(0, 40) + "..." : ref;
+        }
+      }
+      trafficSources[domain] = (trafficSources[domain] || 0) + 1;
+    });
+
+    const topTrafficSources = Object.entries(trafficSources)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
+    // ── UTM campaign tracking ──
+    const { data: utmData } = await adminClient
+      .from("page_views")
+      .select("page_path")
+      .gte("created_at", since);
+
+    const utmCampaigns = {};
+    (utmData || []).forEach((v) => {
+      const path = v.page_path || "";
+      const utmMatch = path.match(/[?&]utm_campaign=([^&]+)/);
+      if (utmMatch) {
+        const campaign = decodeURIComponent(utmMatch[1]);
+        utmCampaigns[campaign] = (utmCampaigns[campaign] || 0) + 1;
+      }
+    });
+
+    const topUtmCampaigns = Object.entries(utmCampaigns)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
     return NextResponse.json({
       onlineUsers: onlineUsers || 0,
       uniqueVisitors: {
@@ -166,6 +213,8 @@ export async function GET(request) {
       topSearchedBreeds: formatTop(topSearchedBreeds),
       topSearchedLocations: formatTop(topSearchedLocations),
       totalSearches: (searchData || []).length,
+      topTrafficSources,
+      topUtmCampaigns,
     });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Unable to fetch analytics." }, { status: 500 });

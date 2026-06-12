@@ -986,6 +986,52 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Globe className="h-5 w-5 text-[#00BFA5]" />
+                          Traffic Sources (30d)
+                        </h3>
+                        {(analytics.topTrafficSources || []).length === 0 ? (
+                          <p className="mt-4 text-sm text-slate-500">No referrer data yet.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {analytics.topTrafficSources.map((t, i) => (
+                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">{i + 1}</span>
+                                  <span className="truncate text-sm font-medium text-slate-900">{t.name}</span>
+                                </div>
+                                <span className="flex-shrink-0 text-sm font-semibold text-slate-700">{t.count} visits</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Target className="h-5 w-5 text-orange-500" />
+                          UTM Campaigns (30d)
+                        </h3>
+                        {(analytics.topUtmCampaigns || []).length === 0 ? (
+                          <p className="mt-4 text-sm text-slate-500">No UTM campaign data yet.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {analytics.topUtmCampaigns.map((t, i) => (
+                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">{i + 1}</span>
+                                  <span className="truncate text-sm font-medium text-slate-900">{t.name}</span>
+                                </div>
+                                <span className="flex-shrink-0 text-sm font-semibold text-slate-700">{t.count} visits</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load analytics.</div>
@@ -1535,7 +1581,7 @@ export default function AdminPage() {
                       period: "/month",
                       color: "border-amber-200 bg-gradient-to-b from-amber-50 to-white",
                       badge: "bg-amber-100 text-amber-700",
-                      features: ["Claimed profile badge", "Basic photo upload (3)", "Contact form enquiries", "Standard search ranking", "Email support"],
+                      features: ["Claimed profile badge", "Up to 5 photos", "Contact form enquiries", "Standard search ranking", "Email support"],
                       cta: "Choose Bronze",
                     },
                     {
