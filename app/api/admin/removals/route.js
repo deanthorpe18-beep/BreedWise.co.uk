@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 import { sendRemovalStatusUpdate } from "@/lib/emails/resend";
 
 export async function GET() {
   try {
-    const supabase = createClient();
     const auth = await requireAdmin();
     if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
       .from("removals")
       .select("*")
       .order("submitted_at", { ascending: false });
@@ -25,7 +25,6 @@ export async function GET() {
 
 export async function PATCH(request) {
   try {
-    const supabase = createClient();
     const auth = await requireAdmin();
     if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -38,16 +37,16 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const adminClient = createAdminClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from("removals")
       .update({
         status,
         admin_reason: admin_reason || null,
         admin_notes: admin_notes || null,
         reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
+        reviewed_by: auth.user.id,
         status_update_sent_at: new Date().toISOString(),
       })
       .eq("id", id)

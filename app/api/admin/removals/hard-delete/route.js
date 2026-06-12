@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 
 /**
@@ -9,7 +9,6 @@ import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
  */
 export async function POST(request) {
   try {
-    const supabase = createClient();
     const auth = await requireAdmin();
     if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -26,10 +25,10 @@ export async function POST(request) {
       return NextResponse.json({ error: "Confirmation required. Set confirmDelete to true." }, { status: 400 });
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const adminClient = createAdminClient();
 
     // Archive the breeder listing (hide from public)
-    const { error: breederError } = await supabase
+    const { error: breederError } = await adminClient
       .from("breeders")
       .update({ status: "archived", last_updated_at: new Date().toISOString() })
       .eq("slug", breederSlug);
@@ -39,14 +38,14 @@ export async function POST(request) {
     }
 
     // Record hard delete in removals table
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from("removals")
       .update({
         status: "approved",
         hard_deleted_at: new Date().toISOString(),
-        hard_deleted_by: user.id,
+        hard_deleted_by: auth.user.id,
         reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
+        reviewed_by: auth.user.id,
         admin_notes: "GDPR Article 17 hard delete executed. Breeder listing archived and PII removed.",
       })
       .eq("id", removalId)

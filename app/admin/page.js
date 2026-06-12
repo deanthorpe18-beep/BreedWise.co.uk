@@ -63,6 +63,9 @@ export default function AdminPage() {
   const [superMessage, setSuperMessage] = useState("");
   const [superError, setSuperError] = useState("");
 
+  // Analytics auto-refresh
+  const [analyticsRefreshTick, setAnalyticsRefreshTick] = useState(0);
+
   // New panel states
   const [searchIntel, setSearchIntel] = useState(null);
   const [searchIntelLoading, setSearchIntelLoading] = useState(false);
@@ -78,6 +81,10 @@ export default function AdminPage() {
   const [systemHealthLoading, setSystemHealthLoading] = useState(false);
   const [funnel, setFunnel] = useState(null);
   const [funnelLoading, setFunnelLoading] = useState(false);
+
+  // Claim action feedback
+  const [claimActionMsg, setClaimActionMsg] = useState("");
+  const [claimActionError, setClaimActionError] = useState("");
 
   // Members tab state
   const [members, setMembers] = useState([]);
@@ -122,7 +129,16 @@ export default function AdminPage() {
     if (activeTab === "members") loadMembers();
     if (activeTab === "tiers") loadCms();
     if (activeTab === "cms") loadCms();
-  }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user]);
+  }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user, analyticsRefreshTick]);
+
+  // Auto-refresh analytics every 30 seconds when on analytics tab
+  useEffect(() => {
+    if (activeTab !== "analytics") return;
+    const interval = setInterval(() => {
+      setAnalyticsRefreshTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   const loadData = async () => {
     setLoading(true);
@@ -333,14 +349,24 @@ export default function AdminPage() {
   };
 
   const updateClaimStatus = async (id, status) => {
+    setClaimActionMsg("");
+    setClaimActionError("");
     try {
       const res = await fetch("/api/admin/claims", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status }),
       });
-      if (res.ok) loadData();
-    } catch {}
+      const data = await res.json();
+      if (res.ok) {
+        setClaimActionMsg(`Claim ${status} successfully.`);
+        loadData();
+      } else {
+        setClaimActionError(data.error || `Failed to ${status} claim.`);
+      }
+    } catch {
+      setClaimActionError("Network error. Please try again.");
+    }
   };
 
   const updateRemovalStatus = async (id, status, adminNotes = "") => {
@@ -617,6 +643,8 @@ export default function AdminPage() {
                     <UserCheck className="h-5 w-5 text-[#00BFA5]" />
                     Claims ({claims.filter((c) => c.status === "pending").length} pending)
                   </h2>
+                  {claimActionMsg && <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">{claimActionMsg}</div>}
+                  {claimActionError && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{claimActionError}</div>}
                   {claims.length === 0 ? (
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No claims yet.</div>
                   ) : (
@@ -805,6 +833,24 @@ export default function AdminPage() {
             {/* Analytics */}
             {activeTab === "analytics" && (
               <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">Live</span>
+                    <span className="text-xs text-slate-400">Updates every 30s</span>
+                  </div>
+                  <button
+                    onClick={() => setAnalyticsRefreshTick((t) => t + 1)}
+                    disabled={analyticsLoading}
+                    className="inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <Loader2 className={`h-3 w-3 ${analyticsLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </button>
+                </div>
                 {analyticsLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
                 ) : analytics ? (
