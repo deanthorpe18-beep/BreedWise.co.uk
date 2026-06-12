@@ -66,7 +66,7 @@ export default function RootLayout({ children }) {
                   <p className="font-semibold text-slate-900">Directory</p>
                   <ul className="mt-2 space-y-2">
                     <li><Link href="/search" className="hover:text-[#00BFA5]">Search breeders</Link></li>
-                    <li><Link href="/breeds/labrador-retriever" className="hover:text-[#00BFA5]">Breed Encyclopedia</Link></li>
+                    <li><Link href="/breeds" className="hover:text-[#00BFA5]">Breed Encyclopedia</Link></li>
                     <li><Link href="/claim" className="hover:text-[#00BFA5]">Claim your profile</Link></li>
                     <li><Link href="/breeder-benefits" className="hover:text-[#00BFA5]">Breeder benefits</Link></li>
                   </ul>

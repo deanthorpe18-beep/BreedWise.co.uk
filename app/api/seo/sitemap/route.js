@@ -8,7 +8,7 @@ export async function GET() {
   const supabase = createAdminClient();
 
   const staticPaths = [
-    "", "/search", "/claim", "/education", "/guides", "/near-me",
+    "", "/search", "/claim", "/education", "/guides", "/near-me", "/breeds",
     "/breeder-benefits", "/privacy", "/terms", "/disclaimer",
     "/education/what-to-ask", "/education/red-flags",
     "/education/how-to-compare", "/education/health-testing",
