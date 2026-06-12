@@ -88,7 +88,8 @@ export default function RootLayout({ children }) {
                   <ul className="mt-2 space-y-2">
                     <li><Link href="/suggest-edit" className="hover:text-[#00BFA5]">Suggest an edit</Link></li>
                     <li><Link href="/request-removal" className="hover:text-[#00BFA5]">Request listing removal</Link></li>
-                    <li><Link href="/education" className="hover:text-[#00BFA5]">Buyer guides</Link></li>
+                    <li><Link href="/guides" className="hover:text-[#00BFA5]">Buyer guides</Link></li>
+                    <li><Link href="/education" className="hover:text-[#00BFA5]">Education</Link></li>
                     <li><a href="mailto:help@breedwise.co.uk" className="hover:text-[#00BFA5]">help@breedwise.co.uk</a></li>
                   </ul>
                 </div>

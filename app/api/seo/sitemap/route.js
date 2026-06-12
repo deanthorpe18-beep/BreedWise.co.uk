@@ -8,11 +8,13 @@ export async function GET() {
   const supabase = createAdminClient();
 
   const staticPaths = [
-    "", "/search", "/claim", "/education", "/near-me",
+    "", "/search", "/claim", "/education", "/guides", "/near-me",
     "/breeder-benefits", "/privacy", "/terms", "/disclaimer",
     "/education/what-to-ask", "/education/red-flags",
     "/education/how-to-compare", "/education/health-testing",
     "/education/how-to-use-safely", "/education/choosing-a-breeder",
+    "/guides/puppy-viewing-checklist", "/guides/puppy-contract-guide",
+    "/guides/transporting-your-puppy", "/guides/puppy-socialisation",
   ];
 
   const [{ data: breeders }, { data: breeds }, { data: locations }] = await Promise.all([
@@ -54,6 +56,25 @@ export async function GET() {
       changefreq: "weekly",
       priority: "0.7",
     })),
+    // Top breed + location combos for SEO landing pages
+    ...(function () {
+      const topBreeds = (breeds || []).filter((b) => b.is_popular).slice(0, 15);
+      const topTowns = uniqueTowns.slice(0, 30);
+      const combos = [];
+      for (const breed of topBreeds) {
+        if (!breed.slug) continue;
+        for (const town of topTowns) {
+          const townSlug = town.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          combos.push({
+            loc: `${baseUrl}/breeders/${breed.slug}/${townSlug}`,
+            lastmod: new Date().toISOString().split("T")[0],
+            changefreq: "weekly",
+            priority: "0.75",
+          });
+        }
+      }
+      return combos;
+    })(),
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
