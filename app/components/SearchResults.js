@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
 import MembershipBadge from "./MembershipBadge";
+import AdSensePlaceholder from "./AdSensePlaceholder";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
@@ -139,8 +140,12 @@ export default function SearchResults({
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredBreeders.map((breeder) => (
-            <div key={breeder.slug} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          {filteredBreeders.map((breeder, index) => (
+            <>
+              {index > 0 && index % 3 === 0 && (
+                <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
+              )}
+              <div key={breeder.slug} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                 {/* Left section - Main info */}
                 <div className="flex-1 space-y-3">
@@ -258,6 +263,7 @@ export default function SearchResults({
                 </div>
               </div>
             </div>
+            </>
           ))}
         </div>
       )}

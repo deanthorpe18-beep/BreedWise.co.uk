@@ -12,12 +12,12 @@ export async function GET() {
     "/breeder-benefits", "/privacy", "/terms", "/disclaimer",
     "/education/what-to-ask", "/education/red-flags",
     "/education/how-to-compare", "/education/health-testing",
-    "/education/how-to-use-safely",
+    "/education/how-to-use-safely", "/education/choosing-a-breeder",
   ];
 
   const [{ data: breeders }, { data: breeds }, { data: locations }] = await Promise.all([
     supabase.from("breeders").select("slug, last_updated_at").in("status", ["public_listing", "claimed_profile"]),
-    supabase.from("breeds").select("name"),
+    supabase.from("breeds").select("name, slug, is_popular"),
     supabase.from("breeders").select("town, county").in("status", ["public_listing", "claimed_profile"]),
   ]);
 
@@ -41,6 +41,12 @@ export async function GET() {
       lastmod: new Date().toISOString().split("T")[0],
       changefreq: "weekly",
       priority: "0.8",
+    })),
+    ...(breeds || []).filter((b) => b.slug).map((b) => ({
+      loc: `${baseUrl}/breeds/${b.slug}`,
+      lastmod: new Date().toISOString().split("T")[0],
+      changefreq: "weekly",
+      priority: b.is_popular ? "0.85" : "0.7",
     })),
     ...uniqueTowns.map((town) => ({
       loc: `${baseUrl}/breeders/location/${encodeURIComponent(town)}`,

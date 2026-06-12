@@ -2,15 +2,13 @@ import Link from "next/link";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
 import SocialProofBanner from "@components/SocialProofBanner";
-import AdSensePlaceholder from "@components/AdSensePlaceholder";
+
 import { getBreeds } from "@lib/breeders";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
 import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight, Sparkles, TrendingUp } from "lucide-react";
 
 export default function HomePage() {
   const breeds = getBreeds().slice(0, 6);
-  const adSenseEnabled = process.env.NEXT_PUBLIC_ADSENSE_ENABLED === "true";
-
   const structuredData = [
     websiteSchema(),
     organizationSchema(),
@@ -89,13 +87,7 @@ export default function HomePage() {
       </section>
 
       {/* Mobile ad below hero */}
-      {adSenseEnabled && (
-        <div className="lg:hidden">
-          <div className="mx-auto max-w-6xl px-4 py-4">
-            <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
-          </div>
-        </div>
-      )}
+
 
       {/* Social Proof Banner */}
       <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 md:px-8">
