@@ -318,8 +318,8 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                 )}
 
-                {/* Nearby breeders */}
-                {breeder.nearbyBreeders?.length > 0 && (
+                {/* Nearby breeders — only show on unclaimed profiles */}
+                {breeder.status !== "claimed_profile" && breeder.nearbyBreeders?.length > 0 && (
                     <div className="space-y-4">
                         <h2 className="text-xl font-semibold text-slate-900">Breeders near {breeder.town}</h2>
                         <div className="grid gap-4 sm:grid-cols-2">
