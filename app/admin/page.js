@@ -33,6 +33,7 @@ export default function AdminPage() {
   const [breederSearch, setBreederSearch] = useState("");
   const [breederStatus, setBreederStatus] = useState("");
   const [breederOffset, setBreederOffset] = useState(0);
+  const [breederSort, setBreederSort] = useState({ field: "name", dir: "asc" });
   const [showCreateBreeder, setShowCreateBreeder] = useState(false);
   const [createBreederLoading, setCreateBreederLoading] = useState(false);
   const [createBreederMessage, setCreateBreederMessage] = useState("");
@@ -44,6 +45,7 @@ export default function AdminPage() {
   const [auditTotal, setAuditTotal] = useState(0);
   const [auditOffset, setAuditOffset] = useState(0);
   const [auditBreederSlug, setAuditBreederSlug] = useState("");
+  const [auditSort, setAuditSort] = useState({ field: "created_at", dir: "desc" });
   const AUDIT_LIMIT = 20;
 
   // Admin creation form
@@ -85,6 +87,8 @@ export default function AdminPage() {
   // Claim action feedback
   const [claimActionMsg, setClaimActionMsg] = useState("");
   const [claimActionError, setClaimActionError] = useState("");
+  const [claimsSort, setClaimsSort] = useState({ field: "submitted_at", dir: "desc" });
+  const [removalsSort, setRemovalsSort] = useState({ field: "submitted_at", dir: "desc" });
 
   // Members tab state
   const [members, setMembers] = useState([]);
@@ -92,6 +96,7 @@ export default function AdminPage() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersSearch, setMembersSearch] = useState("");
   const [membersOffset, setMembersOffset] = useState(0);
+  const [membersSort, setMembersSort] = useState({ field: "created_at", dir: "desc" });
   const MEMBERS_LIMIT = 20;
 
   // CMS / Tiers tab state
@@ -187,6 +192,40 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Generic sort helper
+  const sortData = (data, field, dir) => {
+    if (!data || data.length === 0) return data;
+    const sorted = [...data];
+    sorted.sort((a, b) => {
+      let av = a[field];
+      let bv = b[field];
+      if (av == null) av = "";
+      if (bv == null) bv = "";
+      if (field.includes("date") || field.includes("at") || field === "submitted_at" || field === "created_at" || field === "reviewed_at") {
+        av = new Date(av).getTime();
+        bv = new Date(bv).getTime();
+      }
+      if (typeof av === "string") av = av.toLowerCase();
+      if (typeof bv === "string") bv = bv.toLowerCase();
+      if (av < bv) return dir === "asc" ? -1 : 1;
+      if (av > bv) return dir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  };
+
+  const toggleSort = (current, field) => {
+    if (current.field === field) {
+      return { field, dir: current.dir === "asc" ? "desc" : "asc" };
+    }
+    return { field, dir: "asc" };
+  };
+
+  const SortArrow = ({ field, sort }) => {
+    if (sort.field !== field) return <span className="ml-1 text-slate-300">↕</span>;
+    return <span className="ml-1 text-[#00BFA5]">{sort.dir === "asc" ? "↑" : "↓"}</span>;
   };
 
   const loadAnalytics = async () => {
@@ -698,17 +737,33 @@ export default function AdminPage() {
             {activeTab === "queue" && (
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                    <UserCheck className="h-5 w-5 text-[#00BFA5]" />
-                    Claims ({claims.filter((c) => c.status === "pending").length} pending)
-                  </h2>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                      <UserCheck className="h-5 w-5 text-[#00BFA5]" />
+                      Claims ({claims.filter((c) => c.status === "pending").length} pending)
+                    </h2>
+                    <select
+                      value={`${claimsSort.field}:${claimsSort.dir}`}
+                      onChange={(e) => {
+                        const [field, dir] = e.target.value.split(":");
+                        setClaimsSort({ field, dir });
+                      }}
+                      className="rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
+                    >
+                      <option value="submitted_at:desc">Newest first</option>
+                      <option value="submitted_at:asc">Oldest first</option>
+                      <option value="breeder_name:asc">Breeder (A–Z)</option>
+                      <option value="claimant_email:asc">Email (A–Z)</option>
+                      <option value="status:asc">Status</option>
+                    </select>
+                  </div>
                   {claimActionMsg && <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">{claimActionMsg}</div>}
                   {claimActionError && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{claimActionError}</div>}
                   {claims.length === 0 ? (
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No claims yet.</div>
                   ) : (
                     <div className="space-y-3">
-                      {claims.map((claim) => (
+                      {sortData(claims, claimsSort.field, claimsSort.dir).map((claim) => (
                         <div key={claim.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -735,15 +790,31 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                    <Trash2 className="h-5 w-5 text-[#FF6B6B]" />
-                    Removal Requests ({removals.filter((r) => r.status === "pending").length} pending)
-                  </h2>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                      <Trash2 className="h-5 w-5 text-[#FF6B6B]" />
+                      Removal Requests ({removals.filter((r) => r.status === "pending").length} pending)
+                    </h2>
+                    <select
+                      value={`${removalsSort.field}:${removalsSort.dir}`}
+                      onChange={(e) => {
+                        const [field, dir] = e.target.value.split(":");
+                        setRemovalsSort({ field, dir });
+                      }}
+                      className="rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
+                    >
+                      <option value="submitted_at:desc">Newest first</option>
+                      <option value="submitted_at:asc">Oldest first</option>
+                      <option value="breeder_name:asc">Breeder (A–Z)</option>
+                      <option value="requester_email:asc">Email (A–Z)</option>
+                      <option value="status:asc">Status</option>
+                    </select>
+                  </div>
                   {removals.length === 0 ? (
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No removal requests yet.</div>
                   ) : (
                     <div className="space-y-3">
-                      {removals.map((removal) => (
+                      {sortData(removals, removalsSort.field, removalsSort.dir).map((removal) => (
                         <div key={removal.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -811,6 +882,19 @@ export default function AdminPage() {
                     <option value="hidden">Hidden</option>
                     <option value="archived">Archived</option>
                   </select>
+                  <select
+                    value={`${breederSort.field}:${breederSort.dir}`}
+                    onChange={(e) => {
+                      const [field, dir] = e.target.value.split(":");
+                      setBreederSort({ field, dir });
+                    }}
+                    className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#00BFA5] focus:outline-none"
+                  >
+                    <option value="name:asc">Name (A–Z)</option>
+                    <option value="name:desc">Name (Z–A)</option>
+                    <option value="town:asc">Town (A–Z)</option>
+                    <option value="status:asc">Status</option>
+                  </select>
                 </div>
 
                 {showCreateBreeder && (
@@ -846,7 +930,7 @@ export default function AdminPage() {
                   <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No breeders found.</div>
                 ) : (
                   <div className="space-y-3">
-                    {breeders.map((b) => (
+                    {sortData(breeders, breederSort.field, breederSort.dir).map((b) => (
                       <div key={b.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
@@ -1481,15 +1565,30 @@ export default function AdminPage() {
                     <FileText className="h-5 w-5 text-[#00BFA5]" />
                     Profile Audit Log
                   </h2>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Filter by breeder slug..."
-                      value={auditBreederSlug}
-                      onChange={(e) => { setAuditBreederSlug(e.target.value); setAuditOffset(0); }}
-                      className="rounded-2xl border border-slate-200 pl-10 pr-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Filter by breeder slug..."
+                        value={auditBreederSlug}
+                        onChange={(e) => { setAuditBreederSlug(e.target.value); setAuditOffset(0); }}
+                        className="rounded-2xl border border-slate-200 pl-10 pr-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
+                      />
+                    </div>
+                    <select
+                      value={`${auditSort.field}:${auditSort.dir}`}
+                      onChange={(e) => {
+                        const [field, dir] = e.target.value.split(":");
+                        setAuditSort({ field, dir });
+                      }}
+                      className="rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
+                    >
+                      <option value="created_at:desc">Newest first</option>
+                      <option value="created_at:asc">Oldest first</option>
+                      <option value="breeder_slug:asc">Breeder (A–Z)</option>
+                      <option value="action:asc">Action (A–Z)</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1498,7 +1597,7 @@ export default function AdminPage() {
                 ) : (
                   <>
                     <div className="space-y-3">
-                      {auditLogs.map((log) => (
+                      {sortData(auditLogs, auditSort.field, auditSort.dir).map((log) => (
                         <div key={log.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div>
@@ -1580,6 +1679,20 @@ export default function AdminPage() {
                       className="w-full rounded-2xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:border-[#00BFA5] focus:outline-none focus:ring-1 focus:ring-[#00BFA5]"
                     />
                   </div>
+                  <select
+                    value={`${membersSort.field}:${membersSort.dir}`}
+                    onChange={(e) => {
+                      const [field, dir] = e.target.value.split(":");
+                      setMembersSort({ field, dir });
+                    }}
+                    className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#00BFA5] focus:outline-none"
+                  >
+                    <option value="created_at:desc">Newest first</option>
+                    <option value="created_at:asc">Oldest first</option>
+                    <option value="display_name:asc">Name (A–Z)</option>
+                    <option value="display_name:desc">Name (Z–A)</option>
+                    <option value="email:asc">Email (A–Z)</option>
+                  </select>
                 </div>
                 {membersLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
@@ -1588,7 +1701,7 @@ export default function AdminPage() {
                 ) : (
                   <>
                     <div className="space-y-3">
-                      {members.map((m) => (
+                      {sortData(members, membersSort.field, membersSort.dir).map((m) => (
                         <div key={m.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>

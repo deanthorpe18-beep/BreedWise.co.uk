@@ -3,13 +3,49 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
-import { Eye, MousePointer, Phone, Heart, Search, MessageCircle, Loader2, TrendingUp, Calendar } from "lucide-react";
+import {
+  Eye, MousePointer, Phone, Heart, Search, MessageCircle, Loader2, TrendingUp, Calendar,
+  Dog, Cat, Bird, Fish, PawPrint, X, ChevronDown, Save, Pencil
+} from "lucide-react";
+
+const ANIMAL_ICONS = {
+  dog: Dog,
+  cat: Cat,
+  bird: Bird,
+  fish: Fish,
+  reptile: PawPrint,
+  "small-pet": PawPrint,
+};
+
+const ANIMAL_LABELS = {
+  dog: "Dogs",
+  cat: "Cats",
+  bird: "Birds",
+  fish: "Fish",
+  reptile: "Reptiles",
+  "small-pet": "Small Pets",
+};
 
 export default function BreederDashboardPage() {
   const { user, loading } = useAuth();
   const [analytics, setAnalytics] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [period, setPeriod] = "7d";
+
+  // Profile edit state
+  const [profile, setProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [allBreeds, setAllBreeds] = useState([]);
+  const [loadingBreeds, setLoadingBreeds] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
+
+  // Edit form state
+  const [selectedBreedsByAnimal, setSelectedBreedsByAnimal] = useState({});
+  const [activeAnimal, setActiveAnimal] = useState("dog");
+  const [breedDropdownOpen, setBreedDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -20,7 +56,82 @@ export default function BreederDashboardPage() {
         setLoadingData(false);
       })
       .catch(() => setLoadingData(false));
+
+    loadProfile();
   }, [user]);
+
+  const loadProfile = async () => {
+    setLoadingProfile(true);
+    try {
+      const res = await fetch("/api/breeder/profile");
+      const data = await res.json();
+      if (res.ok) {
+        setProfile(data.breeder);
+        setSelectedBreedsByAnimal(data.breeder.breedsByAnimal || {});
+      }
+    } catch {}
+    setLoadingProfile(false);
+  };
+
+  const loadBreedsForAnimal = async (animal) => {
+    if (!animal) return;
+    setLoadingBreeds(true);
+    try {
+      const res = await fetch(`/api/breeds?animal=${encodeURIComponent(animal)}`);
+      const data = await res.json();
+      setAllBreeds(data.breeds || []);
+    } catch {}
+    setLoadingBreeds(false);
+  };
+
+  const addBreed = (breedName) => {
+    setSelectedBreedsByAnimal((prev) => {
+      const current = prev[activeAnimal] || [];
+      if (current.includes(breedName)) return prev;
+      return { ...prev, [activeAnimal]: [...current, breedName] };
+    });
+    setBreedDropdownOpen(false);
+  };
+
+  const removeBreed = (animalType, breedName) => {
+    setSelectedBreedsByAnimal((prev) => {
+      const current = prev[animalType] || [];
+      const updated = current.filter((b) => b !== breedName);
+      const next = { ...prev, [animalType]: updated };
+      if (updated.length === 0) delete next[animalType];
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaveLoading(true);
+    setSaveMessage("");
+    setSaveError("");
+    try {
+      const res = await fetch("/api/breeder/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ breedsByAnimal: selectedBreedsByAnimal }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSaveMessage("Profile updated successfully!");
+        setEditMode(false);
+        await loadProfile();
+      } else {
+        setSaveError(data.error || "Failed to save.");
+      }
+    } catch (err) {
+      setSaveError(err.message || "Failed to save.");
+    }
+    setSaveLoading(false);
+  };
+
+  useEffect(() => {
+    if (editMode) {
+      loadBreedsForAnimal(activeAnimal);
+    }
+  }, [editMode, activeAnimal]);
 
   if (loading || loadingData) {
     return (
@@ -82,6 +193,196 @@ export default function BreederDashboardPage() {
             <p className="text-sm text-slate-500">{stat.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Profile / Breeds Section */}
+      <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Breeds & Animal Types</h2>
+            <p className="text-sm text-slate-500">Manage which animal types and breeds you offer.</p>
+          </div>
+          {!editMode && profile && (
+            <button
+              onClick={() => setEditMode(true)}
+              className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <Pencil className="h-4 w-4" /> Edit
+            </button>
+          )}
+        </div>
+
+        {saveMessage && (
+          <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            {saveMessage}
+          </div>
+        )}
+        {saveError && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            {saveError}
+          </div>
+        )}
+
+        {loadingProfile ? (
+          <div className="mt-6 flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-[#00BFA5]" />
+          </div>
+        ) : editMode ? (
+          <div className="mt-6 space-y-6">
+            {/* Animal type tabs */}
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ANIMAL_LABELS).map(([slug, label]) => {
+                const Icon = ANIMAL_ICONS[slug];
+                const isActive = activeAnimal === slug;
+                return (
+                  <button
+                    key={slug}
+                    type="button"
+                    onClick={() => setActiveAnimal(slug)}
+                    className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                      isActive
+                        ? "border-[#00BFA5] bg-[#E6FFFB] text-[#00BFA5]"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                    {(selectedBreedsByAnimal[slug]?.length || 0) > 0 && (
+                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs">
+                        {selectedBreedsByAnimal[slug].length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected breeds chips */}
+            <div>
+              <p className="text-sm font-semibold text-slate-700 mb-2">
+                Selected {ANIMAL_LABELS[activeAnimal]} breeds
+              </p>
+              {selectedBreedsByAnimal[activeAnimal]?.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedBreedsByAnimal[activeAnimal].map((breed) => (
+                    <span
+                      key={breed}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#E6FFFB] px-3 py-1.5 text-sm font-medium text-[#00BFA5]"
+                    >
+                      {breed}
+                      <button
+                        type="button"
+                        onClick={() => removeBreed(activeAnimal, breed)}
+                        className="rounded-full p-0.5 hover:bg-[#00BFA5]/10"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">No breeds selected for {ANIMAL_LABELS[activeAnimal].toLowerCase()}.</p>
+              )}
+            </div>
+
+            {/* Breed dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setBreedDropdownOpen(!breedDropdownOpen)}
+                disabled={loadingBreeds}
+                className="flex w-full items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20 disabled:opacity-50"
+              >
+                <span>{loadingBreeds ? "Loading breeds..." : `Add a ${ANIMAL_LABELS[activeAnimal].toLowerCase().slice(0, -1)} breed...`}</span>
+                <ChevronDown className={`h-4 w-4 transition ${breedDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {breedDropdownOpen && allBreeds.length > 0 && (
+                <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-2xl border border-slate-200 bg-white py-2 shadow-lg">
+                  {allBreeds
+                    .filter((b) => !(selectedBreedsByAnimal[activeAnimal] || []).includes(b))
+                    .map((breedName) => (
+                      <button
+                        key={breedName}
+                        type="button"
+                        onClick={() => addBreed(breedName)}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
+                      >
+                        {breedName}
+                      </button>
+                    ))}
+                  {allBreeds.filter((b) => !(selectedBreedsByAnimal[activeAnimal] || []).includes(b)).length === 0 && (
+                    <p className="px-4 py-2 text-sm text-slate-400">All breeds selected</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Save / Cancel */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleSave}
+                disabled={saveLoading}
+                className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-[#00a98e] disabled:opacity-50"
+              >
+                {saveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save changes
+              </button>
+              <button
+                onClick={() => {
+                  setEditMode(false);
+                  setSelectedBreedsByAnimal(profile?.breedsByAnimal || {});
+                }}
+                className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : profile ? (
+          <div className="mt-4 space-y-4">
+            {Object.entries(profile.breedsByAnimal || {}).length > 0 ? (
+              Object.entries(profile.breedsByAnimal).map(([animalType, breeds]) => {
+                const Icon = ANIMAL_ICONS[animalType] || PawPrint;
+                return (
+                  <div key={animalType}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className="h-4 w-4 text-[#00BFA5]" />
+                      <p className="text-sm font-semibold text-slate-700">{ANIMAL_LABELS[animalType] || animalType}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {breeds.map((breed) => (
+                        <span
+                          key={breed}
+                          className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+                        >
+                          {breed}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                <p className="text-sm text-slate-500">No breeds listed yet.</p>
+                <button
+                  onClick={() => setEditMode(true)}
+                  className="mt-3 inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Add breeds
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+            <p className="text-sm text-slate-500">No breeder profile found. Claim a profile first.</p>
+            <Link href="/claim" className="mt-3 inline-block rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e]">
+              Claim a profile
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Daily breakdown */}
