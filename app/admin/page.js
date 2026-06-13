@@ -125,6 +125,13 @@ export default function AdminPage() {
   const [fixImagesMsg, setFixImagesMsg] = useState("");
   const [fixImagesError, setFixImagesError] = useState("");
 
+  // Manual breed image upload state
+  const [breedImageList, setBreedImageList] = useState([]);
+  const [breedImageLoading, setBreedImageLoading] = useState(false);
+  const [breedImageAnimalFilter, setBreedImageAnimalFilter] = useState("");
+  const [uploadingBreedId, setUploadingBreedId] = useState(null);
+  const [uploadBreedMsg, setUploadBreedMsg] = useState("");
+
   const defaultTabs = [
     { id: "queue", label: "Queue", icon: Shield },
     { id: "breeders", label: "Breeders", icon: Building2 },
@@ -185,6 +192,7 @@ export default function AdminPage() {
     if (activeTab === "breeders") loadBreeders();
     if (activeTab === "audit") loadAuditLog();
     if (activeTab === "analytics") loadAnalytics();
+    if (activeTab === "stats") loadBreedImages();
     if (activeTab === "search-intel") loadSearchIntel();
     if (activeTab === "listing-quality") loadListingQuality();
     if (activeTab === "duplicates") loadDuplicates();
@@ -682,6 +690,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok) {
         setFixImagesMsg(`Fixed ${data.updated} of ${data.total} breed images. ${data.failed} failed.`);
+        loadBreedImages();
       } else {
         setFixImagesError(data.error || "Failed to fix images.");
       }
@@ -689,6 +698,51 @@ export default function AdminPage() {
       setFixImagesError(err.message || "Network error.");
     } finally {
       setFixImagesLoading(false);
+    }
+  };
+
+  const loadBreedImages = async () => {
+    setBreedImageLoading(true);
+    try {
+      const res = await fetch("/api/admin/breed-images");
+      const data = await res.json();
+      if (res.ok && data.breeds) {
+        setBreedImageList(data.breeds);
+      }
+    } catch (err) {
+      console.error("Failed to load breed images:", err);
+    } finally {
+      setBreedImageLoading(false);
+    }
+  };
+
+  const handleBreedImageUpload = async (breedId, breedSlug, file) => {
+    if (!file) return;
+    setUploadingBreedId(breedId);
+    setUploadBreedMsg("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("breedId", breedId);
+      formData.append("breedSlug", breedSlug);
+      const res = await fetch("/api/admin/upload-breed-image", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBreedImageList((prev) =>
+          prev.map((b) => (b.id === breedId ? { ...b, image_url: data.url } : b))
+        );
+        setUploadBreedMsg("Image uploaded successfully.");
+        setTimeout(() => setUploadBreedMsg(""), 3000);
+      } else {
+        setUploadBreedMsg(data.error || "Upload failed.");
+      }
+    } catch (err) {
+      setUploadBreedMsg(err.message || "Network error.");
+    } finally {
+      setUploadingBreedId(null);
     }
   };
 
@@ -1752,7 +1806,7 @@ export default function AdminPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-6">
                   <h3 className="text-lg font-semibold text-slate-900">Breed Images</h3>
                   <p className="mt-1 text-sm text-slate-600">
-                    Fix duplicated and mismatched breed encyclopedia images by fetching real photos from Wikipedia.
+                    Fix duplicated and mismatched breed encyclopedia images by fetching real photos from Wikipedia, or upload your own below.
                   </p>
                   {fixImagesMsg && <div className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-700">{fixImagesMsg}</div>}
                   {fixImagesError && <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{fixImagesError}</div>}
@@ -1762,8 +1816,84 @@ export default function AdminPage() {
                     className="mt-4 inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-60"
                   >
                     {fixImagesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                    {fixImagesLoading ? "Fixing images..." : "Fix Breed Images"}
+                    {fixImagesLoading ? "Fixing images..." : "Auto-Fix from Wikipedia"}
                   </button>
+                </div>
+
+                {/* Manual breed image upload manager */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">Manual Image Upload</h3>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Upload custom images for each breed. JPG, PNG, WEBP up to 2MB.
+                      </p>
+                    </div>
+                    <select
+                      value={breedImageAnimalFilter}
+                      onChange={(e) => setBreedImageAnimalFilter(e.target.value)}
+                      className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#00BFA5] focus:outline-none"
+                    >
+                      <option value="">All animals</option>
+                      <option value="dog">Dogs</option>
+                      <option value="cat">Cats</option>
+                      <option value="bird">Birds</option>
+                      <option value="fish">Fish</option>
+                      <option value="reptile">Reptiles</option>
+                      <option value="small-pet">Small Pets</option>
+                    </select>
+                  </div>
+
+                  {uploadBreedMsg && (
+                    <div className={`mt-3 rounded-lg p-3 text-sm ${uploadBreedMsg.includes("failed") || uploadBreedMsg.includes("error") || uploadBreedMsg.includes("Error") ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                      {uploadBreedMsg}
+                    </div>
+                  )}
+
+                  {breedImageLoading ? (
+                    <div className="mt-6 flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#00BFA5]" />
+                    </div>
+                  ) : (
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {breedImageList
+                        .filter((b) => !breedImageAnimalFilter || b.animal_type === breedImageAnimalFilter)
+                        .map((breed) => (
+                          <div key={breed.id} className="rounded-xl border border-slate-200 p-3">
+                            <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
+                              {breed.image_url ? (
+                                <img src={breed.image_url} alt={breed.name} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-slate-400 text-xs">No image</div>
+                              )}
+                              {uploadingBreedId === breed.id && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="mt-2 text-sm font-semibold text-slate-900 truncate">{breed.name}</p>
+                            <p className="text-xs text-slate-500 capitalize">{breed.animal_type}</p>
+                            <label className="mt-2 block cursor-pointer">
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleBreedImageUpload(breed.id, breed.slug, file);
+                                  e.target.value = "";
+                                }}
+                                disabled={uploadingBreedId === breed.id}
+                              />
+                              <span className="inline-flex w-full items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                                <RefreshCw className="h-3 w-3" /> Change Image
+                              </span>
+                            </label>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
