@@ -120,6 +120,11 @@ export default function AdminPage() {
   const [editTier, setEditTier] = useState(null);
   const [editForm, setEditForm] = useState({});
 
+  // Fix breed images state
+  const [fixImagesLoading, setFixImagesLoading] = useState(false);
+  const [fixImagesMsg, setFixImagesMsg] = useState("");
+  const [fixImagesError, setFixImagesError] = useState("");
+
   const defaultTabs = [
     { id: "queue", label: "Queue", icon: Shield },
     { id: "breeders", label: "Breeders", icon: Building2 },
@@ -666,6 +671,25 @@ export default function AdminPage() {
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
+  };
+
+  const handleFixImages = async () => {
+    setFixImagesLoading(true);
+    setFixImagesMsg("");
+    setFixImagesError("");
+    try {
+      const res = await fetch("/api/admin/fix-images", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setFixImagesMsg(`Fixed ${data.updated} of ${data.total} breed images. ${data.failed} failed.`);
+      } else {
+        setFixImagesError(data.error || "Failed to fix images.");
+      }
+    } catch (err) {
+      setFixImagesError(err.message || "Network error.");
+    } finally {
+      setFixImagesLoading(false);
+    }
   };
 
   if (loadingUser) {
@@ -1723,6 +1747,24 @@ export default function AdminPage() {
                     <StatCard title="Total Breeders" value={breedersTotal} icon={Building2} color="text-purple-500" />
                   </div>
                 )}
+
+                {/* Fix breed images */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <h3 className="text-lg font-semibold text-slate-900">Breed Images</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Fix duplicated and mismatched breed encyclopedia images by fetching real photos from Wikipedia.
+                  </p>
+                  {fixImagesMsg && <div className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-700">{fixImagesMsg}</div>}
+                  {fixImagesError && <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{fixImagesError}</div>}
+                  <button
+                    onClick={handleFixImages}
+                    disabled={fixImagesLoading}
+                    className="mt-4 inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-60"
+                  >
+                    {fixImagesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    {fixImagesLoading ? "Fixing images..." : "Fix Breed Images"}
+                  </button>
+                </div>
               </div>
             )}
 
