@@ -9,7 +9,7 @@ import {
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
   Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
   Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
-  CreditCard, Pencil, Dog, RefreshCw
+  CreditCard, Pencil, Dog, RefreshCw, GripVertical
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -92,6 +92,11 @@ export default function AdminPage() {
 
   // Members tab state
   const [members, setMembers] = useState([]);
+
+  // Tab order state (drag-to-reorder)
+  const [tabOrder, setTabOrder] = useState(null);
+  const [draggedTabId, setDraggedTabId] = useState(null);
+  const [dragOverTabId, setDragOverTabId] = useState(null);
   const [membersTotal, setMembersTotal] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersSearch, setMembersSearch] = useState("");
@@ -114,6 +119,48 @@ export default function AdminPage() {
   const [syncError, setSyncError] = useState("");
   const [editTier, setEditTier] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  const defaultTabs = [
+    { id: "queue", label: "Queue", icon: Shield },
+    { id: "breeders", label: "Breeders", icon: Building2 },
+    { id: "members", label: "Members", icon: Users },
+    { id: "analytics", label: "Analytics", icon: TrendingUp },
+    { id: "funnel", label: "Funnel", icon: Target },
+    { id: "search-intel", label: "Search", icon: Search },
+    { id: "listing-quality", label: "Quality", icon: Award },
+    { id: "duplicates", label: "Dups", icon: Layers },
+    { id: "claim-fraud", label: "Fraud", icon: AlertOctagon },
+    { id: "seo", label: "SEO", icon: Globe },
+    { id: "health", label: "Health", icon: Monitor },
+    { id: "audit", label: "Audit", icon: FileText },
+    { id: "stats", label: "Stats", icon: BarChart3 },
+    { id: "tiers", label: "Tiers", icon: CreditCard },
+    { id: "cms", label: "Editor", icon: Pencil },
+    { id: "admins", label: "Admins", icon: Users },
+  ];
+
+  // Load tab order from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("adminTabOrder");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Validate: ensure all default tab IDs are present
+        const defaultIds = defaultTabs.map((t) => t.id);
+        const valid = parsed.filter((id) => defaultIds.includes(id));
+        const missing = defaultIds.filter((id) => !valid.includes(id));
+        setTabOrder([...valid, ...missing]);
+      } else {
+        setTabOrder(defaultTabs.map((t) => t.id));
+      }
+    } catch {
+      setTabOrder(defaultTabs.map((t) => t.id));
+    }
+  }, []);
+
+  const tabs = tabOrder
+    ? tabOrder.map((id) => defaultTabs.find((t) => t.id === id)).filter(Boolean)
+    : defaultTabs;
 
   useEffect(() => {
     if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
@@ -643,25 +690,6 @@ export default function AdminPage() {
     );
   }
 
-  const tabs = [
-    { id: "queue", label: "Queue", icon: Shield },
-    { id: "breeders", label: "Breeders", icon: Building2 },
-    { id: "members", label: "Members", icon: Users },
-    { id: "analytics", label: "Analytics", icon: TrendingUp },
-    { id: "funnel", label: "Funnel", icon: Target },
-    { id: "search-intel", label: "Search", icon: Search },
-    { id: "listing-quality", label: "Quality", icon: Award },
-    { id: "duplicates", label: "Dups", icon: Layers },
-    { id: "claim-fraud", label: "Fraud", icon: AlertOctagon },
-    { id: "seo", label: "SEO", icon: Globe },
-    { id: "health", label: "Health", icon: Monitor },
-    { id: "audit", label: "Audit", icon: FileText },
-    { id: "stats", label: "Stats", icon: BarChart3 },
-    { id: "tiers", label: "Tiers", icon: CreditCard },
-    { id: "cms", label: "Editor", icon: Pencil },
-    { id: "admins", label: "Admins", icon: Users },
-  ];
-
   const extraLinks = [
     { href: "/admin/places", label: "Google Cache", icon: Globe },
   ];
@@ -708,13 +736,52 @@ export default function AdminPage() {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
+                  draggable
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap ${
+                  onDragStart={(e) => {
+                    setDraggedTabId(tab.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    // Use a transparent drag image to avoid default ghost
+                    const dragImage = document.createElement("div");
+                    dragImage.style.opacity = "0";
+                    document.body.appendChild(dragImage);
+                    e.dataTransfer.setDragImage(dragImage, 0, 0);
+                    setTimeout(() => document.body.removeChild(dragImage), 0);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedTabId && draggedTabId !== tab.id) {
+                      setDragOverTabId(tab.id);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedTabId && draggedTabId !== tab.id && tabOrder) {
+                      const fromIndex = tabOrder.indexOf(draggedTabId);
+                      const toIndex = tabOrder.indexOf(tab.id);
+                      if (fromIndex >= 0 && toIndex >= 0) {
+                        const newOrder = [...tabOrder];
+                        newOrder.splice(fromIndex, 1);
+                        newOrder.splice(toIndex, 0, draggedTabId);
+                        setTabOrder(newOrder);
+                        localStorage.setItem("adminTabOrder", JSON.stringify(newOrder));
+                      }
+                    }
+                    setDraggedTabId(null);
+                    setDragOverTabId(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedTabId(null);
+                    setDragOverTabId(null);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap cursor-pointer ${
                     activeTab === tab.id
                       ? "border-[#00BFA5] text-[#00BFA5]"
                       : "border-transparent text-slate-600 hover:text-slate-900"
-                  }`}
+                  } ${draggedTabId === tab.id ? "opacity-40" : ""} ${dragOverTabId === tab.id && draggedTabId !== tab.id ? "bg-slate-50" : ""}`}
+                  title="Drag to reorder tabs"
                 >
+                  <GripVertical className="h-3 w-3 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing" />
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
                 </button>

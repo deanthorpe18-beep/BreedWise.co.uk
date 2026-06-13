@@ -39,14 +39,25 @@ export async function PATCH(request) {
 
     const adminClient = createAdminClient();
 
+    const updateData = {
+      status,
+      admin_reason: admin_reason || null,
+      admin_notes: admin_notes || null,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: auth.user.id,
+    };
+
     const { data, error } = await adminClient
       .from("claims")
-      .update({ status, admin_reason: admin_reason || null, admin_notes: admin_notes || null, reviewed_at: new Date().toISOString(), reviewed_by: auth.user.id, status_update_sent_at: new Date().toISOString() })
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[claims/PATCH] DB error:", error.message, error.code, error.details);
+      throw error;
+    }
 
     // Send status update email to claimant asynchronously
     if (data?.claimant_email) {
@@ -57,6 +68,7 @@ export async function PATCH(request) {
 
     return NextResponse.json({ claim: data });
   } catch (err) {
-    return NextResponse.json({ error: "Unable to update claim." }, { status: 500 });
+    console.error("[claims/PATCH] Unexpected error:", err?.message || err);
+    return NextResponse.json({ error: err?.message || "Unable to update claim." }, { status: 500 });
   }
 }

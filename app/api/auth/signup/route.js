@@ -8,10 +8,10 @@ export async function POST(request) {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
     const body = await request.json();
 
-    const ipLimit = rateLimitByIp(ip, 5, 60000);
+    const ipLimit = rateLimitByIp(ip, 10, 60000);
     if (!ipLimit.allowed) {
       return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
+        { error: "Too many requests. Please try again in a moment." },
         { status: 429 }
       );
     }
@@ -26,10 +26,10 @@ export async function POST(request) {
 
     const { displayName, email, password } = result.data;
 
-    const emailLimit = rateLimitByEmail(email, 3, 3600000);
+    const emailLimit = rateLimitByEmail(email, 5, 3600000);
     if (!emailLimit.allowed) {
       return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
+        { error: "Too many attempts for this email. Please try again in an hour." },
         { status: 429 }
       );
     }
