@@ -9,7 +9,7 @@ import {
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
   Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
   Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
-  CreditCard, Pencil, Dog
+  CreditCard, Pencil, Dog, RefreshCw
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -101,6 +101,15 @@ export default function AdminPage() {
   const [cmsValue, setCmsValue] = useState("");
   const [selectedTier, setSelectedTier] = useState(null);
 
+  // Dynamic tiers state
+  const [tiersData, setTiersData] = useState([]);
+  const [tiersLoading, setTiersLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [syncError, setSyncError] = useState("");
+  const [editTier, setEditTier] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
   useEffect(() => {
     if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
       router.push("/");
@@ -127,6 +136,7 @@ export default function AdminPage() {
     if (activeTab === "health") loadSystemHealth();
     if (activeTab === "funnel") loadFunnel();
     if (activeTab === "members") loadMembers();
+    if (activeTab === "tiers") loadTiers();
     if (activeTab === "tiers") loadCms();
     if (activeTab === "cms") loadCms();
   }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user, analyticsRefreshTick]);
@@ -263,6 +273,55 @@ export default function AdminPage() {
       if (res.ok) setDuplicates(data);
     } catch {}
     finally { setDuplicatesLoading(false); }
+  };
+
+  const loadTiers = async () => {
+    setTiersLoading(true);
+    try {
+      const res = await fetch("/api/admin/stripe/tiers");
+      const data = await res.json();
+      if (res.ok) setTiersData(data.tiers || []);
+    } catch {}
+    finally { setTiersLoading(false); }
+  };
+
+  const syncTiersToStripe = async (tier) => {
+    setSyncLoading(true);
+    setSyncMessage("");
+    setSyncError("");
+    try {
+      const res = await fetch("/api/admin/stripe/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tier ? { tier } : {}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncMessage(tier ? `Synced ${tier} to Stripe successfully!` : "All tiers synced to Stripe successfully!");
+        await loadTiers();
+      } else {
+        setSyncError(data.error || "Sync failed.");
+      }
+    } catch (err) {
+      setSyncError(err.message || "Sync failed.");
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const saveTierEdit = async (tier) => {
+    try {
+      const res = await fetch("/api/admin/stripe/tiers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier, updates: editForm }),
+      });
+      if (res.ok) {
+        setEditTier(null);
+        setEditForm({});
+        await loadTiers();
+      }
+    } catch {}
   };
 
   const loadClaimFraud = async () => {
@@ -1563,97 +1622,178 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Payment Tiers Preview */}
+            {/* Payment Tiers Management */}
             {activeTab === "tiers" && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-[#00BFA5]" />
-                  Membership Tiers Preview
-                </h2>
-                <p className="text-sm text-slate-600">This is how payment tiers will appear to breeders. Stripe integration required for activation.</p>
-
-                <div className="grid gap-6 lg:grid-cols-3">
-                  {[
-                    {
-                      id: "bronze",
-                      name: "Bronze",
-                      price: "£5.99",
-                      period: "/month",
-                      color: "border-amber-200 bg-gradient-to-b from-amber-50 to-white",
-                      badge: "bg-amber-100 text-amber-700",
-                      features: ["Claimed profile badge", "Up to 5 photos", "Contact form enquiries", "Standard search ranking", "Email support"],
-                      cta: "Choose Bronze",
-                    },
-                    {
-                      id: "silver",
-                      name: "Silver",
-                      price: "£7.99",
-                      period: "/month",
-                      color: "border-slate-300 bg-gradient-to-b from-slate-50 to-white ring-2 ring-[#00BFA5]/20",
-                      badge: "bg-slate-200 text-slate-700",
-                      popular: true,
-                      features: ["Everything in Bronze", "Priority search ranking", "Up to 10 photos", "Enquiry analytics dashboard", "Featured rotation eligibility", "Priority email support"],
-                      cta: "Choose Silver",
-                    },
-                    {
-                      id: "gold",
-                      name: "Gold",
-                      price: "£9.99",
-                      period: "/month",
-                      color: "border-yellow-300 bg-gradient-to-b from-yellow-50 to-white",
-                      badge: "bg-yellow-100 text-yellow-700",
-                      features: ["Everything in Silver", "Top search ranking", "Unlimited photos", "Full analytics suite", "Permanent featured slot", "Dedicated support", "Verified badge"],
-                      cta: "Choose Gold",
-                    },
-                  ].map((tier) => (
-                    <div key={tier.id} className={`relative rounded-3xl border p-6 shadow-sm ${tier.color}`}>
-                      {tier.popular && (
-                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#00BFA5] px-3 py-1 text-xs font-bold text-white shadow-sm">
-                          Most Popular
-                        </span>
-                      )}
-                      <div className="text-center">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${tier.badge}`}>
-                          <Award className="h-3 w-3" /> {tier.name}
-                        </span>
-                        <div className="mt-4">
-                          <span className="text-4xl font-bold text-slate-900">{tier.price}</span>
-                          <span className="text-sm text-slate-500">{tier.period}</span>
-                        </div>
-                      </div>
-                      <ul className="mt-6 space-y-3">
-                        {tier.features.map((f) => (
-                          <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                            <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#00BFA5]" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                      <button
-                        onClick={() => setSelectedTier(tier.id)}
-                        className={`mt-6 inline-flex w-full items-center justify-center rounded-3xl px-5 py-3 text-sm font-semibold transition ${
-                          selectedTier === tier.id
-                            ? "bg-[#00BFA5] text-white shadow-lg shadow-[#00BFA5]/20"
-                            : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        {selectedTier === tier.id ? "Selected" : tier.cta}
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-[#00BFA5]" />
+                    Membership Tiers
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => syncTiersToStripe()}
+                      disabled={syncLoading}
+                      className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-[#00a98e] disabled:opacity-50"
+                    >
+                      {syncLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                      Sync all to Stripe
+                    </button>
+                    <button
+                      onClick={loadTiers}
+                      disabled={tiersLoading}
+                      className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {tiersLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      Refresh
+                    </button>
+                  </div>
                 </div>
 
+                {syncMessage && (
+                  <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" /> {syncMessage}
+                  </div>
+                )}
+                {syncError && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" /> {syncError}
+                  </div>
+                )}
+
+                {tiersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" />
+                  </div>
+                ) : (
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    {tiersData.map((tier) => {
+                      const isEditing = editTier === tier.tier;
+                      const colors = {
+                        bronze: { border: "border-amber-200", bg: "from-amber-50 to-white", badge: "bg-amber-100 text-amber-700" },
+                        silver: { border: "border-slate-300", bg: "from-slate-50 to-white", badge: "bg-slate-200 text-slate-700" },
+                        gold: { border: "border-yellow-300", bg: "from-yellow-50 to-white", badge: "bg-yellow-100 text-yellow-700" },
+                      };
+                      const c = colors[tier.tier] || colors.bronze;
+                      return (
+                        <div key={tier.tier} className={`relative rounded-3xl border p-6 shadow-sm ${c.border} bg-gradient-to-b ${c.bg}`}>
+                          {tier.isPopular && (
+                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#00BFA5] px-3 py-1 text-xs font-bold text-white shadow-sm">
+                              Most Popular
+                            </span>
+                          )}
+
+                          {/* Stripe sync status */}
+                          <div className="absolute top-4 right-4">
+                            {tier.stripePriceId ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700" title={tier.stripePriceId}>
+                                <CheckCircle className="h-3 w-3" /> Stripe
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                <AlertTriangle className="h-3 w-3" /> Not synced
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-center">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${c.badge}`}>
+                              <Award className="h-3 w-3" /> {tier.name}
+                            </span>
+                            <div className="mt-4">
+                              <span className="text-4xl font-bold text-slate-900">£{tier.monthlyPrice?.toFixed(2)}</span>
+                              <span className="text-sm text-slate-500">/month</span>
+                            </div>
+                          </div>
+
+                          {isEditing ? (
+                            <div className="mt-4 space-y-3">
+                              <div>
+                                <label className="text-xs font-medium text-slate-600">Name</label>
+                                <input
+                                  value={editForm.name || tier.name}
+                                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-slate-600">Price (£)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={editForm.monthlyPrice ?? tier.monthlyPrice}
+                                  onChange={(e) => setEditForm({ ...editForm, monthlyPrice: parseFloat(e.target.value) })}
+                                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-slate-600">Photo limit</label>
+                                <input
+                                  type="number"
+                                  value={editForm.photoLimit ?? tier.photoLimit}
+                                  onChange={(e) => setEditForm({ ...editForm, photoLimit: parseInt(e.target.value) })}
+                                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div className="flex gap-2 pt-2">
+                                <button
+                                  onClick={() => saveTierEdit(tier.tier)}
+                                  className="flex-1 rounded-xl bg-[#00BFA5] px-3 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => { setEditTier(null); setEditForm({}); }}
+                                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <ul className="mt-6 space-y-3">
+                                {(tier.features || []).map((f) => (
+                                  <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
+                                    <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#00BFA5]" />
+                                    {f}
+                                  </li>
+                                ))}
+                              </ul>
+                              <div className="mt-4 flex gap-2">
+                                <button
+                                  onClick={() => { setEditTier(tier.tier); setEditForm({}); }}
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => syncTiersToStripe(tier.tier)}
+                                  disabled={syncLoading}
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-3xl bg-[#00BFA5] px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-[#00a98e] disabled:opacity-50"
+                                >
+                                  <Zap className="h-3.5 w-3.5" /> Sync
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
-                  <h3 className="text-sm font-semibold text-slate-900">Stripe Configuration Required</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Stripe Configuration</h3>
                   <div className="mt-3 space-y-2 text-sm text-slate-600">
-                    <p>Add these environment variables on Railway to activate payments:</p>
+                    <p>These environment variables are required on Railway:</p>
                     <ul className="list-disc pl-5 space-y-1 font-mono text-xs">
-                      <li>STRIPE_SECRET_KEY</li>
-                      <li>STRIPE_PRICE_BRONZE</li>
-                      <li>STRIPE_PRICE_SILVER</li>
-                      <li>STRIPE_PRICE_GOLD</li>
-                      <li>STRIPE_WEBHOOK_SECRET</li>
+                      <li>STRIPE_SECRET_KEY ✅ (saved in .env.local)</li>
+                      <li>STRIPE_WEBHOOK_SECRET (from Stripe Dashboard → Webhooks)</li>
                     </ul>
+                    <p className="mt-2 text-xs text-slate-500">
+                      Price IDs are now stored in the database and synced automatically. You no longer need STRIPE_PRICE_BRONZE, STRIPE_PRICE_SILVER, or STRIPE_PRICE_GOLD as environment variables.
+                    </p>
                   </div>
                 </div>
               </div>

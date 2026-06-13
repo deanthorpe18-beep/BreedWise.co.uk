@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, getPriceIdForTier, createCheckoutSession } from "@/lib/stripe";
+import { getStripe, createCheckoutSession } from "@/lib/stripe";
+import { getPriceIdForTier } from "@/lib/stripe-tiers";
 
 const VALID_TIERS = ["bronze", "silver", "gold"];
 
@@ -30,10 +31,10 @@ export async function POST(request) {
       );
     }
 
-    const priceId = getPriceIdForTier(tier);
+    const priceId = await getPriceIdForTier(tier);
     if (!priceId) {
       return NextResponse.json(
-        { error: "Price ID not configured for this tier" },
+        { error: "Price ID not configured for this tier. Please sync Stripe tiers in admin." },
         { status: 500 }
       );
     }

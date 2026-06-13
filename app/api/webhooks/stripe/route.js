@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
+import { mapPriceIdToTier } from "@/lib/stripe-tiers";
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -68,7 +69,7 @@ export async function POST(request) {
               stripe_subscription_id: stripeSubscriptionId,
               stripe_price_id: priceId,
               status: mapStripeStatus(subscription.status),
-              tier: mapPriceIdToTier(priceId),
+              tier: await mapPriceIdToTier(priceId),
               current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
               current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
               cancel_at_period_end: subscription.cancel_at_period_end,
@@ -103,7 +104,7 @@ export async function POST(request) {
           .from("breeder_subscriptions")
           .update({
             status: mapStripeStatus(subscription.status),
-            tier: mapPriceIdToTier(priceId),
+            tier: await mapPriceIdToTier(priceId),
             stripe_price_id: priceId,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -207,9 +208,4 @@ function mapStripeStatus(stripeStatus) {
   return map[stripeStatus] || "unpaid";
 }
 
-function mapPriceIdToTier(priceId) {
-  if (priceId === process.env.STRIPE_PRICE_BRONZE) return "bronze";
-  if (priceId === process.env.STRIPE_PRICE_SILVER) return "silver";
-  if (priceId === process.env.STRIPE_PRICE_GOLD) return "gold";
-  return "free";
-}
+// mapPriceIdToTier now imported from @/lib/stripe-tiers (DB-driven with env fallback)
