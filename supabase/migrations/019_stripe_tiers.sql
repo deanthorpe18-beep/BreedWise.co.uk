@@ -42,10 +42,10 @@ ON CONFLICT (tier) DO UPDATE SET
 -- RLS: allow public read
 ALTER TABLE public.stripe_tiers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS stripe_tiers_select_public
+CREATE POLICY stripe_tiers_select_public
   ON public.stripe_tiers FOR SELECT
   USING (true);
 
-CREATE POLICY IF NOT EXISTS stripe_tiers_admin_all
+CREATE POLICY stripe_tiers_admin_all
   ON public.stripe_tiers FOR ALL
   USING (auth.jwt() ->> 'role' IN ('admin', 'super_admin'));
