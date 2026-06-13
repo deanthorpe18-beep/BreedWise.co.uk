@@ -47,7 +47,7 @@ export default async function BreederProfilePage({ params }) {
 
         const { data, error } = await supabase
             .from("breeders")
-            .select("*, breeder_breeds(breed), breeder_photos(*)")
+            .select("*, breeder_breeds(breed, animal_type), breeder_photos(*)")
             .eq("slug", slug)
             .in("status", ["public_listing", "claimed_profile"])
             .single();
@@ -102,6 +102,11 @@ export default async function BreederProfilePage({ params }) {
         notFound();
     }
 
+    const breedsByAnimal = (breeder.breeder_breeds || []).reduce((acc, bb) => {
+        if (!acc[bb.animal_type]) acc[bb.animal_type] = [];
+        acc[bb.animal_type].push(bb.breed);
+        return acc;
+    }, {});
     const breeds = breeder.breeder_breeds?.map((bb) => bb.breed) || [];
     const photos = breeder.breeder_photos || [];
     const hasHeroImage = !!breeder.hero_image_url;
@@ -111,6 +116,7 @@ export default async function BreederProfilePage({ params }) {
         localBusinessSchema({
             ...breeder,
             breeds: breeds.map((b) => ({ name: b })),
+            breedsByAnimal,
         }),
         breadcrumbSchema([
             { name: "Home", url: "https://breedwise.co.uk/" },
@@ -275,14 +281,21 @@ export default async function BreederProfilePage({ params }) {
                 <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
                     <p className="mb-3 text-xs uppercase tracking-[0.3em] text-slate-500">Related searches</p>
                     <div className="flex flex-wrap gap-2">
-                        {breeds.map((breed) => (
-                            <Link
-                                key={breed}
-                                href={`/search?breed=${encodeURIComponent(breed)}`}
-                                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
-                            >
-                                {breed} breeders
-                            </Link>
+                        {Object.entries(breedsByAnimal).map(([animalType, animalBreeds]) => (
+                            <div key={animalType} className="w-full">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{animalType.charAt(0).toUpperCase() + animalType.slice(1)}s</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {animalBreeds.map((breed) => (
+                                        <Link
+                                            key={`${animalType}-${breed}`}
+                                            href={`/search?animal=${encodeURIComponent(animalType)}&breed=${encodeURIComponent(breed)}`}
+                                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
+                                        >
+                                            {breed}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
                         ))}
                         <Link
                             href={`/search?q=${encodeURIComponent(breeder.town)}`}
@@ -296,7 +309,7 @@ export default async function BreederProfilePage({ params }) {
                 {/* Related breeders */}
                 {breeder.relatedBreeders?.length > 0 && (
                     <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-slate-900">More {breeds[0]} breeders</h2>
+                        <h2 className="text-xl font-semibold text-slate-900">More breeders</h2>
                         <div className="grid gap-4 sm:grid-cols-2">
                             {breeder.relatedBreeders.map((b) => (
                                 <Link key={b.slug} href={`/breeder/${b.slug}`} className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">

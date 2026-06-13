@@ -3,13 +3,34 @@ import { createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const animal = searchParams.get("animal") || "";
   const supabase = createAdminClient();
 
-  // Try the official breeds table first (bypasses RLS with admin client)
+  // If animal type specified, return breeds for that type
+  if (animal) {
+    const { data, error } = await supabase
+      .from("breeds")
+      .select("name, slug, animal_type")
+      .eq("animal_type", animal)
+      .order("name", { ascending: true });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      breeds: (data || []).map((b) => b.name),
+      animal,
+      count: data?.length || 0,
+    });
+  }
+
+  // No animal specified — return all breeds grouped by type (legacy behaviour)
   const { data: officialBreeds, error } = await supabase
     .from("breeds")
-    .select("name")
+    .select("name, animal_type")
     .order("name", { ascending: true });
 
   if (!error && officialBreeds && officialBreeds.length > 0) {

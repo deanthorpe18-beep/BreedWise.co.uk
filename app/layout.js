@@ -60,7 +60,7 @@ export default function RootLayout({ children }) {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="font-semibold text-slate-900">BreedWise</p>
-                  <p className="mt-2 text-sm leading-6">A UK dog breeder directory. We help you compare public breeder information before making contact. We do not sell puppies.</p>
+                  <p className="mt-2 text-sm leading-6">A UK pet breeder directory for dogs, cats, birds, fish, reptiles and small pets. We help you compare public breeder information before making contact. We do not sell animals.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900">Directory</p>

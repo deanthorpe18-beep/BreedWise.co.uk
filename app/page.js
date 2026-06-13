@@ -37,7 +37,7 @@ export default function HomePage() {
               </h1>
               
               <p className="max-w-xl text-lg leading-8 text-slate-600">
-                Compare dog breeder listings across the UK. Read reviews, filter by breed and location, and find the right breeder for your family.
+                Compare pet breeder listings across the UK. Read reviews, filter by animal type, breed and location, and find the right breeder for your family.
               </p>
 
               <div className="flex flex-wrap gap-4">

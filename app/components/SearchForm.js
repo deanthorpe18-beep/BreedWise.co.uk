@@ -2,8 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Crosshair, Loader2, Dog } from "lucide-react";
+import { Search, MapPin, Crosshair, Loader2, Dog, Cat, Bird, Fish, X, ChevronDown } from "lucide-react";
 import { saveSearch } from "./RecentSearches";
+
+const ANIMAL_TYPES = [
+  { value: "", label: "All animals", icon: Dog },
+  { value: "dog", label: "Dogs", icon: Dog },
+  { value: "cat", label: "Cats", icon: Cat },
+  { value: "bird", label: "Birds", icon: Bird },
+  { value: "fish", label: "Fish", icon: Fish },
+  { value: "reptile", label: "Reptiles", icon: Fish },
+  { value: "small-pet", label: "Small Pets", icon: Cat },
+];
 
 const DISTANCE_OPTIONS = [
   { value: "", label: "Any distance" },
@@ -24,35 +34,45 @@ const SORT_OPTIONS = [
 export default function SearchForm({
   initialLocation = "",
   initialBreed = "",
+  initialBreeds = [],
+  initialAnimal = "",
   initialMaxDistance = "",
   initialSort = "relevance",
   initialUserLat = "",
   initialUserLng = "",
-  variant = "default", // "default" | "hero"
+  variant = "default",
 }) {
   const router = useRouter();
   const [locationQuery, setLocationQuery] = useState(initialLocation);
-  const [breed, setBreed] = useState(initialBreed);
+  const [animal, setAnimal] = useState(initialAnimal);
+  const [selectedBreeds, setSelectedBreeds] = useState(initialBreeds);
+  const [breedOptions, setBreedOptions] = useState([]);
+  const [breedDropdownOpen, setBreedDropdownOpen] = useState(false);
   const [maxDistance, setMaxDistance] = useState(initialMaxDistance);
   const [sortBy, setSortBy] = useState(initialSort);
   const [userLat, setUserLat] = useState(initialUserLat);
   const [userLng, setUserLng] = useState(initialUserLng);
-  const [breeds, setBreeds] = useState([]);
-  const [loadingBreeds, setLoadingBreeds] = useState(true);
+  const [loadingBreeds, setLoadingBreeds] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
 
+  // Fetch breeds when animal type changes
   useEffect(() => {
-    fetch("/api/breeds")
+    if (!animal) {
+      setBreedOptions([]);
+      return;
+    }
+    setLoadingBreeds(true);
+    fetch(`/api/breeds?animal=${encodeURIComponent(animal)}`)
       .then((res) => res.json())
       .then((data) => {
-        setBreeds(data.breeds || []);
+        setBreedOptions(data.breeds || []);
         setLoadingBreeds(false);
       })
       .catch(() => setLoadingBreeds(false));
-  }, []);
+  }, [animal]);
 
-  const hasCriteria = !!(breed || locationQuery.trim() || userLat);
+  const hasCriteria = !!(selectedBreeds.length > 0 || locationQuery.trim() || userLat);
 
   const handleGeolocation = useCallback(() => {
     setGeoLoading(true);
@@ -79,22 +99,34 @@ export default function SearchForm({
     );
   }, []);
 
+  const addBreed = (breedName) => {
+    if (!breedName || selectedBreeds.includes(breedName)) return;
+    setSelectedBreeds((prev) => [...prev, breedName]);
+    setBreedDropdownOpen(false);
+  };
+
+  const removeBreed = (breedName) => {
+    setSelectedBreeds((prev) => prev.filter((b) => b !== breedName));
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!hasCriteria) return;
     const query = new URLSearchParams();
     const loc = locationQuery.trim() && locationQuery !== "My location" ? locationQuery.trim() : "";
     if (loc) query.set("q", loc);
-    if (breed) query.set("breed", breed);
+    if (animal) query.set("animal", animal);
+    selectedBreeds.forEach((b) => query.append("breed", b));
     if (maxDistance) query.set("maxDistance", maxDistance);
     if (sortBy && sortBy !== "relevance") query.set("sort", sortBy);
     if (userLat) query.set("userLat", userLat);
     if (userLng) query.set("userLng", userLng);
-    saveSearch({ breed, location: loc, timestamp: new Date().toISOString() });
+    saveSearch({ animal, breeds: selectedBreeds, location: loc, timestamp: new Date().toISOString() });
     router.push(`/search?${query.toString()}`);
   };
 
   const isHero = variant === "hero";
+  const AnimalIcon = ANIMAL_TYPES.find((a) => a.value === animal)?.icon || Dog;
 
   return (
     <form
@@ -107,7 +139,7 @@ export default function SearchForm({
     >
       {/* Location input + geolocation */}
       <div className="space-y-2">
-        <label htmlFor="location" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
+        <label htmlFor="location" className={`text-sm font-semibold text-slate-700`}>
           Enter town or postcode
         </label>
         <div className={`relative rounded-3xl border px-4 py-3 shadow-sm focus-within:border-[#00BFA5] focus-within:ring-2 focus-within:ring-[#00BFA5]/20 ${
@@ -143,34 +175,107 @@ export default function SearchForm({
         )}
       </div>
 
-      {/* Breed filter */}
+      {/* Animal Type selector */}
       <div className="space-y-2">
-        <label htmlFor="breed" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
-          <span className="inline-flex items-center gap-1.5">
-            <Dog className="h-4 w-4 text-[#00BFA5]" />
-            Select a breed
-          </span>
+        <label htmlFor="animal" className="text-sm font-semibold text-slate-700">
+          Animal type
         </label>
-        <select
-          id="breed"
-          className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20"
-          value={breed}
-          onChange={(event) => setBreed(event.target.value)}
-          disabled={loadingBreeds}
-        >
-          <option value="">Choose a breed...</option>
-          {breeds.map((breedName) => (
-            <option key={breedName} value={breedName}>
-              {breedName}
-            </option>
-          ))}
-        </select>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {ANIMAL_TYPES.map((type) => {
+            const Icon = type.icon;
+            const isActive = animal === type.value;
+            return (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => {
+                  setAnimal(type.value);
+                  setSelectedBreeds([]);
+                }}
+                className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-xs font-semibold transition ${
+                  isActive
+                    ? "border-[#00BFA5] bg-[#E6FFFB] text-[#00BFA5]"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                {type.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Multi-breed selector */}
+      {animal && (
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-slate-700">
+            <span className="inline-flex items-center gap-1.5">
+              <AnimalIcon className="h-4 w-4 text-[#00BFA5]" />
+              Select breeds
+            </span>
+          </label>
+
+          {/* Breed chips */}
+          {selectedBreeds.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedBreeds.map((b) => (
+                <span
+                  key={b}
+                  className="inline-flex items-center gap-1 rounded-full bg-[#E6FFFB] px-3 py-1.5 text-sm font-medium text-[#00BFA5]"
+                >
+                  {b}
+                  <button
+                    type="button"
+                    onClick={() => removeBreed(b)}
+                    className="rounded-full p-0.5 hover:bg-[#00BFA5]/10"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Breed dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setBreedDropdownOpen(!breedDropdownOpen)}
+              disabled={loadingBreeds}
+              className="flex w-full items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20 disabled:opacity-50"
+            >
+              <span>{loadingBreeds ? "Loading breeds..." : "Add a breed..."}</span>
+              <ChevronDown className={`h-4 w-4 transition ${breedDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {breedDropdownOpen && breedOptions.length > 0 && (
+              <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-2xl border border-slate-200 bg-white py-2 shadow-lg">
+                {breedOptions
+                  .filter((b) => !selectedBreeds.includes(b))
+                  .map((breedName) => (
+                    <button
+                      key={breedName}
+                      type="button"
+                      onClick={() => addBreed(breedName)}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
+                    >
+                      {breedName}
+                    </button>
+                  ))}
+                {breedOptions.filter((b) => !selectedBreeds.includes(b)).length === 0 && (
+                  <p className="px-4 py-2 text-sm text-slate-400">All breeds selected</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Distance + Sort row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="maxDistance" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
+          <label htmlFor="maxDistance" className="text-sm font-semibold text-slate-700">
             Max distance
           </label>
           <select
@@ -188,7 +293,7 @@ export default function SearchForm({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="sortBy" className={`text-sm font-semibold ${isHero ? "text-slate-700" : "text-slate-700"}`}>
+          <label htmlFor="sortBy" className="text-sm font-semibold text-slate-700">
             Sort by
           </label>
           <select
@@ -206,7 +311,7 @@ export default function SearchForm({
         </div>
       </div>
 
-      {/* Search button — disabled until criteria entered */}
+      {/* Search button */}
       <button
         type="submit"
         disabled={!hasCriteria}
@@ -222,7 +327,7 @@ export default function SearchForm({
 
       {!hasCriteria && (
         <p className="text-center text-xs text-slate-400">
-          Please select a breed or enter a location to find breeders
+          Please select an animal type and breed, or enter a location to find breeders
         </p>
       )}
     </form>

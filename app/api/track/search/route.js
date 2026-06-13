@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
-    const { query, breed, location, results_count, page } = await request.json();
+    const { query, breed, animal, location, results_count, page } = await request.json();
     const ip = request.headers.get("x-forwarded-for") || "unknown";
     const user_agent = request.headers.get("user-agent") || "";
     const ip_hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip))))
@@ -16,6 +16,7 @@ export async function POST(request) {
     await adminClient.from("search_analytics").insert({
       query: query || null,
       breed: breed || null,
+      animal: animal || null,
       location: location || null,
       results_count: results_count || 0,
       page: page || 1,

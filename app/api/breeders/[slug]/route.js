@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
 
         const { data: breeder, error } = await supabase
             .from("breeders")
-            .select("*, breeder_breeds(breed), breeder_photos(*)")
+            .select("*, breeder_breeds(breed, animal_type), breeder_photos(*)")
             .eq("slug", slug)
             .in("status", ["public_listing", "claimed_profile"])
             .single();
@@ -20,10 +20,20 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
+        // Group breeds by animal_type
+        const breedsByAnimal = (breeder.breeder_breeds || []).reduce((acc, bb) => {
+            if (!acc[bb.animal_type]) acc[bb.animal_type] = [];
+            acc[bb.animal_type].push(bb.breed);
+            return acc;
+        }, {});
+
+        const allBreeds = breeder.breeder_breeds?.map((bb) => bb.breed) || [];
+
         // Transform nested arrays
         const result = {
             ...breeder,
-            breeds: breeder.breeder_breeds?.map((bb) => bb.breed) || [],
+            breeds: allBreeds,
+            breedsByAnimal,
             photos: breeder.breeder_photos || [],
             breeder_breeds: undefined,
             breeder_photos: undefined,
