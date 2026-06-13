@@ -61,7 +61,7 @@ export async function middleware(request) {
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co",
+    "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co https://images.unsplash.com",
     "font-src 'self'",
     "connect-src 'self' https://*.supabase.co https://maps.googleapis.com",
     "frame-src 'self' https://www.google.com https://*.google.com",
