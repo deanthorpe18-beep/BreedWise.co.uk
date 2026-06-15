@@ -19,6 +19,8 @@ export default function ClaimPage() {
   const [form, setForm] = useState({ breederSlug: "", breederName: "", email: "", name: "", notes: "" });
   const [evidence, setEvidence] = useState({});
   const [uploading, setUploading] = useState({});
+  const [uploadSuccess, setUploadSuccess] = useState({});
+  const [uploadError, setUploadError] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,6 +50,8 @@ export default function ClaimPage() {
   const handleFileUpload = async (type, file) => {
     if (!file) return;
     setUploading((prev) => ({ ...prev, [type]: true }));
+    setUploadSuccess((prev) => ({ ...prev, [type]: false }));
+    setUploadError((prev) => ({ ...prev, [type]: "" }));
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -60,11 +64,13 @@ export default function ClaimPage() {
       const data = await res.json();
       if (data.url) {
         setEvidence((prev) => ({ ...prev, [type]: { url: data.url, name: file.name, size: file.size } }));
+        setUploadSuccess((prev) => ({ ...prev, [type]: true }));
+        setTimeout(() => setUploadSuccess((prev) => ({ ...prev, [type]: false })), 4000);
       } else {
-        setError(data.error || "Upload failed");
+        setUploadError((prev) => ({ ...prev, [type]: data.error || "Upload failed. Please try again." }));
       }
     } catch {
-      setError("Upload failed. Please try again.");
+      setUploadError((prev) => ({ ...prev, [type]: "Upload failed. Please try again." }));
     }
     setUploading((prev) => ({ ...prev, [type]: false }));
   };
@@ -219,6 +225,9 @@ export default function ClaimPage() {
                   {EVIDENCE_TYPES.map((type) => {
                     const Icon = type.icon;
                     const uploaded = evidence[type.key];
+                    const isUploading = uploading[type.key];
+                    const isSuccess = uploadSuccess[type.key];
+                    const uploadErr = uploadError[type.key];
                     return (
                       <div key={type.key} className={`rounded-2xl border p-4 ${uploaded ? "border-[#00BFA5] bg-[#E6FFFB]" : "border-slate-200 bg-white"}`}>
                         <div className="flex items-center gap-2">
@@ -228,6 +237,16 @@ export default function ClaimPage() {
                             <p className="text-xs text-slate-500">{type.desc}</p>
                           </div>
                         </div>
+                        {isSuccess && (
+                          <div className="mt-2 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
+                            ✓ Successfully uploaded
+                          </div>
+                        )}
+                        {uploadErr && (
+                          <div className="mt-2 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700">
+                            {uploadErr}
+                          </div>
+                        )}
                         {uploaded ? (
                           <div className="mt-3 flex items-center justify-between">
                             <p className="text-xs text-slate-600 truncate">{uploaded.name}</p>
@@ -246,15 +265,15 @@ export default function ClaimPage() {
                               accept=".pdf,.jpg,.jpeg,.png"
                               className="hidden"
                               onChange={(e) => handleFileUpload(type.key, e.target.files[0])}
-                              disabled={!user || uploading[type.key]}
+                              disabled={!user || isUploading}
                             />
                             <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                              uploading[type.key]
+                              isUploading
                                 ? "bg-slate-100 text-slate-400"
                                 : "bg-[#00BFA5] text-white hover:bg-[#00a98e]"
                             }`}>
-                              {uploading[type.key] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                              {uploading[type.key] ? "Uploading..." : "Upload"}
+                              {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                              {isUploading ? "Uploading..." : "Upload"}
                             </span>
                           </label>
                         )}

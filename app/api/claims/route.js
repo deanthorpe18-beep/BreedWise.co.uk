@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { claimSchema } from "@/lib/validation";
-import { rateLimitByIp } from "@/lib/rate-limit";
+import { peekRateLimitByIp, incrementRateLimitByIp } from "@/lib/rate-limit";
 import { sendClaimConfirmation, sendClaimAdminNotification } from "@/lib/emails/resend";
 
 export async function POST(request) {
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
-    const limit = rateLimitByIp(ip, 5, 60000);
-    if (!limit.allowed) {
+    // Peek first — don't increment on validation failures
+    const peek = peekRateLimitByIp(ip, 5, 60000);
+    if (!peek.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
         { status: 429 }
@@ -33,6 +34,39 @@ export async function POST(request) {
         { status: 401 }
       );
     }
+
+    // Check for duplicate pending/approved claim for this breeder by this user
+    const { data: existingClaim } = await supabase
+      .from("claims")
+      .select("id, status")
+      .eq("breeder_slug", result.data.breederSlug)
+      .eq("claimant_user_id", userData.user.id)
+      .in("status", ["pending", "under_review", "approved"])
+      .maybeSingle();
+
+    if (existingClaim) {
+      const msg = existingClaim.status === "approved"
+        ? "You have already claimed this profile."
+        : "You already have a pending claim for this profile.";
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+
+    // Check if breeder is already claimed by someone else
+    const { data: breederData } = await supabase
+      .from("breeders")
+      .select("claimed, status")
+      .eq("slug", result.data.breederSlug)
+      .single();
+
+    if (breederData?.claimed || breederData?.status === "claimed_profile") {
+      return NextResponse.json(
+        { error: "This profile has already been claimed." },
+        { status: 409 }
+      );
+    }
+
+    // Now increment rate limit — only for valid, non-duplicate requests
+    incrementRateLimitByIp(ip, 5, 60000);
 
     const claimData = {
       breeder_slug: result.data.breederSlug,

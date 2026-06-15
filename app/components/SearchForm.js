@@ -60,6 +60,7 @@ export default function SearchForm({
   useEffect(() => {
     if (!animal) {
       setBreedOptions([]);
+      setSelectedBreeds([]); // Clear stale breeds when switching to "All animals"
       return;
     }
     setLoadingBreeds(true);

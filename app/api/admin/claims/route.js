@@ -59,6 +59,55 @@ export async function PATCH(request) {
       throw error;
     }
 
+    // On approval: link claim to breeder profile and set up free tier
+    if (status === "approved" && data?.breeder_slug) {
+      const now = new Date().toISOString();
+
+      // 1. Fetch breeder ID by slug
+      const { data: breederRow } = await adminClient
+        .from("breeders")
+        .select("id")
+        .eq("slug", data.breeder_slug)
+        .single();
+
+      const breederId = breederRow?.id;
+
+      // 2. Update breeder record
+      if (breederId) {
+        const { error: breederErr } = await adminClient
+          .from("breeders")
+          .update({
+            status: "claimed_profile",
+            claimed: true,
+            claimed_at: now,
+            membership_tier: "free",
+          })
+          .eq("id", breederId);
+
+        if (breederErr) {
+          console.error("[claims/PATCH] Breeder update error:", breederErr.message);
+        }
+
+        // 3. Create free-tier subscription row so dashboard API works
+        if (data.claimant_user_id) {
+          const { error: subErr } = await adminClient
+            .from("breeder_subscriptions")
+            .upsert({
+              breeder_id: breederId,
+              user_id: data.claimant_user_id,
+              tier: "free",
+              status: "active",
+              created_at: now,
+              updated_at: now,
+            }, { onConflict: "breeder_id" });
+
+          if (subErr) {
+            console.error("[claims/PATCH] Subscription insert error:", subErr.message);
+          }
+        }
+      }
+    }
+
     // Send status update email to claimant asynchronously
     if (data?.claimant_email) {
       Promise.allSettled([
