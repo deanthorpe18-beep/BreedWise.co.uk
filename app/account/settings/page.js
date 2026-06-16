@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
-import { Loader2, Mail, Lock, Heart, MessageCircle, Search, ArrowRight } from "lucide-react";
+import { Loader2, Mail, Lock, Heart, MessageCircle, Search, ArrowRight, Store } from "lucide-react";
 
 export default function AccountSettingsPage() {
   const { user, loading } = useAuth();
@@ -87,7 +87,17 @@ export default function AccountSettingsPage() {
       )}
 
       {/* Quick links */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {user?.breederSlug && (
+          <Link href="/breeder/dashboard" className="flex items-center gap-3 rounded-3xl border-2 border-purple-200 bg-purple-50 p-4 shadow-sm transition hover:shadow-md">
+            <Store className="h-5 w-5 text-purple-600" />
+            <div>
+              <p className="font-semibold text-purple-900">My listing</p>
+              <p className="text-xs text-purple-600">Edit your breeder profile</p>
+            </div>
+            <ArrowRight className="ml-auto h-4 w-4 text-purple-400" />
+          </Link>
+        )}
         <Link href="/account/saved-breeders" className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
           <Heart className="h-5 w-5 text-red-500" />
           <div>

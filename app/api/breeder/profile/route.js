@@ -34,6 +34,18 @@ async function getUserBreederId(adminClient, userId) {
     return breeder?.id || null;
   }
 
+  // Last resort: match by user email on claimed breeder
+  const { data: { user } } = await adminClient.auth.admin.getUserById(userId);
+  if (user?.email) {
+    const { data: breederByEmail } = await adminClient
+      .from("breeders")
+      .select("id")
+      .eq("email", user.email)
+      .eq("status", "claimed_profile")
+      .maybeSingle();
+    if (breederByEmail?.id) return breederByEmail.id;
+  }
+
   return null;
 }
 
