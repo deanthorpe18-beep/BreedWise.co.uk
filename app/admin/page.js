@@ -132,6 +132,13 @@ export default function AdminPage() {
   const [uploadingBreedId, setUploadingBreedId] = useState(null);
   const [uploadBreedMsg, setUploadBreedMsg] = useState("");
 
+  // Outreach state
+  const [outreachBreeders, setOutreachBreeders] = useState([]);
+  const [outreachLoading, setOutreachLoading] = useState(false);
+  const [outreachMsg, setOutreachMsg] = useState("");
+  const [outreachError, setOutreachError] = useState("");
+  const [selectedOutreach, setSelectedOutreach] = useState(new Set());
+
   const defaultTabs = [
     { id: "queue", label: "Queue", icon: Shield },
     { id: "breeders", label: "Breeders", icon: Building2 },
@@ -148,6 +155,7 @@ export default function AdminPage() {
     { id: "stats", label: "Stats", icon: BarChart3 },
     { id: "tiers", label: "Tiers", icon: CreditCard },
     { id: "cms", label: "Editor", icon: Pencil },
+    { id: "outreach", label: "Outreach", icon: Mail },
     { id: "admins", label: "Admins", icon: Users },
   ];
 
@@ -204,6 +212,7 @@ export default function AdminPage() {
     if (activeTab === "tiers") loadTiers();
     if (activeTab === "tiers") loadCms();
     if (activeTab === "cms") loadCms();
+    if (activeTab === "outreach") loadOutreach();
   }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user, analyticsRefreshTick]);
 
   // Auto-refresh analytics every 30 seconds when on analytics tab
@@ -504,6 +513,52 @@ export default function AdminPage() {
         loadCms();
       }
     } catch {}
+  };
+
+  const loadOutreach = async () => {
+    setOutreachLoading(true);
+    setOutreachMsg("");
+    setOutreachError("");
+    try {
+      const res = await fetch("/api/admin/outreach");
+      const data = await res.json();
+      if (res.ok) {
+        setOutreachBreeders(data.breeders || []);
+      } else {
+        setOutreachError(data.error || "Failed to load breeders.");
+      }
+    } catch {
+      setOutreachError("Network error.");
+    } finally {
+      setOutreachLoading(false);
+    }
+  };
+
+  const sendOutreach = async () => {
+    setOutreachMsg("");
+    setOutreachError("");
+    const slugs = Array.from(selectedOutreach);
+    if (slugs.length === 0) {
+      setOutreachError("Select at least one breeder.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ breederSlugs: slugs }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOutreachMsg(`Sent ${data.sent} emails. ${data.failed} skipped/failed.`);
+        setSelectedOutreach(new Set());
+        await loadOutreach(); // refresh cooldown status
+      } else {
+        setOutreachError(data.error || "Failed to send emails.");
+      }
+    } catch {
+      setOutreachError("Network error.");
+    }
   };
 
   const updateClaimStatus = async (id, status) => {
@@ -2256,6 +2311,102 @@ export default function AdminPage() {
                       <p>Support email address</p>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Outreach */}
+            {activeTab === "outreach" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-[#00BFA5]" />
+                    Outreach — Claim Invitations
+                  </h2>
+                  <button onClick={loadOutreach} disabled={outreachLoading} className="inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                    <RefreshCw className={`h-3 w-3 ${outreachLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </button>
+                </div>
+
+                {outreachMsg && (
+                  <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{outreachMsg}</div>
+                )}
+                {outreachError && (
+                  <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{outreachError}</div>
+                )}
+
+                {/* Send controls */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button onClick={sendOutreach} disabled={outreachLoading || selectedOutreach.size === 0} className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-50">
+                    <Mail className="h-4 w-4" />
+                    {outreachLoading ? "Sending…" : `Send invitation (${selectedOutreach.size})`}
+                  </button>
+                  <button onClick={() => setSelectedOutreach(new Set(outreachBreeders.filter(b => !b.onCooldown).map(b => b.slug)))} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Select all eligible</button>
+                  <button onClick={() => setSelectedOutreach(new Set())} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Clear</button>
+                </div>
+
+                {/* Breeders table */}
+                <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden">
+                  {outreachLoading && outreachBreeders.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      <RefreshCw className="mx-auto mb-2 h-5 w-5 animate-spin text-[#00BFA5]" />
+                      Loading unclaimed breeders…
+                    </div>
+                  ) : outreachBreeders.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-slate-500">No unclaimed breeders with contact info found.</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 w-10"></th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Name</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Email</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Website</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Guessed email</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {outreachBreeders.map((b) => {
+                          const guessed = b.email ? null : b.website ? (() => { try { const u = new URL(b.website); return `info@${u.hostname.replace(/^www\./, "")}`; } catch { return null; } })() : null;
+                          const cooldownUntil = b.lastSentAt ? new Date(new Date(b.lastSentAt).getTime() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB") : null;
+                          return (
+                            <tr key={b.slug} className={`${selectedOutreach.has(b.slug) ? "bg-[#00BFA5]/5" : ""} ${b.onCooldown ? "opacity-60" : ""}`}>
+                              <td className="px-4 py-2">
+                                <input type="checkbox" checked={selectedOutreach.has(b.slug)} disabled={b.onCooldown} onChange={(e) => {
+                                  const next = new Set(selectedOutreach);
+                                  if (e.target.checked) next.add(b.slug); else next.delete(b.slug);
+                                  setSelectedOutreach(next);
+                                }} className="h-4 w-4 rounded border-slate-300 text-[#00BFA5] focus:ring-[#00BFA5] disabled:opacity-30" />
+                              </td>
+                              <td className="px-4 py-2 font-medium text-slate-900">{b.name}</td>
+                              <td className="px-4 py-2 text-slate-600">{b.email || "—"}</td>
+                              <td className="px-4 py-2 text-slate-600">{b.website ? <a href={b.website} target="_blank" rel="noopener noreferrer" className="text-[#00BFA5] hover:underline">{b.website}</a> : "—"}</td>
+                              <td className="px-4 py-2 text-xs text-slate-500">{guessed || "—"}</td>
+                              <td className="px-4 py-2">
+                                {b.onCooldown ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                    <Clock className="h-3 w-3" />
+                                    On cooldown until {cooldownUntil}
+                                  </span>
+                                ) : b.lastSentAt ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                                    Last sent {new Date(b.lastSentAt).toLocaleDateString("en-GB")}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Ready
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
             )}
