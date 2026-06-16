@@ -21,12 +21,12 @@ export async function GET() {
       .eq("id", user.id)
       .single();
 
-    // Try breeder_subscriptions first
     let breederId = null;
     let breederSlug = null;
     let breederName = null;
 
-    const { data: subscription, error: subErr } = await supabase
+    // 1. Try breeder_subscriptions first
+    const { data: subscription } = await supabase
       .from("breeder_subscriptions")
       .select("breeder_id, breeders(slug, name)")
       .eq("user_id", user.id)
@@ -37,8 +37,10 @@ export async function GET() {
       breederId = subscription.breeder_id;
       breederSlug = subscription.breeders.slug;
       breederName = subscription.breeders.name;
-    } else {
-      // Fallback: check approved claims
+    }
+
+    // 2. Fallback: check approved claims
+    if (!breederSlug) {
       const { data: claim } = await supabase
         .from("claims")
         .select("breeder_slug, breeder_name")
@@ -50,7 +52,6 @@ export async function GET() {
       if (claim?.breeder_slug) {
         breederSlug = claim.breeder_slug;
         breederName = claim.breeder_name;
-        // Also try to get the breeder ID
         const { data: breederRow } = await supabase
           .from("breeders")
           .select("id, name")
@@ -60,6 +61,22 @@ export async function GET() {
           breederId = breederRow.id;
           breederName = breederRow.name || breederName;
         }
+      }
+    }
+
+    // 3. Last resort: check if any breeder has this user's email
+    if (!breederSlug) {
+      const { data: breederByEmail } = await supabase
+        .from("breeders")
+        .select("id, slug, name")
+        .eq("email", user.email)
+        .eq("status", "claimed_profile")
+        .maybeSingle();
+
+      if (breederByEmail) {
+        breederId = breederByEmail.id;
+        breederSlug = breederByEmail.slug;
+        breederName = breederByEmail.name;
       }
     }
 

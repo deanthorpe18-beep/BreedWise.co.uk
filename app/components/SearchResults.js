@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, Award, CheckCircle, Heart, ArrowRight } from "lucide-react";
+import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, CheckCircle, Heart, ArrowRight, Store } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
-import MembershipBadge from "./MembershipBadge";
+import MembershipBadge, { getTierBorderClasses } from "./MembershipBadge";
 import JustClaimedBadge from "./JustClaimedBadge";
 import AdSensePlaceholder from "./AdSensePlaceholder";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
-import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
+import { trackSearch, trackFilterUsage } from "@lib/analytics";
 
 function formatDistance(distance) {
   return distance === null || distance === undefined ? null : `${distance} mi`;
@@ -17,24 +17,14 @@ function formatDistance(distance) {
 
 function applyFilters(breeders, filters) {
   return breeders.filter((breeder) => {
-    if (breeder.distance !== null && breeder.distance > filters.maxDistance) {
-      return false;
-    }
+    if (breeder.distance !== null && breeder.distance > filters.maxDistance) return false;
     return true;
   });
 }
 
 export default function SearchResults({
-  breeders,
-  query,
-  breed,
-  sortBy,
-  userLat,
-  userLng,
-  currentPage = 1,
-  totalPages = 1,
-  totalCount = 0,
-  pageSize = 24,
+  breeders, query, breed, sortBy, userLat, userLng,
+  currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 24,
 }) {
   const [mapView, setMapView] = useState(false);
   const [filters, setFilters] = useState({ maxDistance: 50 });
@@ -56,15 +46,16 @@ export default function SearchResults({
 
   const mapPoints = useMemo(() => {
     if (!filteredBreeders.length) return [];
-    const minLat = Math.min(...filteredBreeders.map((item) => item.lat || 0));
-    const maxLat = Math.max(...filteredBreeders.map((item) => item.lat || 0));
-    const minLng = Math.min(...filteredBreeders.map((item) => item.lng || 0));
-    const maxLng = Math.max(...filteredBreeders.map((item) => item.lng || 0));
-    return filteredBreeders.map((item) => {
-      const x = maxLng === minLng ? 50 : ((item.lng - minLng) / (maxLng - minLng)) * 100;
-      const y = maxLat === minLat ? 50 : ((maxLat - item.lat) / (maxLat - minLat)) * 100;
-      return { slug: item.slug, x, y, name: item.name };
-    });
+    const lats = filteredBreeders.map((b) => b.lat || 0);
+    const lngs = filteredBreeders.map((b) => b.lng || 0);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    return filteredBreeders.map((item) => ({
+      slug: item.slug,
+      x: maxLng === minLng ? 50 : ((item.lng - minLng) / (maxLng - minLng)) * 100,
+      y: maxLat === minLat ? 50 : ((maxLat - item.lat) / (maxLat - minLat)) * 100,
+      name: item.name,
+    }));
   }, [filteredBreeders]);
 
   const buildPageUrl = (pageNum) => {
@@ -85,7 +76,6 @@ export default function SearchResults({
     <section className="space-y-6">
       <SearchFilters onFiltersChange={handleFiltersChange} breeders={breeders} />
 
-      {/* Results header */}
       <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Results</p>
@@ -98,18 +88,10 @@ export default function SearchResults({
           </p>
         </div>
         <div className="inline-flex overflow-hidden rounded-full border border-slate-200 bg-slate-50 p-1">
-          <button
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${!mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
-            onClick={() => setMapView(false)}
-          >
+          <button type="button" className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${!mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`} onClick={() => setMapView(false)}>
             <Layers className="h-4 w-4" /> List
           </button>
-          <button
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
-            onClick={() => setMapView(true)}
-          >
+          <button type="button" className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`} onClick={() => setMapView(true)}>
             <MapPin className="h-4 w-4" /> Map
           </button>
         </div>
@@ -119,12 +101,7 @@ export default function SearchResults({
         <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 shadow-sm">
           <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gradient-to-br from-slate-100 via-white to-slate-200">
             {mapPoints.map((point) => (
-              <Link
-                key={point.slug}
-                href={`/breeder/${point.slug}`}
-                className="absolute inline-flex translate-x-[-50%] translate-y-[-50%] flex-col items-center gap-2 text-xs"
-                style={{ left: `${point.x}%`, top: `${point.y}%` }}
-              >
+              <Link key={point.slug} href={`/breeder/${point.slug}`} className="absolute inline-flex translate-x-[-50%] translate-y-[-50%] flex-col items-center gap-2 text-xs" style={{ left: `${point.x}%`, top: `${point.y}%` }}>
                 <span className="rounded-full bg-[#00BFA5] px-2 py-1 text-white shadow-lg shadow-[#00BFA5]/20">{point.name.split(" ")[0]}</span>
                 <span className="h-3 w-3 rounded-full bg-[#FF6B6B] ring-2 ring-white" />
               </Link>
@@ -136,22 +113,16 @@ export default function SearchResults({
         <div className="space-y-5">
           {filteredBreeders.map((breeder, index) => (
             <div key={breeder.slug}>
-              {index > 0 && index % 3 === 0 && (
-                <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
-              )}
+              {index > 0 && index % 3 === 0 && <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />}
               <BreederCard breeder={breeder} />
             </div>
           ))}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <Link
-            href={currentPage > 1 ? buildPageUrl(currentPage - 1) : "#"}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${currentPage > 1 ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "text-slate-400 cursor-not-allowed pointer-events-none"}`}
-          >
+          <Link href={currentPage > 1 ? buildPageUrl(currentPage - 1) : "#"} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${currentPage > 1 ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "text-slate-400 cursor-not-allowed pointer-events-none"}`}>
             <ChevronLeft className="h-4 w-4" /> Previous
           </Link>
           <div className="flex items-center gap-1">
@@ -159,22 +130,11 @@ export default function SearchResults({
               .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
               .reduce((acc, p, idx, arr) => {
                 if (idx > 0 && p - arr[idx - 1] > 1) acc.push(<span key={`gap-${p}`} className="px-2 text-slate-400">…</span>);
-                acc.push(
-                  <Link
-                    key={p}
-                    href={buildPageUrl(p)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${p === currentPage ? "bg-[#00BFA5] text-white" : "text-slate-700 hover:bg-slate-100"}`}
-                  >
-                    {p}
-                  </Link>
-                );
+                acc.push(<Link key={p} href={buildPageUrl(p)} className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${p === currentPage ? "bg-[#00BFA5] text-white" : "text-slate-700 hover:bg-slate-100"}`}>{p}</Link>);
                 return acc;
               }, [])}
           </div>
-          <Link
-            href={currentPage < totalPages ? buildPageUrl(currentPage + 1) : "#"}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${currentPage < totalPages ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "text-slate-400 cursor-not-allowed pointer-events-none"}`}
-          >
+          <Link href={currentPage < totalPages ? buildPageUrl(currentPage + 1) : "#"} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${currentPage < totalPages ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "text-slate-400 cursor-not-allowed pointer-events-none"}`}>
             Next <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
@@ -196,28 +156,26 @@ function BreederCard({ breeder }) {
   const isClaimed = breeder.status === "claimed_profile";
   const hasHero = !!breeder.hero_image_url;
 
+  // Get border color based on tier + claim status
+  const borderClasses = getTierBorderClasses(breeder.membership_tier, breeder.status);
+
   return (
-    <div className="group rounded-3xl border border-slate-200 bg-white p-0 shadow-sm transition hover:shadow-md hover:border-[#00BFA5]/30 overflow-hidden">
+    <div className={`group rounded-3xl border-2 bg-white p-0 shadow-sm transition hover:shadow-lg overflow-hidden ${isClaimed ? `${borderClasses.border} ring-2 ${borderClasses.ring}` : "border-slate-200 hover:border-[#00BFA5]/40"}`}>
       <div className="flex flex-col sm:flex-row">
-        {/* Left: Image + badges */}
+        {/* Left: Image */}
         <div className="relative sm:w-56 sm:flex-shrink-0">
           <div className="aspect-[4/3] sm:aspect-auto sm:h-full bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
             {hasHero ? (
-              <img
-                src={breeder.hero_image_url}
-                alt={breeder.name}
-                className="h-full w-full object-cover transition group-hover:scale-105"
-                loading="lazy"
-              />
+              <img src={breeder.hero_image_url} alt={breeder.name} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <ImageIcon className="h-10 w-10 text-slate-300" />
               </div>
             )}
           </div>
-          {/* Overlay badges */}
+          {/* Badges overlay */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            <MembershipBadge tier={breeder.membership_tier} size="sm" />
+            <MembershipBadge tier={breeder.membership_tier} status={breeder.status} size="sm" />
             <JustClaimedBadge claimedAt={breeder.claimed_at} size="small" />
           </div>
           {breeder.is_featured && (
@@ -229,7 +187,7 @@ function BreederCard({ breeder }) {
 
         {/* Right: Content */}
         <div className="flex flex-1 flex-col p-5">
-          {/* Header */}
+          {/* Header row */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="text-lg font-bold text-slate-900 truncate">{breeder.name}</h3>
@@ -239,9 +197,7 @@ function BreederCard({ breeder }) {
                   {breeder.town}{breeder.county ? `, ${breeder.county}` : ""}
                 </span>
                 {distance && (
-                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium">
-                    {distance}
-                  </span>
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium">{distance}</span>
                 )}
                 {breeder.google_rating ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
@@ -259,17 +215,10 @@ function BreederCard({ breeder }) {
           {breeds.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {breeds.slice(0, 5).map((breedName) => (
-                <span
-                  key={breedName}
-                  className="inline-flex items-center rounded-full bg-[#E6FFFB] px-2.5 py-1 text-xs font-medium text-[#00BFA5]"
-                >
-                  {breedName}
-                </span>
+                <span key={breedName} className="inline-flex items-center rounded-full bg-[#E6FFFB] px-2.5 py-1 text-xs font-medium text-[#00BFA5]">{breedName}</span>
               ))}
               {breeds.length > 5 && (
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
-                  +{breeds.length - 5} more
-                </span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">+{breeds.length - 5} more</span>
               )}
             </div>
           )}
@@ -277,7 +226,7 @@ function BreederCard({ breeder }) {
           {/* Info row */}
           <div className="mt-4 grid grid-cols-3 gap-3 text-xs text-slate-500">
             <div className="flex items-center gap-1.5">
-              <Award className="h-3.5 w-3.5 text-slate-400" />
+              <Store className="h-3.5 w-3.5 text-slate-400" />
               <span className="truncate">KC: {breeder.kennel_club || "—"}</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -292,41 +241,27 @@ function BreederCard({ breeder }) {
 
           {/* Actions */}
           <div className="mt-5 flex flex-wrap gap-2">
-            <Link
-              href={`/breeder/${breeder.slug}`}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#00a98e]"
-            >
+            <Link href={`/breeder/${breeder.slug}`} className="inline-flex items-center gap-2 rounded-2xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#00a98e]">
               View profile <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             {isClaimed && (
-              <form
-                className="contents"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const res = await fetch("/api/messages/conversations", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ breeder_id: breeder.id, subject: `Enquiry about ${breeder.name}` }),
-                  });
-                  const data = await res.json();
-                  if (data.conversation?.id) {
-                    window.location.href = `/messages/${data.conversation.id}`;
-                  } else if (data.error === "Unauthorized") {
-                    window.location.href = `/auth/login?redirect=/search`;
-                  }
-                }}
-              >
+              <form className="contents" onSubmit={async (e) => {
+                e.preventDefault();
+                const res = await fetch("/api/messages/conversations", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ breeder_id: breeder.id, subject: `Enquiry about ${breeder.name}` }),
+                });
+                const data = await res.json();
+                if (data.conversation?.id) window.location.href = `/messages/${data.conversation.id}`;
+                else if (data.error === "Unauthorized") window.location.href = `/auth/login?redirect=/search`;
+              }}>
                 <button type="submit" className="inline-flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-50 px-5 py-2.5 text-sm font-semibold text-purple-700 transition hover:bg-purple-100">
                   <MessageCircle className="h-4 w-4" /> Message
                 </button>
               </form>
             )}
             {breeder.phone ? (
-              <a
-                href={`tel:${breeder.phone}`}
-                onClick={() => trackCtaClick(breeder.slug, "call")}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
+              <a href={`tel:${breeder.phone}`} onClick={() => trackCtaClick(breeder.slug, "call")} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 <Phone className="h-4 w-4" /> Call
               </a>
             ) : (

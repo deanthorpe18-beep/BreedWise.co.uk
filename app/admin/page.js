@@ -887,6 +887,25 @@ export default function AdminPage() {
                       <UserCheck className="h-5 w-5 text-[#00BFA5]" />
                       Claims ({claims.filter((c) => c.status === "pending").length} pending)
                     </h2>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/admin/fix-claimed-breeders", { method: "POST" });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert(`Fixed! Breeders updated: ${data.breedersFixed}, Subscriptions created: ${data.subscriptionsCreated}`);
+                            loadData();
+                          } else {
+                            alert("Error: " + (data.error || "Unknown"));
+                          }
+                        } catch (e) {
+                          alert("Failed: " + e.message);
+                        }
+                      }}
+                      className="rounded-3xl border border-purple-200 bg-purple-50 px-4 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+                    >
+                      Fix claimed breeders
+                    </button>
                     <select
                       value={`${claimsSort.field}:${claimsSort.dir}`}
                       onChange={(e) => {
