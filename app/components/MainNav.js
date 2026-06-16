@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@components/AuthProvider";
-import { Menu, X, User, LogOut, Shield, ChevronDown, Settings, Heart, MessageCircle } from "lucide-react";
+import { Menu, X, User, LogOut, Shield, ChevronDown, Settings, Heart, MessageCircle, Store } from "lucide-react";
 
 function getInitials(name) {
   if (!name) return "?";
@@ -30,6 +30,7 @@ function UserDropdown({ user, onLogout }) {
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const isSuper = user?.role === "super_admin";
+  const hasBreeder = !!user?.breederSlug;
 
   return (
     <div className="relative" ref={ref}>
@@ -76,6 +77,16 @@ function UserDropdown({ user, onLogout }) {
               <MessageCircle className="h-4 w-4 text-slate-400" />
               Messages
             </Link>
+            {hasBreeder && (
+              <Link
+                href="/breeder/dashboard"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50"
+              >
+                <Store className="h-4 w-4 text-purple-500" />
+                My listing
+              </Link>
+            )}
             <Link
               href="/account/settings"
               onClick={() => setOpen(false)}
@@ -204,6 +215,9 @@ export default function MainNav() {
                 </div>
                 <Link href="/account/saved-breeders" className="rounded-2xl px-4 py-3 hover:bg-slate-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Heart className="h-4 w-4" /> Saved breeders</Link>
                 <Link href="/messages" className="rounded-2xl px-4 py-3 hover:bg-slate-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><MessageCircle className="h-4 w-4" /> Messages</Link>
+                {user.breederSlug && (
+                  <Link href="/breeder/dashboard" className="rounded-2xl px-4 py-3 text-purple-700 font-semibold hover:bg-purple-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Store className="h-4 w-4" /> My listing</Link>
+                )}
                 <Link href="/account/settings" className="rounded-2xl px-4 py-3 hover:bg-slate-50" onClick={() => setIsOpen(false)}>Account settings</Link>
                 {(user.role === "admin" || user.role === "super_admin") && (
                   <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin dashboard</Link>
