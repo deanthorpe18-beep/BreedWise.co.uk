@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
 import MembershipBadge from "./MembershipBadge";
+import JustClaimedBadge from "./JustClaimedBadge";
 import AdSensePlaceholder from "./AdSensePlaceholder";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
@@ -155,6 +156,7 @@ export default function SearchResults({
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                     <MembershipBadge tier={breeder.membership_tier} size="sm" />
+                    <JustClaimedBadge claimedAt={breeder.claimed_at} size="small" />
                     {breeder.is_featured && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-amber-700 font-bold">
                         <Crown className="h-3 w-3" />
