@@ -2363,13 +2363,11 @@ export default function AdminPage() {
                           <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Name</th>
                           <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Email</th>
                           <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Website</th>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Guessed email</th>
                           <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {outreachBreeders.map((b) => {
-                          const guessed = b.email ? null : b.website ? (() => { try { const u = new URL(b.website); return `info@${u.hostname.replace(/^www\./, "")}`; } catch { return null; } })() : null;
                           const cooldownUntil = b.lastSentAt ? new Date(new Date(b.lastSentAt).getTime() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB") : null;
                           return (
                             <tr key={b.slug} className={`${selectedOutreach.has(b.slug) ? "bg-[#00BFA5]/5" : ""} ${b.onCooldown ? "opacity-60" : ""}`}>
@@ -2383,7 +2381,6 @@ export default function AdminPage() {
                               <td className="px-4 py-2 font-medium text-slate-900">{b.name}</td>
                               <td className="px-4 py-2 text-slate-600">{b.email || "—"}</td>
                               <td className="px-4 py-2 text-slate-600">{b.website ? <a href={b.website} target="_blank" rel="noopener noreferrer" className="text-[#00BFA5] hover:underline">{b.website}</a> : "—"}</td>
-                              <td className="px-4 py-2 text-xs text-slate-500">{guessed || "—"}</td>
                               <td className="px-4 py-2">
                                 {b.onCooldown ? (
                                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">

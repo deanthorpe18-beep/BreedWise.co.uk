@@ -20,7 +20,7 @@ export async function GET() {
       .select("id, slug, name, email, phone, website, status, claimed")
       .eq("status", "public_listing")
       .eq("claimed", false)
-      .or("email.not.is.null,website.not.is.null")
+      .not("email", "is", null)
       .order("name", { ascending: true })
       .limit(50);
 
@@ -94,7 +94,8 @@ export async function POST(request) {
         .from("breeders")
         .select("id, slug, name, email, phone, website, status")
         .in("slug", breederSlugs)
-        .eq("status", "public_listing");
+        .eq("status", "public_listing")
+        .not("email", "is", null);
 
       if (error) throw error;
       breeders = data || [];
@@ -103,7 +104,7 @@ export async function POST(request) {
         .from("breeders")
         .select("id, slug, name, email, phone, website, status")
         .eq("status", "public_listing")
-        .or("email.not.is.null,website.not.is.null")
+        .not("email", "is", null)
         .limit(batchSize);
 
       if (error) throw error;
@@ -133,24 +134,8 @@ export async function POST(request) {
 
     const results = [];
     for (const breeder of breeders) {
-      // Try to find a contact email
-      let to = breeder.email;
-      if (!to && breeder.website) {
-        try {
-          const url = new URL(breeder.website);
-          to = `info@${url.hostname.replace(/^www\./, "")}`;
-        } catch {
-          to = null;
-        }
-      }
-
+      const to = breeder.email;
       if (!to) {
-        await adminClient.from("outreach_sends").insert({
-          breeder_slug: breeder.slug,
-          to_email: "",
-          status: "skipped",
-          reason: "No contact email available",
-        });
         results.push({
           breederSlug: breeder.slug,
           breederName: breeder.name,
@@ -165,12 +150,6 @@ export async function POST(request) {
         const cooldownDate = lastSend
           ? new Date(new Date(lastSend.sent_at).getTime() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB")
           : "in 3 months";
-        await adminClient.from("outreach_sends").insert({
-          breeder_slug: breeder.slug,
-          to_email: to,
-          status: "skipped",
-          reason: `Cooldown until ${cooldownDate}`,
-        });
         results.push({
           breederSlug: breeder.slug,
           breederName: breeder.name,
