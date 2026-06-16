@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown } from "lucide-react";
+import { MapPin, Phone, Star, Globe, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, Award, CheckCircle, Heart, ArrowRight } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
 import MembershipBadge from "./MembershipBadge";
 import JustClaimedBadge from "./JustClaimedBadge";
@@ -12,7 +12,7 @@ import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage, trackSaveBreeder } from "@lib/analytics";
 
 function formatDistance(distance) {
-  return distance === null || distance === undefined ? "—" : `${distance} mi`;
+  return distance === null || distance === undefined ? null : `${distance} mi`;
 }
 
 function applyFilters(breeders, filters) {
@@ -37,9 +37,7 @@ export default function SearchResults({
   pageSize = 24,
 }) {
   const [mapView, setMapView] = useState(false);
-  const [filters, setFilters] = useState({
-    maxDistance: 50,
-  });
+  const [filters, setFilters] = useState({ maxDistance: 50 });
   const [tracked, setTracked] = useState(false);
 
   const handleFiltersChange = (newFilters) => {
@@ -47,9 +45,7 @@ export default function SearchResults({
     trackFilterUsage(newFilters);
   };
 
-  const filteredBreeders = useMemo(() => {
-    return applyFilters(breeders, filters);
-  }, [breeders, filters]);
+  const filteredBreeders = useMemo(() => applyFilters(breeders, filters), [breeders, filters]);
 
   useEffect(() => {
     if (!tracked && breeders.length > 0) {
@@ -64,7 +60,6 @@ export default function SearchResults({
     const maxLat = Math.max(...filteredBreeders.map((item) => item.lat || 0));
     const minLng = Math.min(...filteredBreeders.map((item) => item.lng || 0));
     const maxLng = Math.max(...filteredBreeders.map((item) => item.lng || 0));
-
     return filteredBreeders.map((item) => {
       const x = maxLng === minLng ? 50 : ((item.lng - minLng) / (maxLng - minLng)) * 100;
       const y = maxLat === minLat ? 50 : ((maxLat - item.lat) / (maxLat - minLat)) * 100;
@@ -72,7 +67,6 @@ export default function SearchResults({
     });
   }, [filteredBreeders]);
 
-  // Build pagination URL
   const buildPageUrl = (pageNum) => {
     const params = new URLSearchParams();
     if (query && query !== "My location") params.set("q", query);
@@ -91,6 +85,7 @@ export default function SearchResults({
     <section className="space-y-6">
       <SearchFilters onFiltersChange={handleFiltersChange} breeders={breeders} />
 
+      {/* Results header */}
       <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Results</p>
@@ -108,16 +103,14 @@ export default function SearchResults({
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${!mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
             onClick={() => setMapView(false)}
           >
-            <Layers className="h-4 w-4" />
-            List
+            <Layers className="h-4 w-4" /> List
           </button>
           <button
             type="button"
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
             onClick={() => setMapView(true)}
           >
-            <MapPin className="h-4 w-4" />
-            Map
+            <MapPin className="h-4 w-4" /> Map
           </button>
         </div>
       </div>
@@ -140,132 +133,14 @@ export default function SearchResults({
           <p className="mt-4 text-sm text-slate-500">Map markers show approximate public listing locations.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {filteredBreeders.map((breeder, index) => (
-            <>
+            <div key={breeder.slug}>
               {index > 0 && index % 3 === 0 && (
                 <AdSensePlaceholder mobileFormat="horizontal" desktopFormat="horizontal" />
               )}
-              <div key={breeder.slug} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                {/* Left section - Main info */}
-                <div className="flex-1 space-y-3">
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-xl font-semibold text-slate-900">{breeder.name}</h3>
-                    <p className="text-sm text-slate-600">{breeder.town}{breeder.county ? `, ${breeder.county}` : ""}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                    <MembershipBadge tier={breeder.membership_tier} size="sm" />
-                    <JustClaimedBadge claimedAt={breeder.claimed_at} size="small" />
-                    {breeder.is_featured && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-amber-700 font-bold">
-                        <Crown className="h-3 w-3" />
-                        Featured
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{formatDistance(breeder.distance)}</span>
-                    {breeder.google_rating ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
-                        <Star className="h-3 w-3 text-[#FFB545] fill-[#FFB545]" />
-                        {breeder.google_rating}
-                        {breeder.google_review_count ? ` (${breeder.google_review_count})` : ""}
-                      </span>
-                    ) : null}
-                    {breeder.business_type ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{breeder.business_type}</span>
-                    ) : null}
-                    {breeder.breeds?.slice(0, 3).map((breedName) => (
-                      <span key={breedName} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">{breedName}</span>
-                    ))}
-                  </div>
-
-                  {/* Real photo from Google Places */}
-                  <div className="mt-4">
-                    {breeder.hero_image_url ? (
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="aspect-square rounded-lg overflow-hidden">
-                          <img
-                            src={breeder.hero_image_url}
-                            alt={`${breeder.name} — photo from Google Places`}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('bg-gradient-to-br', 'from-slate-100', 'to-slate-200', 'flex', 'items-center', 'justify-center'); const icon = document.createElement('div'); icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-slate-400"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'; e.target.parentElement.appendChild(icon.firstChild); }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="aspect-square rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-slate-400" />
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-xs text-slate-400 mt-2">
-                      {breeder.hero_image_url ? "Photo from Google Places" : "No photos available"}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
-                    <Link href={`/breeder/${breeder.slug}`} className="rounded-3xl bg-[#00BFA5] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#00a98e]">
-                      View profile
-                    </Link>
-                    {breeder.status === "claimed_profile" && (
-                      <form
-                        className="contents"
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const res = await fetch("/api/messages/conversations", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ breeder_id: breeder.id, subject: `Enquiry about ${breeder.name}` }),
-                          });
-                          const data = await res.json();
-                          if (data.conversation?.id) {
-                            window.location.href = `/messages/${data.conversation.id}`;
-                          } else if (data.error === "Unauthorized") {
-                            window.location.href = `/auth/login?redirect=/search`;
-                          }
-                        }}
-                      >
-                        <button type="submit" className="rounded-3xl border border-purple-200 bg-purple-50 px-4 py-3 text-center text-sm font-semibold text-purple-700 transition hover:bg-purple-100">
-                          <MessageCircle className="inline h-4 w-4 mr-1" />
-                          Message
-                        </button>
-                      </form>
-                    )}
-                    {breeder.phone ? (
-                      <a href={`tel:${breeder.phone}`} onClick={() => trackCtaClick(breeder.slug, "call")} className="rounded-3xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                        Call
-                      </a>
-                    ) : (
-                      <span className="rounded-3xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-400">
-                        No phone
-                      </span>
-                    )}
-                    <SaveBreederButton breederId={breeder.id} breederName={breeder.name} />
-                  </div>
-                </div>
-
-                {/* Right section - Details */}
-                <div className="grid gap-3 min-w-[180px] text-sm text-slate-600">
-                  <div className="rounded-3xl bg-[#F1F4F6] p-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Public info</p>
-                    <p className="mt-2">KC: {breeder.kennel_club || "Unknown"}</p>
-                    <p>Council licence: {breeder.council_licence || "Unknown"}</p>
-                    <p>Health testing: {breeder.health_testing || "Unknown"}</p>
-                  </div>
-                  <div className="rounded-3xl bg-[#F1F4F6] p-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Last updated</p>
-                    <p className="mt-2 font-semibold text-slate-900">
-                      {breeder.last_updated_at
-                        ? new Date(breeder.last_updated_at).toLocaleDateString("en-GB")
-                        : "Unknown"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <BreederCard breeder={breeder} />
             </div>
-            </>
           ))}
         </div>
       )}
@@ -275,35 +150,20 @@ export default function SearchResults({
         <div className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <Link
             href={currentPage > 1 ? buildPageUrl(currentPage - 1) : "#"}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-              currentPage > 1
-                ? "border border-slate-200 text-slate-700 hover:bg-slate-50"
-                : "text-slate-400 cursor-not-allowed pointer-events-none"
-            }`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${currentPage > 1 ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "text-slate-400 cursor-not-allowed pointer-events-none"}`}
           >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
+            <ChevronLeft className="h-4 w-4" /> Previous
           </Link>
-
           <div className="flex items-center gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter((p) => {
-                // Show first, last, current, and neighbors
-                return p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1;
-              })
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
               .reduce((acc, p, idx, arr) => {
-                if (idx > 0 && p - arr[idx - 1] > 1) {
-                  acc.push(<span key={`gap-${p}`} className="px-2 text-slate-400">…</span>);
-                }
+                if (idx > 0 && p - arr[idx - 1] > 1) acc.push(<span key={`gap-${p}`} className="px-2 text-slate-400">…</span>);
                 acc.push(
                   <Link
                     key={p}
                     href={buildPageUrl(p)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${
-                      p === currentPage
-                        ? "bg-[#00BFA5] text-white"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${p === currentPage ? "bg-[#00BFA5] text-white" : "text-slate-700 hover:bg-slate-100"}`}
                   >
                     {p}
                   </Link>
@@ -311,17 +171,11 @@ export default function SearchResults({
                 return acc;
               }, [])}
           </div>
-
           <Link
             href={currentPage < totalPages ? buildPageUrl(currentPage + 1) : "#"}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-              currentPage < totalPages
-                ? "border border-slate-200 text-slate-700 hover:bg-slate-50"
-                : "text-slate-400 cursor-not-allowed pointer-events-none"
-            }`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${currentPage < totalPages ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "text-slate-400 cursor-not-allowed pointer-events-none"}`}
           >
-            Next
-            <ChevronRight className="h-4 w-4" />
+            Next <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
       )}
@@ -333,5 +187,156 @@ export default function SearchResults({
         </div>
       )}
     </section>
+  );
+}
+
+function BreederCard({ breeder }) {
+  const distance = formatDistance(breeder.distance);
+  const breeds = breeder.breeds || [];
+  const isClaimed = breeder.status === "claimed_profile";
+  const hasHero = !!breeder.hero_image_url;
+
+  return (
+    <div className="group rounded-3xl border border-slate-200 bg-white p-0 shadow-sm transition hover:shadow-md hover:border-[#00BFA5]/30 overflow-hidden">
+      <div className="flex flex-col sm:flex-row">
+        {/* Left: Image + badges */}
+        <div className="relative sm:w-56 sm:flex-shrink-0">
+          <div className="aspect-[4/3] sm:aspect-auto sm:h-full bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+            {hasHero ? (
+              <img
+                src={breeder.hero_image_url}
+                alt={breeder.name}
+                className="h-full w-full object-cover transition group-hover:scale-105"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <ImageIcon className="h-10 w-10 text-slate-300" />
+              </div>
+            )}
+          </div>
+          {/* Overlay badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+            <MembershipBadge tier={breeder.membership_tier} size="sm" />
+            <JustClaimedBadge claimedAt={breeder.claimed_at} size="small" />
+          </div>
+          {breeder.is_featured && (
+            <div className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+              <Crown className="h-3 w-3" /> Featured
+            </div>
+          )}
+        </div>
+
+        {/* Right: Content */}
+        <div className="flex flex-1 flex-col p-5">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold text-slate-900 truncate">{breeder.name}</h3>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {breeder.town}{breeder.county ? `, ${breeder.county}` : ""}
+                </span>
+                {distance && (
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium">
+                    {distance}
+                  </span>
+                )}
+                {breeder.google_rating ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    {breeder.google_rating}
+                    {breeder.google_review_count ? ` (${breeder.google_review_count})` : ""}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <SaveBreederButton breederId={breeder.id} breederName={breeder.name} />
+          </div>
+
+          {/* Breeds */}
+          {breeds.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {breeds.slice(0, 5).map((breedName) => (
+                <span
+                  key={breedName}
+                  className="inline-flex items-center rounded-full bg-[#E6FFFB] px-2.5 py-1 text-xs font-medium text-[#00BFA5]"
+                >
+                  {breedName}
+                </span>
+              ))}
+              {breeds.length > 5 && (
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+                  +{breeds.length - 5} more
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Info row */}
+          <div className="mt-4 grid grid-cols-3 gap-3 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <Award className="h-3.5 w-3.5 text-slate-400" />
+              <span className="truncate">KC: {breeder.kennel_club || "—"}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="h-3.5 w-3.5 text-slate-400" />
+              <span className="truncate">Licence: {breeder.council_licence || "—"}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Heart className="h-3.5 w-3.5 text-slate-400" />
+              <span className="truncate">Health: {breeder.health_testing || "—"}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              href={`/breeder/${breeder.slug}`}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#00a98e]"
+            >
+              View profile <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            {isClaimed && (
+              <form
+                className="contents"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const res = await fetch("/api/messages/conversations", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ breeder_id: breeder.id, subject: `Enquiry about ${breeder.name}` }),
+                  });
+                  const data = await res.json();
+                  if (data.conversation?.id) {
+                    window.location.href = `/messages/${data.conversation.id}`;
+                  } else if (data.error === "Unauthorized") {
+                    window.location.href = `/auth/login?redirect=/search`;
+                  }
+                }}
+              >
+                <button type="submit" className="inline-flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-50 px-5 py-2.5 text-sm font-semibold text-purple-700 transition hover:bg-purple-100">
+                  <MessageCircle className="h-4 w-4" /> Message
+                </button>
+              </form>
+            )}
+            {breeder.phone ? (
+              <a
+                href={`tel:${breeder.phone}`}
+                onClick={() => trackCtaClick(breeder.slug, "call")}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <Phone className="h-4 w-4" /> Call
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-400">
+                <Phone className="h-4 w-4" /> No phone
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
