@@ -8,6 +8,8 @@ import MembershipBadge from "@components/MembershipBadge";
 import ClaimProfileButton from "@components/ClaimProfileButton";
 import GoogleReviews from "@components/GoogleReviews";
 import BreederPhotos from "@components/BreederPhotos";
+import SocialShare from "@components/SocialShare";
+import Breadcrumbs from "@components/Breadcrumbs";
 import ProfileTracker, { TrackedLink } from "@components/ProfileTracker";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
@@ -127,6 +129,11 @@ export default async function BreederProfilePage({ params }) {
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
+            <Breadcrumbs items={[
+              { label: "Search", href: "/search" },
+              { label: breeder.town, href: `/search?q=${encodeURIComponent(breeder.town)}` },
+              { label: breeder.name },
+            ]} />
             <ProfileTracker breederSlug={slug} />
             <script
                 type="application/ld+json"
@@ -159,6 +166,7 @@ export default async function BreederProfilePage({ params }) {
                         )}
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
+                        <SocialShare url={`https://breedwise.co.uk/breeder/${slug}`} title={breeder.name} />
                         {breeder.status === "claimed_profile" && (
                           <MessageBreederButton breederId={breeder.id} breederName={breeder.name} />
                         )}

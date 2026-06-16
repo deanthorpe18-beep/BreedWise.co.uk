@@ -2,15 +2,24 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getBreeds } from "@lib/breeders";
 
+function urlEntry(loc, priority, changefreq, lastmod) {
+  let xml = `  <url>\n    <loc>${loc}</loc>\n`;
+  if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+  xml += `    <changefreq>${changefreq}</changefreq>\n`;
+  xml += `    <priority>${priority}</priority>\n  </url>\n`;
+  return xml;
+}
+
 export async function GET() {
   const baseUrl = "https://breedwise.co.uk";
+  const today = new Date().toISOString().split("T")[0];
 
   const supabase = createClient();
 
-  // Fetch real breeder slugs from Supabase
+  // Fetch real breeder slugs
   const { data: breeders, error } = await supabase
     .from("breeders")
-    .select("slug, town")
+    .select("slug, town, updated_at")
     .in("status", ["public_listing", "claimed_profile"]);
 
   if (error) {
@@ -23,66 +32,95 @@ export async function GET() {
   const uniqueTowns = [...new Set((breeders || []).map((b) => b.town).filter(Boolean))];
 
   const staticPaths = [
-    "",
-    "/search",
-    "/claim",
-    "/request-removal",
-    "/suggest-edit",
-    "/breeder-benefits",
-    "/education",
-    "/privacy",
-    "/terms",
-    "/disclaimer",
-    "/editorial-policy",
-    "/listing-policy",
-    "/data-sources",
-    "/corrections-removals",
-    "/auth/login",
-    "/auth/signup",
+    { path: "", priority: "1.0" },
+    { path: "/search", priority: "0.9" },
+    { path: "/breeds", priority: "0.8" },
+    { path: "/guides", priority: "0.8" },
+    { path: "/education", priority: "0.8" },
+    { path: "/claim", priority: "0.7" },
+    { path: "/breeder-benefits", priority: "0.7" },
+    { path: "/request-removal", priority: "0.3" },
+    { path: "/suggest-edit", priority: "0.3" },
+    { path: "/privacy", priority: "0.3" },
+    { path: "/terms", priority: "0.3" },
+    { path: "/disclaimer", priority: "0.3" },
+    { path: "/editorial-policy", priority: "0.3" },
+    { path: "/listing-policy", priority: "0.3" },
+    { path: "/data-sources", priority: "0.3" },
+    { path: "/corrections-removals", priority: "0.3" },
+    { path: "/kennel-club", priority: "0.5" },
+    { path: "/near-me", priority: "0.6" },
+    { path: "/tools/puppy-cost-calculator", priority: "0.7" },
+    { path: "/tools/breeder-checklist", priority: "0.7" },
+    { path: "/guides/find-reputable-breeder", priority: "0.7" },
   ];
 
-  const educationPaths = ["what-to-ask", "red-flags", "how-to-compare", "health-testing", "how-to-use-safely"];
+  const educationPaths = [
+    "what-to-ask",
+    "red-flags",
+    "how-to-compare",
+    "health-testing",
+    "how-to-use-safely",
+  ];
+
+  const guidePaths = [
+    "puppy-contract-guide",
+    "puppy-socialisation",
+    "puppy-viewing-checklist",
+    "transporting-your-puppy",
+    "choosing-a-breeder",
+    "questions-to-ask",
+  ];
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-  for (const path of staticPaths) {
-    xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${path === "" ? "1.0" : "0.7"}</priority>\n  </url>\n`;
+  // Static pages
+  for (const { path, priority } of staticPaths) {
+    xml += urlEntry(`${baseUrl}${path}`, priority, "weekly", today);
   }
 
+  // Education pages
   for (const slug of educationPaths) {
-    xml += `  <url>\n    <loc>${baseUrl}/education/${slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+    xml += urlEntry(`${baseUrl}/education/${slug}`, "0.6", "monthly", today);
+  }
+
+  // Guide pages
+  for (const slug of guidePaths) {
+    xml += urlEntry(`${baseUrl}/guides/${slug}`, "0.6", "monthly", today);
   }
 
   // Real breeder pages
   for (const breeder of breeders || []) {
-    xml += `  <url>\n    <loc>${baseUrl}/breeder/${breeder.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    const lastmod = breeder.updated_at ? breeder.updated_at.split("T")[0] : today;
+    xml += urlEntry(`${baseUrl}/breeder/${breeder.slug}`, "0.8", "weekly", lastmod);
   }
 
-  // Town pages (from real data)
+  // Town pages
   for (const town of uniqueTowns) {
     const townSlug = town.toLowerCase().replace(/\s+/g, "-");
-    xml += `  <url>\n    <loc>${baseUrl}/england/west-sussex/west-sussex/${townSlug}/dog-breeders</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+    xml += urlEntry(`${baseUrl}/england/west-sussex/west-sussex/${townSlug}/dog-breeders`, "0.7", "weekly", today);
     for (const breed of breeds) {
       const breedSlug = breed.toLowerCase().replace(/\s+/g, "-");
-      xml += `  <url>\n    <loc>${baseUrl}/england/west-sussex/west-sussex/${townSlug}/${breedSlug}-breeders</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+      xml += urlEntry(`${baseUrl}/england/west-sussex/west-sussex/${townSlug}/${breedSlug}-breeders`, "0.6", "weekly", today);
     }
   }
 
   // Breed pages
   for (const breed of breeds) {
     const breedSlug = breed.toLowerCase().replace(/\s+/g, "-");
-    xml += `  <url>\n    <loc>${baseUrl}/breeders/${breedSlug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+    xml += urlEntry(`${baseUrl}/breeders/${breedSlug}`, "0.7", "weekly", today);
+    xml += urlEntry(`${baseUrl}/breeds/${breedSlug}`, "0.7", "weekly", today);
     for (const town of uniqueTowns) {
       const townSlug = town.toLowerCase().replace(/\s+/g, "-");
-      xml += `  <url>\n    <loc>${baseUrl}/breeders/${breedSlug}/${townSlug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+      xml += urlEntry(`${baseUrl}/breeders/${breedSlug}/${townSlug}`, "0.6", "weekly", today);
     }
   }
 
   // Town index pages
   for (const town of uniqueTowns) {
     const townSlug = town.toLowerCase().replace(/\s+/g, "-");
-    xml += `  <url>\n    <loc>${baseUrl}/breeders/${townSlug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+    xml += urlEntry(`${baseUrl}/breeders/location/${townSlug}`, "0.7", "weekly", today);
   }
 
   xml += `</urlset>`;

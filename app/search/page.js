@@ -3,6 +3,7 @@ import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
 import SearchAnalyticsTracker from "@components/SearchAnalyticsTracker";
 import RecentSearches from "@components/RecentSearches";
+import Breadcrumbs from "@components/Breadcrumbs";
 import { createClient } from "@/lib/supabase/server";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { MapPin, SearchX, PawPrint } from "lucide-react";
@@ -181,6 +182,11 @@ export default async function SearchPage({ searchParams }) {
     return (
         <>
             <PageViewTracker page="search" />
+            <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 md:px-8">
+              <Breadcrumbs items={[
+                { label: "Search" },
+              ]} />
+            </div>
             {hasSearchCriteria && (
                 <SearchAnalyticsTracker
                     query={query}

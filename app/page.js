@@ -2,6 +2,7 @@ import Link from "next/link";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
 import SocialProofBanner from "@components/SocialProofBanner";
+import NewsletterSignup from "@components/NewsletterSignup";
 
 import { getBreeds } from "@lib/breeders";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
@@ -323,6 +324,11 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 md:px-8">
+        <NewsletterSignup variant="footer" />
       </section>
 
       {/* Trust strip */}

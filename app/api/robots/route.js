@@ -5,7 +5,12 @@ export async function GET() {
 Allow: /
 Disallow: /admin
 Disallow: /api/
-Sitemap: https://breedwise.co.uk/api/seo/sitemap
+Disallow: /auth/
+Disallow: /account/
+Disallow: /breeder/dashboard
+Disallow: /messages
+
+Sitemap: https://breedwise.co.uk/sitemap.xml
 `;
   return new NextResponse(body, {
     headers: { "Content-Type": "text/plain" },

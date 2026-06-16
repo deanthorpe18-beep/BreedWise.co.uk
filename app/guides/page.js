@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, AlertTriangle, Scale, Heart, ShieldCheck, ClipboardCheck, FileText, Truck, Baby } from "lucide-react";
+import { BookOpen, AlertTriangle, Scale, Heart, ShieldCheck, ClipboardCheck, FileText, Truck, Baby, Calculator, Search } from "lucide-react";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
 export const metadata = baseMetadata({
@@ -79,6 +79,30 @@ const guides = [
     icon: Baby,
     href: "/guides/puppy-socialisation",
   },
+  {
+    slug: "find-reputable-breeder",
+    title: "How to find a reputable breeder",
+    description: "An 8-step guide to finding a responsible breeder, asking the right questions, and avoiding puppy scams.",
+    icon: Search,
+    href: "/guides/find-reputable-breeder",
+  },
+];
+
+const tools = [
+  {
+    slug: "puppy-cost-calculator",
+    title: "Puppy Cost Calculator",
+    description: "Calculate the true lifetime cost of owning a dog in the UK.",
+    icon: Calculator,
+    href: "/tools/puppy-cost-calculator",
+  },
+  {
+    slug: "breeder-checklist",
+    title: "Breeder Verification Checklist",
+    description: "A printable checklist to verify a breeder before buying.",
+    icon: ClipboardCheck,
+    href: "/tools/breeder-checklist",
+  },
 ];
 
 export default function GuidesHubPage() {
@@ -109,6 +133,27 @@ export default function GuidesHubPage() {
               </div>
             </Link>
           ))}
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">Free Tools</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {tools.map((tool) => (
+              <Link
+                key={tool.slug}
+                href={tool.href}
+                className="flex items-start gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[#00BFA5]/10">
+                  <tool.icon className="h-5 w-5 text-[#00BFA5]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{tool.title}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{tool.description}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-[#F0FDFA] p-8">
