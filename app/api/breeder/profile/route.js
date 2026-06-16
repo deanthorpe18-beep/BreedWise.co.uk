@@ -3,9 +3,9 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Helper: find breeder ID for current user via subscription or approved claim
-async function getUserBreederId(adminClient, userId) {
-  // Try subscription first
+// Find breeder ID for current user via multiple methods
+async function getUserBreederId(adminClient, userId, userEmail) {
+  // Method 1: breeder_subscriptions table
   const { data: subscription } = await adminClient
     .from("breeder_subscriptions")
     .select("breeder_id")
@@ -16,7 +16,7 @@ async function getUserBreederId(adminClient, userId) {
     return subscription.breeder_id;
   }
 
-  // Fallback: try approved claim
+  // Method 2: approved claims by user ID
   const { data: claim } = await adminClient
     .from("claims")
     .select("breeder_slug")
@@ -30,20 +30,53 @@ async function getUserBreederId(adminClient, userId) {
       .from("breeders")
       .select("id")
       .eq("slug", claim.breeder_slug)
-      .single();
-    return breeder?.id || null;
+      .maybeSingle();
+    if (breeder?.id) return breeder.id;
   }
 
-  // Last resort: match by user email on claimed breeder
-  const { data: { user } } = await adminClient.auth.admin.getUserById(userId);
-  if (user?.email) {
+  // Method 3: match by email on claimed breeders
+  if (userEmail) {
     const { data: breederByEmail } = await adminClient
       .from("breeders")
       .select("id")
-      .eq("email", user.email)
+      .eq("email", userEmail)
       .eq("status", "claimed_profile")
       .maybeSingle();
-    if (breederByEmail?.id) return breederByEmail.id;
+
+    if (breederByEmail?.id) {
+      // Auto-create subscription so this works next time
+      await adminClient
+        .from("breeder_subscriptions")
+        .upsert({
+          breeder_id: breederByEmail.id,
+          user_id: userId,
+          tier: "free",
+          status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "breeder_id" });
+      return breederByEmail.id;
+    }
+  }
+
+  // Method 4: match by email in claims table
+  if (userEmail) {
+    const { data: claimByEmail } = await adminClient
+      .from("claims")
+      .select("breeder_slug")
+      .eq("claimant_email", userEmail)
+      .eq("status", "approved")
+      .order("reviewed_at", { ascending: false })
+      .maybeSingle();
+
+    if (claimByEmail?.breeder_slug) {
+      const { data: breeder } = await adminClient
+        .from("breeders")
+        .select("id")
+        .eq("slug", claimByEmail.breeder_slug)
+        .maybeSingle();
+      if (breeder?.id) return breeder.id;
+    }
   }
 
   return null;
@@ -53,12 +86,13 @@ export async function GET() {
   try {
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const adminClient = createAdminClient();
-    const breederId = await getUserBreederId(adminClient, user.id);
+    const breederId = await getUserBreederId(adminClient, user.id, user.email);
 
     if (!breederId) {
       return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
@@ -80,14 +114,12 @@ export async function GET() {
       return NextResponse.json({ error: "Breeder not found" }, { status: 404 });
     }
 
-    // Group breeds by animal type
     const breedsByAnimal = (breeder.breeder_breeds || []).reduce((acc, bb) => {
       if (!acc[bb.animal_type]) acc[bb.animal_type] = [];
       acc[bb.animal_type].push(bb.breed);
       return acc;
     }, {});
 
-    // Count photos
     const photos = (breeder.breeder_photos || []).filter((p) => p.photo_url);
 
     return NextResponse.json({
@@ -111,6 +143,7 @@ export async function GET() {
       },
     });
   } catch (err) {
+    console.error("[breeder/profile GET] Error:", err?.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -119,13 +152,14 @@ export async function POST(request) {
   try {
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const adminClient = createAdminClient();
-    const breederId = await getUserBreederId(adminClient, user.id);
+    const breederId = await getUserBreederId(adminClient, user.id, user.email);
 
     if (!breederId) {
       return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
@@ -177,6 +211,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("[breeder/profile POST] Error:", err?.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

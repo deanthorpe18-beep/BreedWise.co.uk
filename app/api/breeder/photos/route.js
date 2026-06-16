@@ -3,17 +3,14 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Helper: find breeder ID for current user via subscription or approved claim
-async function getUserBreederId(adminClient, userId) {
+// Helper: find breeder ID for current user via subscription, claim, or email
+async function getUserBreederId(adminClient, userId, userEmail) {
   const { data: subscription } = await adminClient
     .from("breeder_subscriptions")
     .select("breeder_id")
     .eq("user_id", userId)
     .maybeSingle();
-
-  if (subscription?.breeder_id) {
-    return subscription.breeder_id;
-  }
+  if (subscription?.breeder_id) return subscription.breeder_id;
 
   const { data: claim } = await adminClient
     .from("claims")
@@ -22,14 +19,19 @@ async function getUserBreederId(adminClient, userId) {
     .eq("status", "approved")
     .order("reviewed_at", { ascending: false })
     .maybeSingle();
-
   if (claim?.breeder_slug) {
-    const { data: breeder } = await adminClient
+    const { data: breeder } = await adminClient.from("breeders").select("id").eq("slug", claim.breeder_slug).maybeSingle();
+    if (breeder?.id) return breeder.id;
+  }
+
+  if (userEmail) {
+    const { data: breederByEmail } = await adminClient
       .from("breeders")
       .select("id")
-      .eq("slug", claim.breeder_slug)
-      .single();
-    return breeder?.id || null;
+      .eq("email", userEmail)
+      .eq("status", "claimed_profile")
+      .maybeSingle();
+    if (breederByEmail?.id) return breederByEmail.id;
   }
 
   return null;
@@ -72,7 +74,7 @@ export async function POST(request) {
     }
 
     const adminClient = createAdminClient();
-    const breederId = await getUserBreederId(adminClient, user.id);
+    const breederId = await getUserBreederId(adminClient, user.id, user.email);
 
     if (!breederId) {
       return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
@@ -158,7 +160,7 @@ export async function DELETE(request) {
     }
 
     const adminClient = createAdminClient();
-    const breederId = await getUserBreederId(adminClient, user.id);
+    const breederId = await getUserBreederId(adminClient, user.id, user.email);
 
     if (!breederId) {
       return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
