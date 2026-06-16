@@ -6,18 +6,30 @@ const client = new Client({
   ssl: { rejectUnauthorized: false },
 });
 
-// Simple email regex (catches most common formats)
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
-// Domains to skip (social media, no-contact sites)
 const SKIP_DOMAINS = [
-  "facebook.com",
-  "instagram.com",
-  "twitter.com",
-  "x.com",
-  "tiktok.com",
-  "youtube.com",
-  "linkedin.com",
+  "facebook.com", "instagram.com", "twitter.com", "x.com",
+  "tiktok.com", "youtube.com", "linkedin.com",
+];
+
+const SKIP_EMAILS = [
+  "example@mysite.com",
+  "your@email.com",
+  "your@email.co.uk",
+  "info@ndiscovered.com",
+  "impallari@gmail.com",
+  "eben@eyebytes.com",
+  "micah@micahrich.com",
+  "support@webador.com",
+  "contact@sansoxygen.com",
+  "developers@kal-group.com",
+  "hello@northernmediauk.com",
+  "logo_250x@2x.png",
+  "cropped_logo_250x@2x.png",
+  "assured%20breeders%202@2x.jpeg",
+  "asset-8@4x.png",
+  "hound@2x.png",
 ];
 
 function shouldSkip(url) {
@@ -27,6 +39,27 @@ function shouldSkip(url) {
   } catch {
     return true;
   }
+}
+
+function isValidEmail(email) {
+  if (!email || !email.includes("@")) return false;
+  const lower = email.toLowerCase();
+  if (SKIP_EMAILS.includes(lower)) return false;
+  if (lower.includes("example@")) return false;
+  if (lower.includes("your@")) return false;
+  if (lower.includes("sentry")) return false;
+  if (lower.includes("wixpress")) return false;
+  if (lower.includes("wix.com")) return false;
+  if (lower.includes("squarespace")) return false;
+  if (lower.includes("shopify")) return false;
+  if (lower.includes("wordpress")) return false;
+  if (lower.includes("webador")) return false;
+  if (lower.includes("@2x.png")) return false;
+  if (lower.includes("@4x.png")) return false;
+  if (lower.includes(".jpeg")) return false;
+  if (lower.includes(".jpg")) return false;
+  if (lower.includes(".png")) return false;
+  return true;
 }
 
 async function fetchText(url, timeoutMs = 8000) {
@@ -51,45 +84,20 @@ async function fetchText(url, timeoutMs = 8000) {
 function extractEmails(html) {
   if (!html) return [];
   const matches = html.match(EMAIL_REGEX) || [];
-  // Filter out common false positives
-  return matches
-    .map((e) => e.toLowerCase())
-    .filter((e) => {
-      if (e.includes("example.com")) return false;
-      if (e.includes("domain.com")) return false;
-      if (e.includes("yourname")) return false;
-      if (e.includes("info@") && e.endsWith(".jpg")) return false;
-      if (e.startsWith("noreply@")) return false;
-      if (e.startsWith("no-reply@")) return false;
-      if (e.includes("@sentry.io")) return false;
-      if (e.includes("@google.com")) return false;
-      if (e.includes("@facebook.com")) return false;
-      if (e.includes("@wix.com")) return false;
-      if (e.includes("@squarespace.com")) return false;
-      return true;
-    });
+  return matches.map((e) => e.toLowerCase()).filter(isValidEmail);
 }
 
 async function findEmailForBreeder(website) {
   if (!website || shouldSkip(website)) return null;
-
-  // Try homepage
   let html = await fetchText(website);
   let emails = extractEmails(html);
   if (emails.length > 0) return emails[0];
-
-  // Try /contact
-  const contactUrl = website.replace(/\/?$/, "/contact");
-  html = await fetchText(contactUrl);
+  html = await fetchText(website.replace(/\/?$/, "/contact"));
   emails = extractEmails(html);
   if (emails.length > 0) return emails[0];
-
-  // Try /contact-us
-  const contactUsUrl = website.replace(/\/?$/, "/contact-us");
-  html = await fetchText(contactUsUrl);
+  html = await fetchText(website.replace(/\/?$/, "/contact-us"));
   emails = extractEmails(html);
   if (emails.length > 0) return emails[0];
-
   return null;
 }
 
@@ -111,7 +119,6 @@ async function run() {
 
   let found = 0;
   let checked = 0;
-  const updates = [];
 
   for (const breeder of breeders) {
     if (shouldSkip(breeder.website)) {
@@ -124,29 +131,21 @@ async function run() {
 
     if (email) {
       console.log(`[FOUND] ${breeder.name} → ${email}`);
-      updates.push({ slug: breeder.slug, email });
+      await client.query(`UPDATE breeders SET email = $1 WHERE slug = $2`, [
+        email,
+        breeder.slug,
+      ]);
       found++;
     } else {
       console.log(`[NONE]  ${breeder.name}`);
     }
 
-    // Polite delay
     await new Promise((r) => setTimeout(r, 1000));
   }
 
   console.log(`\n---`);
   console.log(`Checked: ${checked}`);
-  console.log(`Found:   ${found}`);
-  console.log(`\nUpdating database...`);
-
-  for (const u of updates) {
-    await client.query(`UPDATE breeders SET email = $1 WHERE slug = $2`, [
-      u.email,
-      u.slug,
-    ]);
-  }
-
-  console.log(`Updated ${updates.length} breeders with real emails.`);
+  console.log(`Found and saved: ${found}`);
   await client.end();
 }
 
