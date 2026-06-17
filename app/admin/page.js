@@ -9,7 +9,7 @@ import {
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
   Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
   Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
-  CreditCard, Pencil, Dog, RefreshCw, GripVertical
+  CreditCard, Pencil, Dog, RefreshCw, GripVertical, ChevronDown, MoreHorizontal
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -97,6 +97,7 @@ export default function AdminPage() {
   const [tabOrder, setTabOrder] = useState(null);
   const [draggedTabId, setDraggedTabId] = useState(null);
   const [dragOverTabId, setDragOverTabId] = useState(null);
+  const [showMoreTabs, setShowMoreTabs] = useState(false);
   const [membersTotal, setMembersTotal] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersSearch, setMembersSearch] = useState("");
@@ -864,9 +865,9 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 overflow-x-auto">
-            <nav className="flex min-w-max">
-              {tabs.map((tab) => (
+          <div className="border-b border-slate-200">
+            <nav className="flex flex-wrap items-center gap-1 px-2 py-2">
+              {tabs.slice(0, 6).map((tab) => (
                 <button
                   key={tab.id}
                   draggable
@@ -874,7 +875,6 @@ export default function AdminPage() {
                   onDragStart={(e) => {
                     setDraggedTabId(tab.id);
                     e.dataTransfer.effectAllowed = "move";
-                    // Use a transparent drag image to avoid default ghost
                     const dragImage = document.createElement("div");
                     dragImage.style.opacity = "0";
                     document.body.appendChild(dragImage);
@@ -907,28 +907,62 @@ export default function AdminPage() {
                     setDraggedTabId(null);
                     setDragOverTabId(null);
                   }}
-                  className={`flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition whitespace-nowrap cursor-pointer ${
                     activeTab === tab.id
-                      ? "border-[#00BFA5] text-[#00BFA5]"
-                      : "border-transparent text-slate-600 hover:text-slate-900"
+                      ? "bg-[#E6FFFB] text-[#00BFA5]"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   } ${draggedTabId === tab.id ? "opacity-40" : ""} ${dragOverTabId === tab.id && draggedTabId !== tab.id ? "bg-slate-50" : ""}`}
-                  title="Drag to reorder tabs"
+                  title="Drag to reorder"
                 >
                   <GripVertical className="h-3 w-3 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing" />
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
                 </button>
               ))}
-              {extraLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
+              {/* More dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoreTabs((s) => !s)}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition whitespace-nowrap ${
+                    tabs.slice(6).some((t) => t.id === activeTab)
+                      ? "bg-[#E6FFFB] text-[#00BFA5]"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
                 >
-                  <link.icon className="h-4 w-4" />
-                  {link.label}
-                </a>
-              ))}
+                  <MoreHorizontal className="h-4 w-4" />
+                  More
+                  <ChevronDown className={`h-3 w-3 transition ${showMoreTabs ? "rotate-180" : ""}`} />
+                </button>
+                {showMoreTabs && (
+                  <div className="absolute z-30 mt-1 w-56 rounded-2xl border border-slate-200 bg-white py-2 shadow-lg">
+                    {tabs.slice(6).map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => { setActiveTab(tab.id); setShowMoreTabs(false); }}
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-sm font-semibold transition ${
+                          activeTab === tab.id
+                            ? "bg-[#E6FFFB] text-[#00BFA5]"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <tab.icon className="h-4 w-4" />
+                        {tab.label}
+                      </button>
+                    ))}
+                    <div className="my-1 border-t border-slate-100" />
+                    {extraLinks.map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+                      >
+                        <link.icon className="h-4 w-4" />
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
 

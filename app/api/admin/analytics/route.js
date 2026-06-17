@@ -38,6 +38,12 @@ export async function GET(request) {
 
     const adminClient = createAdminClient();
 
+    // Clean stale sessions first (older than 1 hour)
+    await adminClient
+      .from("user_sessions")
+      .delete()
+      .lt("last_active_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
     // ── Time boundaries for visitor counters ──
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();

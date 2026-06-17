@@ -47,7 +47,8 @@ async function isLockedOut(supabase, email, ip) {
 
 export async function POST(request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const forwarded = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = forwarded.split(",")[0].trim();
     const body = await request.json();
 
     const limit = rateLimitAuth(ip, 5, 300000);
@@ -108,10 +109,34 @@ export async function POST(request) {
       .eq("id", data.user.id)
       .single();
 
+    const role = profile?.role || "breeder";
+    let redirectTo = "/";
+    if (role === "admin" || role === "super_admin") {
+      redirectTo = "/admin";
+    } else {
+      // Check if this user is a breeder
+      const { data: breederSub } = await supabase
+        .from("breeder_subscriptions")
+        .select("breeder_id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      if (breederSub?.breeder_id) {
+        redirectTo = "/breeder/dashboard";
+      } else {
+        const { data: claim } = await supabase
+          .from("claims")
+          .select("id")
+          .eq("claimant_user_id", data.user.id)
+          .eq("status", "approved")
+          .maybeSingle();
+        if (claim) redirectTo = "/breeder/dashboard";
+      }
+    }
+
     return NextResponse.json({
       message: "Login successful.",
-      role: profile?.role || "breeder",
-      redirectTo: profile?.role === "admin" ? "/admin" : "/",
+      role,
+      redirectTo,
     });
   } catch (err) {
     return NextResponse.json(

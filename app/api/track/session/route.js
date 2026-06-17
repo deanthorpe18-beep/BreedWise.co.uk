@@ -14,7 +14,9 @@ function hashIp(ip) {
 
 export async function POST(request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    // x-forwarded-for can be a comma-separated list; use the first (client) IP
+    const forwarded = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = forwarded.split(",")[0].trim();
     const limit = rateLimitByIp(ip, 60, 60000);
     if (!limit.allowed) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: { "Retry-After": String(limit.retryAfter) } });
