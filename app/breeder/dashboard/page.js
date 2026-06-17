@@ -30,7 +30,7 @@ export default function BreederDashboardPage() {
   const { user, loading } = useAuth();
   const [analytics, setAnalytics] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [period, setPeriod] = "7d";
+  const [period, setPeriod] = useState("7d");
 
   // Profile edit state
   const [profile, setProfile] = useState(null);
