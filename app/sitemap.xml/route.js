@@ -13,13 +13,34 @@ export async function GET() {
   const supabase = createAdminClient();
 
   const staticPaths = [
-    "", "/search", "/claim", "/education", "/guides", "/near-me", "/breeds",
-    "/breeder-benefits", "/privacy", "/terms", "/disclaimer",
-    "/education/what-to-ask", "/education/red-flags",
-    "/education/how-to-compare", "/education/health-testing",
-    "/education/how-to-use-safely", "/education/choosing-a-breeder",
-    "/guides/puppy-viewing-checklist", "/guides/puppy-contract-guide",
-    "/guides/transporting-your-puppy", "/guides/puppy-socialisation",
+    "",
+    "/about",
+    "/search",
+    "/near-me",
+    "/breeds",
+    "/claim",
+    "/breeder-benefits",
+    "/education",
+    "/guides",
+    "/guides/find-reputable-breeder",
+    "/guides/puppy-viewing-checklist",
+    "/guides/puppy-contract-guide",
+    "/guides/transporting-your-puppy",
+    "/guides/puppy-socialisation",
+    "/tools/breeder-checklist",
+    "/tools/puppy-cost-calculator",
+    "/privacy",
+    "/terms",
+    "/disclaimer",
+    "/editorial-policy",
+    "/listing-policy",
+    "/data-sources",
+    "/corrections-removals",
+    "/education/what-to-ask",
+    "/education/red-flags",
+    "/education/how-to-compare",
+    "/education/health-testing",
+    "/education/how-to-use-safely",
   ];
 
   const [{ data: breeders }, { data: breeds }, { data: locations }] = await Promise.all([
@@ -51,8 +72,8 @@ export async function GET() {
     ...staticPaths.map((path) => ({
       loc: `${baseUrl}${path}`,
       lastmod: today,
-      changefreq: path === "" ? "daily" : "weekly",
-      priority: path === "" ? "1.0" : "0.8",
+      changefreq: path === "" ? "daily" : path === "/about" ? "monthly" : "weekly",
+      priority: path === "" ? "1.0" : path === "/about" ? "0.9" : "0.8",
     })),
     ...(breeders || []).map((b) => ({
       loc: `${baseUrl}/breeder/${b.slug}`,

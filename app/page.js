@@ -86,8 +86,45 @@ export default function HomePage() {
         <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#FF6B6B]/5 blur-3xl" />
       </section>
 
-      {/* Mobile ad below hero */}
-
+      {/* What is BreedWise */}
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:px-8">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#00BFA5]">What is BreedWise?</p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">
+                The UK directory for finding pet breeders — not buying pets online
+              </h2>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                We list dogs, cats, birds, and more so you can <strong className="font-semibold text-slate-800">compare breeders in one place</strong> —
+                location, breeds, reviews, licence details — then contact them when you are ready. No checkout, no pressure,
+                no adverts disguised as research.
+              </p>
+              <Link
+                href="/about"
+                className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#00BFA5] hover:underline"
+              >
+                Read the full explanation
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { icon: Shield, title: "Independent directory", desc: "We never sell animals or take a cut of sales." },
+                { icon: Heart, title: "Compare before you enquire", desc: "Save favourites, set search alerts, and use side-by-side compare." },
+                { icon: MapPin, title: "UK-wide search", desc: "By breed, town, distance, or breeders near you." },
+                { icon: PawPrint, title: "For breeders too", desc: "Claim your profile, get enquiries, and manage litters on Gold." },
+              ].map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="rounded-2xl border border-slate-100 bg-[#FAFBF9] p-4">
+                  <Icon className="h-5 w-5 text-[#00BFA5]" />
+                  <p className="mt-2 font-semibold text-slate-900">{title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Social proof + trending + locations (live from DB) */}
       <HomeDynamicContent />
@@ -129,12 +166,12 @@ export default function HomePage() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { icon: Search, title: "Smart Search", desc: "Filter by breed, location, and distance to find breeders near you." },
-            { icon: Heart, title: "Save Favourites", desc: "Create an account to save breeders and compare them later." },
+            { icon: Search, title: "Smart Search", desc: "Filter by breed, location, and distance — or use breeders near me." },
+            { icon: Heart, title: "Save & Compare", desc: "Shortlist breeders, compare side by side, and set search alerts for new listings." },
             { icon: Star, title: "Real Reviews", desc: "See Google ratings and review counts for transparent comparison." },
-            { icon: MessageCircle, title: "Message Breeders", desc: "Contact breeders directly through our secure messaging system." },
-            { icon: Shield, title: "Verified Listings", desc: "Look for verified badges, licence info, and health testing details on breeder profiles." },
-            { icon: Award, title: "Buyer Guides", desc: "Learn what to ask, red flags to watch for, and how to stay safe." },
+            { icon: MessageCircle, title: "Message Breeders", desc: "Contact claimed breeders through our secure messaging — your email stays private." },
+            { icon: Shield, title: "Licence & transparency", desc: "Look for verified badges, council licence info, and health testing on profiles." },
+            { icon: Award, title: "Free buyer tools", desc: "Guides, viewing checklist, puppy cost calculator, and breed encyclopedia." },
           ].map((benefit) => (
             <div key={benefit.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6FFFB] transition group-hover:bg-[#00BFA5]">
@@ -210,10 +247,10 @@ export default function HomePage() {
 
               <div className="space-y-4">
                 {[
-                  { step: "1", title: "Claim your profile", desc: "Submit evidence to verify your listing" },
-                  { step: "2", title: "Update your details", desc: "Add photos, health testing info, and more" },
-                  { step: "3", title: "Get discovered", desc: "Appear in search results for your breeds" },
-                  { step: "4", title: "Receive enquiries", desc: "Get messages from potential buyers directly" },
+                  { step: "1", title: "Claim your profile", desc: "Verify your listing and add accurate contact details" },
+                  { step: "2", title: "Stand out to buyers", desc: "Photos, health testing, licence info, and priority search on paid plans" },
+                  { step: "3", title: "Get discovered", desc: "Appear when buyers search your breeds and area" },
+                  { step: "4", title: "Run your paperwork", desc: "Gold: breeding portal for stock, litters, receipts & council summaries" },
                 ].map((item) => (
                   <div key={item.step} className="flex gap-4">
                     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#FF6B6B] text-xs font-bold text-white">

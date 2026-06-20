@@ -62,7 +62,8 @@ export default function RootLayout({ children }) {
                 <div>
                   <p className="font-semibold text-slate-900">BreedWise</p>
                   <p className="mt-2 text-sm leading-6">
-                    A UK pet breeder directory for dogs, cats, birds, fish, reptiles and small pets. We bring public breeder information into one calm place so you can compare, save favourites, and reach out when you feel ready. We never sell animals.
+                    A UK pet breeder directory for dogs, cats, birds, fish, reptiles and small pets. We bring public breeder information into one calm place so you can compare, save favourites, and reach out when you feel ready. We never sell animals.{" "}
+                    <Link href="/about" className="font-medium text-[#00BFA5] hover:text-[#008f7a]">What is BreedWise?</Link>
                   </p>
                   <p className="mt-3 text-sm leading-6 text-slate-500">
                     Made with care in the UK — if something looks wrong or you need a hand, we&apos;re real people at{" "}
@@ -72,6 +73,7 @@ export default function RootLayout({ children }) {
                 <div>
                   <p className="font-semibold text-slate-900">Directory</p>
                   <ul className="mt-2 space-y-2">
+                    <li><Link href="/about" className="hover:text-[#00BFA5]">About BreedWise</Link></li>
                     <li><Link href="/search" className="hover:text-[#00BFA5]">Search breeders</Link></li>
                     <li><Link href="/breeds" className="hover:text-[#00BFA5]">Breed Encyclopedia</Link></li>
                     <li><Link href="/claim" className="hover:text-[#00BFA5]">Claim your profile</Link></li>
