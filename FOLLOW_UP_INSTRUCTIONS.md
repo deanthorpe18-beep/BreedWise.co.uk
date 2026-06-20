@@ -159,6 +159,15 @@ Claim listing → `/breeder/[slug]/subscription` → Stripe Checkout → webhook
 2. Rotate `GOOGLE_PLACES_API_KEY` in Google Cloud Console
 3. Update Railway environment variables with new keys
 
+**Stripe (June 2026):** `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` was incorrectly set to a **secret** key (`sk_live_...`) on Railway. It has been **deleted**. Because that key may have been exposed to client bundles, you should also:
+
+1. Go to [Stripe Dashboard → API keys](https://dashboard.stripe.com/apikeys)
+2. Click **Roll key** on the live secret key
+3. Update `STRIPE_SECRET_KEY` in Railway with the new value
+4. Update `STRIPE_WEBHOOK_SECRET` if you roll the webhook signing secret
+
+Never prefix a secret key with `NEXT_PUBLIC_` — only publishable keys (`pk_live_...`) belong in public env vars, and this app does not use Stripe.js client-side today.
+
 ---
 
 ## 8. Migration 028 (breeder availability)
