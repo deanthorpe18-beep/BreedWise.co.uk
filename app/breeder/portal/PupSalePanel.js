@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, Upload, FileText, Trash2 } from "lucide-react";
+import { Check, Loader2, Upload, FileText, Trash2, Receipt } from "lucide-react";
 import { SALE_CHECKLIST_ITEMS, saleChecklistProgress } from "@/lib/breeder-portal-sale";
 
 export default function PupSalePanel({ pup, onUpdate, disabled }) {
@@ -109,7 +109,7 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <ReceiptBlock
-          label="Deposit receipt"
+          label="Scanned deposit receipt"
           hasFile={!!pup.deposit_receipt_path}
           uploading={uploading === "deposit"}
           inputRef={depositInput}
@@ -118,7 +118,7 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
           onRemove={() => removeReceipt("deposit")}
         />
         <ReceiptBlock
-          label="Final payment receipt"
+          label="Scanned payment receipt"
           hasFile={!!pup.final_receipt_path}
           uploading={uploading === "final"}
           inputRef={finalInput}
@@ -127,6 +127,24 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
           onRemove={() => removeReceipt("final")}
         />
       </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={`/breeder/portal/pups/${pup.id}/receipt?type=deposit`}
+          className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-[#00BFA5]"
+        >
+          <Receipt className="h-3.5 w-3.5" /> Create deposit receipt
+        </Link>
+        <Link
+          href={`/breeder/portal/pups/${pup.id}/receipt?type=final`}
+          className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-[#00BFA5]"
+        >
+          <Receipt className="h-3.5 w-3.5" /> Create payment receipt
+        </Link>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">
+        Receipts auto-fill from your profile and this sale. You can edit, add or remove lines, save a default template, then print or save as PDF.
+      </p>
     </div>
   );
 }

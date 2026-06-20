@@ -83,9 +83,9 @@ export default function BreederPortalHome() {
       <div className="rounded-3xl border border-slate-200 bg-white p-6">
         <p className="text-sm font-semibold text-slate-900">Gold features</p>
         <ul className="mt-3 space-y-2 text-sm text-slate-600">
-          <li>• Sale checklist per pup — deposit, paid in full, food, insurance</li>
-          <li>• Buyer details and receipt uploads</li>
-          <li>• Printable council summary (your council&apos;s form layout can be added later)</li>
+          <li>• Editable deposit & payment receipts — auto-filled from your profile</li>
+          <li>• Add or remove line items and terms to suit your business</li>
+          <li>• Printable council summary (custom council form layout coming later)</li>
         </ul>
         {access?.canUseSaleFeatures ? (
           <p className="mt-3 text-sm font-medium text-amber-800">Open a litter to manage sale records and print a council summary.</p>
