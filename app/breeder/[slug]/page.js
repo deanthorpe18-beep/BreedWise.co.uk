@@ -11,6 +11,7 @@ import BreederPhotos from "@components/BreederPhotos";
 import SocialShare from "@components/SocialShare";
 import Breadcrumbs from "@components/Breadcrumbs";
 import BreederProfileOwnerPanel from "@components/BreederProfileOwnerPanel";
+import BreederTrustBadges from "@components/BreederTrustBadges";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -165,6 +166,9 @@ export default async function BreederProfilePage({ params }) {
                                 )}
                             </div>
                         )}
+                        <div className="mt-3">
+                          <BreederTrustBadges breeder={breeder} size="lg" />
+                        </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
                         <SocialShare url={`https://breedwise.co.uk/breeder/${slug}`} title={breeder.name} />

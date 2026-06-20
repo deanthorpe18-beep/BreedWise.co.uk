@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, CheckCircle, Heart, ArrowRight, Store, Calendar } from "lucide-react";
+import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, ArrowRight, Calendar } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
 import MembershipBadge, { getTierBorderClasses } from "./MembershipBadge";
 import JustClaimedBadge from "./JustClaimedBadge";
+import BreederTrustBadges from "./BreederTrustBadges";
+import SearchImpressionTracker from "./SearchImpressionTracker";
 import AdSensePlaceholder from "./AdSensePlaceholder";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
@@ -17,7 +19,14 @@ function formatDistance(distance) {
 
 function applyFilters(breeders, filters) {
   return breeders.filter((breeder) => {
-    if (breeder.distance !== null && breeder.distance > filters.maxDistance) return false;
+    if (breeder.distance != null && breeder.distance > filters.maxDistance) return false;
+    if (filters.healthTesting === "yes" && !breeder.health_testing?.trim()) return false;
+    if (filters.healthTesting === "no" && breeder.health_testing?.trim()) return false;
+    if (filters.kennelClub === "yes" && !breeder.kennel_club?.trim()) return false;
+    if (filters.kennelClub === "no" && breeder.kennel_club?.trim()) return false;
+    if (filters.councilLicence === "yes" && !breeder.council_licence?.trim()) return false;
+    if (filters.councilLicence === "no" && breeder.council_licence?.trim()) return false;
+    if (filters.availableOnly && breeder.availability_status !== "available") return false;
     return true;
   });
 }
@@ -25,6 +34,7 @@ function applyFilters(breeders, filters) {
 export default function SearchResults({
   breeders, query, breed, animal, sortBy, userLat, userLng,
   currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 24,
+  availableOnly = false, licensedOnly = false, kcOnly = false, healthOnly = false,
 }) {
   const [mapView, setMapView] = useState(false);
   const [filters, setFilters] = useState({ maxDistance: 50 });
@@ -66,6 +76,10 @@ export default function SearchResults({
     if (userLat) params.set("userLat", userLat);
     if (userLng) params.set("userLng", userLng);
     if (sortBy && sortBy !== "relevance") params.set("sort", sortBy);
+    if (availableOnly) params.set("available", "1");
+    if (licensedOnly) params.set("licensed", "1");
+    if (kcOnly) params.set("kc", "1");
+    if (healthOnly) params.set("health", "1");
     params.set("page", String(pageNum));
     return `/search?${params.toString()}`;
   };
@@ -75,6 +89,7 @@ export default function SearchResults({
 
   return (
     <section className="space-y-6">
+      <SearchImpressionTracker slugs={breeders.map((b) => b.slug)} />
       <SearchFilters onFiltersChange={handleFiltersChange} breeders={breeders} />
 
       <div className="flex flex-col gap-3 rounded-3xl border border-[#00BFA5]/15 bg-gradient-to-r from-white to-[#E6FFFB]/40 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -251,7 +266,7 @@ function BreederCard({ breeder }) {
                 ) : null}
               </div>
             </div>
-            <SaveBreederButton breederId={breeder.id} breederName={breeder.name} />
+            <SaveBreederButton breederId={breeder.id} breederSlug={breeder.slug} breederName={breeder.name} />
           </div>
 
           {/* Breeds */}
@@ -266,21 +281,14 @@ function BreederCard({ breeder }) {
             </div>
           )}
 
-          {/* Info row */}
-          <div className="mt-4 grid grid-cols-3 gap-3 text-xs text-slate-500">
-            <div className="flex items-center gap-1.5">
-              <Store className="h-3.5 w-3.5 text-slate-400" />
-              <span className="truncate">KC: {breeder.kennel_club || "—"}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="h-3.5 w-3.5 text-slate-400" />
-              <span className="truncate">Licence: {breeder.council_licence || "—"}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Heart className="h-3.5 w-3.5 text-slate-400" />
-              <span className="truncate">Health: {breeder.health_testing || "—"}</span>
-            </div>
+          <div className="mt-3">
+            <BreederTrustBadges breeder={breeder} />
           </div>
+
+          {/* Info row — only show details not covered by badges */}
+          {!breeder.council_licence && !breeder.kennel_club && !breeder.health_testing && (
+            <p className="mt-3 text-xs text-slate-400">No licence or health info listed yet — ask the breeder directly.</p>
+          )}
 
           {/* Trust Score */}
           <TrustScore breeder={breeder} />

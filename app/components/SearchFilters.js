@@ -9,7 +9,8 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
     maxDistance: 50,
     healthTesting: null,
     kennelClub: null,
-    councilLicence: null
+    councilLicence: null,
+    availableOnly: false,
   });
 
   const handleFilterChange = (key, value) => {
@@ -23,13 +24,18 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
       maxDistance: 50,
       healthTesting: null,
       kennelClub: null,
-      councilLicence: null
+      councilLicence: null,
+      availableOnly: false,
     };
     setFilters(defaultFilters);
     onFiltersChange(defaultFilters);
   };
 
-  const activeFilterCount = Object.values(filters).filter(v => v !== null && v !== 0 && v !== 50).length;
+  const activeFilterCount = Object.entries(filters).filter(([key, v]) => {
+    if (key === "maxDistance") return v !== 50;
+    if (key === "availableOnly") return v === true;
+    return v !== null;
+  }).length;
 
   return (
     <div className="space-y-4">
@@ -52,6 +58,15 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           {/* Distance Filter */}
           <div>
+            <label className="flex items-center gap-3 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={filters.availableOnly}
+                onChange={(e) => handleFilterChange("availableOnly", e.target.checked)}
+                className="accent-[#00BFA5] rounded"
+              />
+              <span className="text-sm font-semibold text-slate-900">Available now only</span>
+            </label>
             <label className="block text-sm font-semibold text-slate-900 mb-3">
               Maximum distance: <span className="text-[#00BFA5]">{filters.maxDistance} mi</span>
             </label>

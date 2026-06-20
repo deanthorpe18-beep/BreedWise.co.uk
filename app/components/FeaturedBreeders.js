@@ -53,7 +53,7 @@ export default function FeaturedBreeders() {
   if (breeders.length === 0) return null;
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50/50 via-white to-[#E6FFFB]/30 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Crown className="h-5 w-5 text-amber-500" />

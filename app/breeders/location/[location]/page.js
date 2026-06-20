@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 export function generateMetadata({ params }) {
   const locationName = params.location.replace(/-/g, " ");
   return baseMetadata({
-    title: `Dog breeders in ${locationName}`,
-    description: `Compare dog breeder listings in ${locationName}. Browse public information, ratings, and contact details before making contact. BreedWise is a directory only.`,
+    title: `Pet breeders in ${locationName}`,
+    description: `Compare pet breeder listings in ${locationName}. Dogs, cats, birds and more — browse public information, ratings, and contact details before making contact.`,
     path: `/breeders/location/${params.location}`,
   });
 }
@@ -101,10 +101,10 @@ export default async function LocationPage({ params }) {
           Location directory
         </p>
         <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
-          Dog breeders in {locationName}
+          Pet breeders in {locationName}
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-slate-600">
-          Browse public dog breeder listings in {locationName}. Compare contact
+          Browse public pet breeder listings in {locationName}. Compare contact
           details, ratings, and breeds before making your own enquiries.
           BreedWise is a directory only — we do not endorse or vet breeders.
         </p>

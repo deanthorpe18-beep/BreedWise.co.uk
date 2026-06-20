@@ -1,12 +1,16 @@
 import SearchResults from "@components/SearchResults";
 import SearchForm from "@components/SearchForm";
+import SearchQuickFilters from "@components/SearchQuickFilters";
+import CompareBar from "@components/CompareBar";
 import PageViewTracker from "@components/PageViewTracker";
 import SearchAnalyticsTracker from "@components/SearchAnalyticsTracker";
 import RecentSearches from "@components/RecentSearches";
 import Breadcrumbs from "@components/Breadcrumbs";
 import { searchBreeders } from "@/lib/search";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
+import Link from "next/link";
 import { MapPin, SearchX, PawPrint } from "lucide-react";
+import { Suspense } from "react";
 
 export function generateMetadata({ searchParams }) {
   const query = searchParams?.q || "";
@@ -40,6 +44,10 @@ export default async function SearchPage({ searchParams }) {
   const userLat = searchParams?.userLat || "";
   const userLng = searchParams?.userLng || "";
   const page = Math.max(1, parseInt(searchParams?.page || "1", 10));
+  const availableOnly = searchParams?.available === "1";
+  const licensedOnly = searchParams?.licensed === "1";
+  const kcOnly = searchParams?.kc === "1";
+  const healthOnly = searchParams?.health === "1";
 
   const hasSearchCriteria = !!(breeds.length > 0 || query.trim() || userLat || animal);
 
@@ -57,6 +65,10 @@ export default async function SearchPage({ searchParams }) {
       userLat,
       userLng,
       page,
+      availableOnly,
+      licensedOnly,
+      kcOnly,
+      healthOnly,
     });
     breeders = result.breeders;
     totalCount = result.totalCount;
@@ -107,6 +119,14 @@ export default async function SearchPage({ searchParams }) {
           <RecentSearches />
         </div>
 
+        {hasSearchCriteria && (
+          <div className="mt-6">
+            <Suspense fallback={null}>
+              <SearchQuickFilters />
+            </Suspense>
+          </div>
+        )}
+
         <div className="mt-8">
           {!hasSearchCriteria ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
@@ -118,6 +138,14 @@ export default async function SearchPage({ searchParams }) {
                 Select an animal type and breeds, enter a location, or click &quot;Use my location&quot; to find breeders near you.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Link href="/near-me" className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#00a98e]">
+                  <MapPin className="h-4 w-4" /> Find breeders near me
+                </Link>
+                <Link href="/account/compare" className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-100">
+                  Compare saved breeders
+                </Link>
+              </div>
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-[#F1F4F6] px-4 py-2 text-sm text-slate-600">
                   <PawPrint className="h-4 w-4 text-[#00BFA5]" />
                   Choose an animal type
@@ -145,6 +173,10 @@ export default async function SearchPage({ searchParams }) {
               totalPages={totalPages}
               totalCount={totalCount}
               pageSize={24}
+              availableOnly={availableOnly}
+              licensedOnly={licensedOnly}
+              kcOnly={kcOnly}
+              healthOnly={healthOnly}
             />
           )}
 
@@ -170,6 +202,7 @@ export default async function SearchPage({ searchParams }) {
           </div>
         </div>
       </div>
+      <CompareBar />
     </>
   );
 }

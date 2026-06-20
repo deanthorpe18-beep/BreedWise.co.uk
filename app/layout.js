@@ -5,6 +5,7 @@ import MainNav from "@components/MainNav";
 import CookieConsent from "@components/CookieConsent";
 import SessionTracker from "@components/SessionTracker";
 import CacheBuster from "@components/CacheBuster";
+import NewsletterSignup from "@components/NewsletterSignup";
 import { AuthProvider } from "@components/AuthProvider";
 import { ToastProvider } from "@components/Toast";
 import AdSensePlaceholder from "@components/AdSensePlaceholder";
@@ -93,6 +94,9 @@ export default function RootLayout({ children }) {
                     <li><a href="mailto:help@breedwise.co.uk" className="hover:text-[#00BFA5]">help@breedwise.co.uk</a></li>
                   </ul>
                 </div>
+              </div>
+              <div className="border-t border-slate-200 pt-8">
+                <NewsletterSignup variant="footer" />
               </div>
               <div className="border-t border-slate-200 pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-slate-500">

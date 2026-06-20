@@ -140,6 +140,7 @@ export default function MainNav() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/search", label: "Search" },
+    { href: "/near-me", label: "Near me" },
     { href: "/claim", label: "Claim" },
     { href: "/education", label: "Guides" },
   ];
@@ -151,7 +152,8 @@ export default function MainNav() {
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href === "/search" && pathname?.startsWith("/search"));
+              (item.href === "/search" && pathname?.startsWith("/search")) ||
+              (item.href === "/near-me" && pathname === "/near-me");
             return (
               <Link
                 key={item.href}

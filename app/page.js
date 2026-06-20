@@ -1,15 +1,14 @@
 import Link from "next/link";
 import SearchForm from "@components/SearchForm";
 import PageViewTracker from "@components/PageViewTracker";
-import SocialProofBanner from "@components/SocialProofBanner";
+import FeaturedBreeders from "@components/FeaturedBreeders";
+import HomeDynamicContent from "@components/HomeDynamicContent";
 import NewsletterSignup from "@components/NewsletterSignup";
 
-import { getBreeds } from "@lib/breeders";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
-import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight, Sparkles, TrendingUp, PawPrint } from "lucide-react";
+import { Search, Shield, Heart, MessageCircle, Award, Users, MapPin, Star, ArrowRight, PawPrint } from "lucide-react";
 
 export default function HomePage() {
-  const breeds = getBreeds().slice(0, 6);
   const structuredData = [
     websiteSchema(),
     organizationSchema(),
@@ -62,15 +61,15 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-6 pt-4 text-sm text-slate-500">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-[#00BFA5]" />
-                  <span>1,632 breeder listings</span>
+                  <span>UK-wide pet breeder directory</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-[#00BFA5]" />
-                  <span>Across the UK</span>
+                  <span>Dogs, cats, birds &amp; more</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-[#FFB545]" />
-                  <span>Real reviews</span>
+                  <span>Real Google reviews</span>
                 </div>
               </div>
             </div>
@@ -90,9 +89,16 @@ export default function HomePage() {
       {/* Mobile ad below hero */}
 
 
-      {/* Social Proof Banner */}
-      <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 md:px-8">
-        <SocialProofBanner />
+      {/* Social proof + trending + locations (live from DB) */}
+      <HomeDynamicContent />
+
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
+        <div className="mb-4 text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-600">Gold members</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">Featured breeders this week</h2>
+          <p className="mt-1 text-sm text-slate-500">Verified Gold-tier breeders recommended for buyers</p>
+        </div>
+        <FeaturedBreeders />
       </section>
 
       {/* Benefits Section */}
@@ -217,115 +223,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Popular Breeds + Locations */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Popular breeds</h3>
-              <p className="mt-1 text-sm text-slate-500">Quick links to the most searched breeds</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {breeds.map((breedName) => (
-                <Link
-                  key={breedName}
-                  href={`/search?breed=${encodeURIComponent(breedName)}`}
-                  className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
-                >
-                  <span className="flex items-center gap-2">
-                    <PawPrint className="h-4 w-4 flex-shrink-0" />
-                    {breedName}
-                  </span>
-                  <Sparkles className="h-3 w-3 text-slate-300 transition group-hover:text-[#00BFA5]" />
-                </Link>
-              ))}
-            </div>
-            <Link href="/search" className="inline-flex items-center gap-1 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">
-              View all breeds <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Popular locations</h3>
-              <p className="mt-1 text-sm text-slate-500">Search breeders in major UK cities</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {[
-                { name: "London", count: "200+" },
-                { name: "Birmingham", count: "80+" },
-                { name: "Manchester", count: "70+" },
-                { name: "Leeds", count: "50+" },
-                { name: "Bristol", count: "40+" },
-                { name: "Glasgow", count: "35+" },
-                { name: "Cardiff", count: "25+" },
-                { name: "Belfast", count: "20+" },
-                { name: "Edinburgh", count: "30+" },
-                { name: "Liverpool", count: "30+" },
-                { name: "Sheffield", count: "25+" },
-                { name: "Newcastle", count: "20+" },
-              ].map((town) => (
-                <Link
-                  key={town.name}
-                  href={`/search?q=${encodeURIComponent(town.name)}`}
-                  className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
-                >
-                  <span className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                    {town.name}
-                  </span>
-                  <span className="text-xs text-slate-400 group-hover:text-[#00BFA5]">{town.count}</span>
-                </Link>
-              ))}
-            </div>
-            <Link href="/search" className="inline-flex items-center gap-1 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]">
-              Explore all locations <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Trending / Just Claimed Section */}
-      <section className="bg-[#F1F4F6]">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
-          <div className="flex items-center gap-2 mb-8">
-            <TrendingUp className="h-5 w-5 text-[#00BFA5]" />
-            <h2 className="text-2xl font-bold text-slate-900">Trending now</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { breed: "Labrador Retriever", reason: "Most searched this week", tag: "Popular" },
-              { breed: "French Bulldog", reason: "Rising interest", tag: "Trending" },
-              { breed: "Cocker Spaniel", reason: "High buyer activity", tag: "Active" },
-            ].map((item) => (
-              <Link
-                key={item.breed}
-                href={`/search?breed=${encodeURIComponent(item.breed)}`}
-                className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E6FFFB]">
-                      <PawPrint className="h-5 w-5 text-[#00BFA5]" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">{item.breed}</p>
-                      <p className="text-xs text-slate-500">{item.reason}</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-[#00BFA5]/10 px-2.5 py-0.5 text-xs font-semibold text-[#00BFA5]">
-                    {item.tag}
-                  </span>
-                </div>
-                <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#00BFA5] opacity-0 transition group-hover:opacity-100">
-                  Search breeders <ArrowRight className="h-3 w-3" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Newsletter */}
       <section className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 md:px-8">
         <NewsletterSignup variant="footer" />
@@ -356,8 +253,4 @@ export default function HomePage() {
       </section>
     </div>
   );
-}
-
-function slugify(text) {
-  return text.toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }

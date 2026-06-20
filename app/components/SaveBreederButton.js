@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Heart, Loader2 } from "lucide-react";
+import { trackCtaClick } from "@lib/analytics-client";
 
-export default function SaveBreederButton({ breederId, breederName, variant = "default" }) {
+export default function SaveBreederButton({ breederId, breederSlug, breederName, variant = "default" }) {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,10 +38,11 @@ export default function SaveBreederButton({ breederId, breederName, variant = "d
         body: JSON.stringify({ breeder_id: breederId, notes: "" }),
       });
       if (res.status === 401) {
-        window.location.href = `/auth/login?redirect=/breeder/${breederName}`;
+        window.location.href = `/auth/login?redirect=/breeder/${breederSlug || breederName}`;
         return;
       }
       setSaved(true);
+      if (breederSlug) trackCtaClick(breederSlug, "save");
     }
     setSaving(false);
   };
