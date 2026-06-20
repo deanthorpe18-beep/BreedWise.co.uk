@@ -48,7 +48,7 @@ export async function POST(request) {
         .from("newsletter_campaigns")
         .insert({
           subject: draft.subject,
-          preview_text: draft.preview_text,
+          preview_text: `[${draft.topic}] ${draft.preview_text}`.slice(0, 500),
           html_body: draft.html_body,
           text_body: draft.text_body,
           status: "draft",

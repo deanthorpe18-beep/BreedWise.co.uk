@@ -1,17 +1,33 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mail, Loader2, Sparkles, Send, CheckCircle } from "lucide-react";
+import { Mail, Loader2, Sparkles, Send, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+
+const TOPICS = [
+  { id: "weekly", label: "Weekly roundup", desc: "Stats, trending breeds & site news", color: "#00BFA5", icon: "📬" },
+  { id: "buyer-tips", label: "Buyer safety", desc: "Red flags, questions & viewing tips", color: "#FF6B6B", icon: "🛡️" },
+  { id: "breed-spotlight", label: "Breed spotlight", desc: "One breed with encyclopedia photo", color: "#9333ea", icon: "🐾" },
+  { id: "featured-breeders", label: "Featured breeders", desc: "Gold members with profile photos", color: "#FFB545", icon: "⭐" },
+  { id: "new-listings", label: "New listings", desc: "Fresh breeders added this week", color: "#0ea5e9", icon: "✨" },
+  { id: "multi-pet", label: "Beyond dogs", desc: "Cats, birds, reptiles & small pets", color: "#ec4899", icon: "🦜" },
+  { id: "seasonal", label: "Seasonal tips", desc: "Timely advice for the season", color: "#059669", icon: "🌿" },
+  { id: "breeder-promo", label: "For breeders", desc: "Claim profile & upgrade benefits", color: "#f97316", icon: "🏠" },
+  { id: "compare-tool", label: "Compare tool", desc: "Promote side-by-side compare", color: "#6366f1", icon: "⚖️" },
+  { id: "location-picks", label: "Location picks", desc: "Popular towns & regional search", color: "#14b8a6", icon: "📍" },
+  { id: "education", label: "Education", desc: "Guides, checklists & contracts", color: "#8b5cf6", icon: "📚" },
+  { id: "surprise", label: "Surprise me", desc: "Random template each time", color: "#64748b", icon: "🎲" },
+];
 
 export default function AdminNewsletterPanel() {
   const [campaigns, setCampaigns] = useState([]);
   const [subscriberCount, setSubscriberCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGenerating] = useState(null);
   const [sending, setSending] = useState(false);
   const [selected, setSelected] = useState(null);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [showHtml, setShowHtml] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -32,7 +48,7 @@ export default function AdminNewsletterPanel() {
   }, []);
 
   const generate = async (topic) => {
-    setGenerating(true);
+    setGenerating(topic);
     setError("");
     setMsg("");
     try {
@@ -44,7 +60,8 @@ export default function AdminNewsletterPanel() {
       const data = await res.json();
       if (res.ok) {
         setSelected(data.campaign);
-        setMsg("Draft generated from live site data.");
+        const label = TOPICS.find((t) => t.id === topic)?.label || topic;
+        setMsg(`"${label}" draft generated with live data, photos & colour.`);
         await load();
       } else {
         setError(data.error || "Generation failed");
@@ -52,7 +69,7 @@ export default function AdminNewsletterPanel() {
     } catch {
       setError("Generation failed");
     }
-    setGenerating(false);
+    setGenerating(null);
   };
 
   const send = async () => {
@@ -106,36 +123,47 @@ export default function AdminNewsletterPanel() {
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-[#00BFA5]" />
-              Newsletter
-            </h3>
-            <p className="mt-1 text-sm text-slate-600">
-              {subscriberCount} active subscriber{subscriberCount !== 1 ? "s" : ""}. Generate content from site data and send in one click.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => generate("weekly")}
-              disabled={generating}
-              className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-50"
-            >
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Generate weekly draft
-            </button>
-            <button
-              onClick={() => generate("buyer")}
-              disabled={generating}
-              className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            >
-              Buyer tips draft
-            </button>
-          </div>
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Mail className="h-5 w-5 text-[#00BFA5]" />
+            Newsletter composer
+          </h3>
+          <p className="mt-1 text-sm text-slate-600">
+            {subscriberCount} active subscriber{subscriberCount !== 1 ? "s" : ""}. Pick a template — each generates unique content with photos and colour from live site data.
+          </p>
         </div>
-        {msg && <div className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-700 flex items-center gap-2"><CheckCircle className="h-4 w-4" />{msg}</div>}
-        {error && <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {TOPICS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => generate(t.id)}
+              disabled={!!generating}
+              className="group rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50"
+              style={{ borderTopWidth: 3, borderTopColor: t.color }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-2xl">{t.icon}</span>
+                {generating === t.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-slate-300 transition group-hover:text-[#00BFA5]" />
+                )}
+              </div>
+              <p className="mt-2 text-sm font-bold text-slate-900">{t.label}</p>
+              <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{t.desc}</p>
+            </button>
+          ))}
+        </div>
+
+        {msg && (
+          <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 shrink-0" />
+            {msg}
+          </div>
+        )}
+        {error && <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
@@ -164,26 +192,58 @@ export default function AdminNewsletterPanel() {
 
         {selected && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-            <input
-              type="text"
-              value={selected.subject || ""}
-              onChange={(e) => setSelected({ ...selected, subject: e.target.value })}
-              disabled={selected.status === "sent"}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold focus:border-[#00BFA5] focus:outline-none disabled:bg-slate-50"
-            />
-            <textarea
-              value={selected.html_body || ""}
-              onChange={(e) => setSelected({ ...selected, html_body: e.target.value })}
-              disabled={selected.status === "sent"}
-              rows={12}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-mono focus:border-[#00BFA5] focus:outline-none disabled:bg-slate-50"
-            />
-            <div
-              className="rounded-2xl border border-slate-100 bg-slate-50 p-4 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: selected.html_body || "" }}
-            />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Subject line</label>
+              <input
+                type="text"
+                value={selected.subject || ""}
+                onChange={(e) => setSelected({ ...selected, subject: e.target.value })}
+                disabled={selected.status === "sent"}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold focus:border-[#00BFA5] focus:outline-none disabled:bg-slate-50"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Preview text</label>
+              <input
+                type="text"
+                value={selected.preview_text || ""}
+                onChange={(e) => setSelected({ ...selected, preview_text: e.target.value })}
+                disabled={selected.status === "sent"}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#00BFA5] focus:outline-none disabled:bg-slate-50"
+              />
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Email preview</p>
+              <div
+                className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-100"
+                style={{ maxHeight: 520, overflowY: "auto" }}
+              >
+                <div dangerouslySetInnerHTML={{ __html: selected.html_body || "" }} />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowHtml((p) => !p)}
+              className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+            >
+              {showHtml ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {showHtml ? "Hide" : "Show"} HTML source
+            </button>
+            {showHtml && (
+              <textarea
+                value={selected.html_body || ""}
+                onChange={(e) => setSelected({ ...selected, html_body: e.target.value })}
+                disabled={selected.status === "sent"}
+                rows={10}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-mono focus:border-[#00BFA5] focus:outline-none disabled:bg-slate-50"
+              />
+            )}
+
             {selected.status !== "sent" && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 <button onClick={save} className="rounded-3xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                   Save edits
                 </button>
