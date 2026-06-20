@@ -273,6 +273,29 @@ export default function BreederDashboardPage() {
         </Link>
       </div>
 
+      {/* Breeding portal */}
+      <div className="mt-6 rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Breeding portal</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              {profile?.councilLicence || profile?.licenceVerified
+                ? "Record your breeding dogs, litters, and each pup in one place."
+                : "Add your council licence below to unlock the breeding portal."}
+            </p>
+          </div>
+          {(profile?.councilLicence || profile?.licenceVerified) && (
+            <Link
+              href="/breeder/portal"
+              className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00a98e]"
+            >
+              <FileText className="h-4 w-4" />
+              Open breeding portal
+            </Link>
+          )}
+        </div>
+      </div>
+
       {/* Stats grid */}
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
         {statCards.map((stat) => (
