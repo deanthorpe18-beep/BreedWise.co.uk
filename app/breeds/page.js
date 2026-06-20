@@ -38,7 +38,7 @@ export default async function BreedsIndexPage({ searchParams }) {
   // Fetch breeds for active animal type
   const { data: breeds } = await adminClient
     .from("breeds")
-    .select("name, slug, group_name, size, image_url, description, animal_type")
+    .select("name, slug, group_name, size, image_url, image_reviewed, description, animal_type")
     .eq("animal_type", activeAnimal)
     .not("description", "is", null)
     .neq("description", "")
@@ -162,7 +162,7 @@ export default async function BreedsIndexPage({ searchParams }) {
                   href={`/breeds/${breed.slug}`}
                   className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
                 >
-                  {breed.image_url ? (
+                  {breed.image_url && breed.image_reviewed ? (
                     <img
                       src={breed.image_url}
                       alt={breed.name}

@@ -19,7 +19,7 @@ export async function GET(request, { params }) {
     // Fetch related breeds (same group or size) with encyclopedia data
     const { data: related } = await adminClient
       .from("breeds")
-      .select("name, slug, group_name, size, image_url")
+      .select("name, slug, group_name, size, image_url, image_reviewed")
       .neq("slug", slug)
       .or(`group_name.eq.${data.group_name},size.eq.${data.size}`)
       .not("description", "is", null)

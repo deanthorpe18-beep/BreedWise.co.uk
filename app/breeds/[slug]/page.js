@@ -44,11 +44,12 @@ export default async function BreedPage({ params }) {
   }
 
   const hasEncyclopediaData = !!breed.description;
+  const hasVerifiedBreedImage = !!(breed.image_url && breed.image_reviewed);
 
   // Related breeds — only show breeds with actual encyclopedia data
   const { data: related } = await adminClient
     .from("breeds")
-    .select("name, slug, group_name, size, image_url")
+    .select("name, slug, group_name, size, image_url, image_reviewed")
     .neq("slug", slug)
     .or(`group_name.eq.${breed.group_name},size.eq.${breed.size}`)
     .not("description", "is", null)
@@ -113,13 +114,17 @@ export default async function BreedPage({ params }) {
                 </Link>
               </div>
             </div>
-            {breed.image_url && (
+            {hasVerifiedBreedImage ? (
               <div className="hidden sm:block">
                 <img
                   src={breed.image_url}
                   alt={breed.name}
                   className="h-48 w-48 rounded-3xl object-cover shadow-2xl ring-4 ring-white/10"
                 />
+              </div>
+            ) : (
+              <div className="hidden h-48 w-48 items-center justify-center rounded-3xl bg-white/10 ring-4 ring-white/10 sm:flex">
+                <PawPrint className="h-16 w-16 text-white/40" />
               </div>
             )}
           </div>
@@ -257,9 +262,13 @@ export default async function BreedPage({ params }) {
                 href={`/breeds/${r.slug}`}
                 className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
               >
-                {r.image_url && (
+                {r.image_url && r.image_reviewed ? (
                   <div className="aspect-square overflow-hidden rounded-2xl bg-slate-100">
                     <img src={r.image_url} alt={r.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  </div>
+                ) : (
+                  <div className="aspect-square rounded-2xl bg-slate-100 flex items-center justify-center">
+                    <PawPrint className="h-8 w-8 text-slate-300" />
                   </div>
                 )}
                 <p className="mt-3 font-semibold text-slate-900">{r.name}</p>
