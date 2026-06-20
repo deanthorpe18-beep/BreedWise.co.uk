@@ -62,16 +62,19 @@ ALTER TABLE public.breeding_litters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.breeding_litter_animals ENABLE ROW LEVEL SECURITY;
 
 -- Service role / API handles access; block direct client reads for now
+DROP POLICY IF EXISTS "breeding_animals_service" ON public.breeding_animals;
 CREATE POLICY "breeding_animals_service"
   ON public.breeding_animals FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "breeding_litters_service" ON public.breeding_litters;
 CREATE POLICY "breeding_litters_service"
   ON public.breeding_litters FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "breeding_litter_animals_service" ON public.breeding_litter_animals;
 CREATE POLICY "breeding_litter_animals_service"
   ON public.breeding_litter_animals FOR ALL
   USING (auth.role() = 'service_role')

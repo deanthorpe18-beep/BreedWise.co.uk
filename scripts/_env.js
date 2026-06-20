@@ -45,4 +45,26 @@ function getGooglePlacesApiKey() {
   return requireEnv("GOOGLE_PLACES_API_KEY");
 }
 
-module.exports = { requireEnv, getSupabaseAdmin, getGooglePlacesApiKey };
+function getSupabaseDatabaseUrl() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  if (process.env.SUPABASE_DB_URL) return process.env.SUPABASE_DB_URL;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  let password = process.env.SUPABASE_DB_PASSWORD;
+
+  if (!password) {
+    const envPath = path.join(__dirname, "..", ".env.local");
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf8");
+      const match = content.match(/Supabase Password\s*[-–]\s*(\S+)/i);
+      if (match) password = match[1].trim();
+    }
+  }
+
+  if (!supabaseUrl || !password) return null;
+
+  const ref = supabaseUrl.replace(/^https?:\/\//, "").replace(/\.supabase\.co\/?$/, "").trim();
+  return `postgresql://postgres:${encodeURIComponent(password)}@db.${ref}.supabase.co:5432/postgres`;
+}
+
+module.exports = { requireEnv, getSupabaseAdmin, getGooglePlacesApiKey, getSupabaseDatabaseUrl };
