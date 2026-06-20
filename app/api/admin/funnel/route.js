@@ -4,6 +4,12 @@ import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+function pct(numerator, denominator, cap = 100) {
+  if (!denominator || denominator <= 0) return null;
+  const raw = (numerator / denominator) * 100;
+  return Math.min(cap, raw).toFixed(1);
+}
+
 export async function GET(request) {
   try {
     const auth = await requireAdmin();
@@ -15,40 +21,60 @@ export async function GET(request) {
 
     const adminClient = createAdminClient();
 
-    const { count: searches } = await adminClient
-      .from("search_analytics")
-      .select("*", { count: "exact", head: true })
-      .gte("searched_at", since);
+    const [
+      { count: searchesLogged },
+      { count: searchPageViews },
+      { count: profileViews },
+      { count: searchProfileViews },
+      { count: ctaClicks },
+      { count: conversations },
+      { count: claims },
+    ] = await Promise.all([
+      adminClient
+        .from("search_analytics")
+        .select("*", { count: "exact", head: true })
+        .gte("searched_at", since),
+      adminClient
+        .from("page_views")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since)
+        .ilike("page_path", "/search%"),
+      adminClient
+        .from("page_views")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since)
+        .not("breeder_slug", "is", null),
+      adminClient
+        .from("page_views")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since)
+        .not("breeder_slug", "is", null)
+        .or("referrer.ilike.%/search%,referrer.ilike.%breedwise.co.uk/search%,referrer.ilike.%breedwise.co.uk%2Fsearch%"),
+      adminClient
+        .from("cta_clicks")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since)
+        .in("action_type", ["phone", "email", "message", "website", "call"]),
+      adminClient
+        .from("conversations")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since),
+      adminClient
+        .from("claims")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since),
+    ]);
 
-    const { count: profileViews } = await adminClient
-      .from("page_views")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", since)
-      .not("breeder_slug", "is", null);
+    // Best available search volume (logged searches or search page visits)
+    const searches = Math.max(searchesLogged || 0, searchPageViews || 0);
 
-    const { count: ctaClicks } = await adminClient
-      .from("cta_clicks")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", since)
-      .in("action_type", ["phone", "email", "message", "website"]);
-
-    const { count: conversations } = await adminClient
-      .from("conversations")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", since);
-
-    const { count: claims } = await adminClient
-      .from("claims")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", since);
-
-    const searchToProfile = searches ? ((profileViews / searches) * 100).toFixed(1) : 0;
-    const profileToCta = profileViews ? ((ctaClicks / profileViews) * 100).toFixed(1) : 0;
-    const ctaToConversation = ctaClicks ? ((conversations / ctaClicks) * 100).toFixed(1) : 0;
+    const searchToProfile = pct(searchProfileViews || 0, searches);
+    const profileToCta = pct(ctaClicks || 0, profileViews || 0);
+    const ctaToConversation = pct(conversations || 0, ctaClicks || 0);
 
     const { data: dailyViews } = await adminClient
       .from("page_views")
-      .select("created_at, breeder_slug")
+      .select("created_at, breeder_slug, page_path, referrer")
       .gte("created_at", since);
 
     const { data: dailyCtas } = await adminClient
@@ -64,24 +90,28 @@ export async function GET(request) {
     const daily = {};
     (dailySearches || []).forEach((s) => {
       const day = s.searched_at.split("T")[0];
-      if (!daily[day]) daily[day] = { searches: 0, profileViews: 0, ctaClicks: 0 };
-      daily[day].searches++;
+      if (!daily[day]) daily[day] = { searchesLogged: 0, searchPageViews: 0, profileViews: 0, ctaClicks: 0 };
+      daily[day].searchesLogged++;
     });
     (dailyViews || []).forEach((v) => {
       const day = v.created_at.split("T")[0];
-      if (!daily[day]) daily[day] = { searches: 0, profileViews: 0, ctaClicks: 0 };
+      if (!daily[day]) daily[day] = { searchesLogged: 0, searchPageViews: 0, profileViews: 0, ctaClicks: 0 };
+      if (v.page_path?.startsWith("/search")) daily[day].searchPageViews++;
       if (v.breeder_slug) daily[day].profileViews++;
     });
     (dailyCtas || []).forEach((c) => {
       const day = c.created_at.split("T")[0];
-      if (!daily[day]) daily[day] = { searches: 0, profileViews: 0, ctaClicks: 0 };
+      if (!daily[day]) daily[day] = { searchesLogged: 0, searchPageViews: 0, profileViews: 0, ctaClicks: 0 };
       daily[day].ctaClicks++;
     });
 
     return NextResponse.json({
       funnel: {
-        searches: searches || 0,
+        searches,
+        searchesLogged: searchesLogged || 0,
+        searchPageViews: searchPageViews || 0,
         profileViews: profileViews || 0,
+        searchProfileViews: searchProfileViews || 0,
         ctaClicks: ctaClicks || 0,
         conversations: conversations || 0,
         claims: claims || 0,
@@ -91,7 +121,12 @@ export async function GET(request) {
       },
       daily: Object.entries(daily)
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([date, v]) => ({ date, ...v })),
+        .map(([date, v]) => ({
+          date,
+          searches: Math.max(v.searchesLogged, v.searchPageViews),
+          profileViews: v.profileViews,
+          ctaClicks: v.ctaClicks,
+        })),
     });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

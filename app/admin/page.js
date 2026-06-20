@@ -1477,10 +1477,25 @@ export default function AdminPage() {
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-3">
-                      <FunnelCard label="Search → Profile" rate={`${funnel.funnel.searchToProfile}%`} desc={`${funnel.funnel.profileViews} of ${funnel.funnel.searches} searches`} />
-                      <FunnelCard label="Profile → CTA" rate={`${funnel.funnel.profileToCta}%`} desc={`${funnel.funnel.ctaClicks} of ${funnel.funnel.profileViews} views`} />
-                      <FunnelCard label="CTA → Message" rate={`${funnel.funnel.ctaToConversation}%`} desc={`${funnel.funnel.conversations} of ${funnel.funnel.ctaClicks} clicks`} />
+                      <FunnelCard
+                        label="Search → Profile"
+                        rate={funnel.funnel.searchToProfile != null ? `${funnel.funnel.searchToProfile}%` : "—"}
+                        desc={`${funnel.funnel.searchProfileViews} views from search · ${funnel.funnel.searches} search visits (${funnel.funnel.profileViews} total profile views)`}
+                      />
+                      <FunnelCard
+                        label="Profile → CTA"
+                        rate={funnel.funnel.profileToCta != null ? `${funnel.funnel.profileToCta}%` : "—"}
+                        desc={`${funnel.funnel.ctaClicks} of ${funnel.funnel.profileViews} profile views`}
+                      />
+                      <FunnelCard
+                        label="CTA → Message"
+                        rate={funnel.funnel.ctaToConversation != null ? `${funnel.funnel.ctaToConversation}%` : "—"}
+                        desc={`${funnel.funnel.conversations} of ${funnel.funnel.ctaClicks} CTA clicks`}
+                      />
                     </div>
+                    <p className="text-xs text-slate-500">
+                      Most profile views come from Google and direct links, not search — so search conversion only counts views where the referrer was the search page.
+                    </p>
 
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                       <h3 className="text-lg font-semibold text-slate-900 mb-4">Daily Funnel Breakdown</h3>

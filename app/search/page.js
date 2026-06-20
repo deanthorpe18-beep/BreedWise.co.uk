@@ -86,16 +86,14 @@ export default async function SearchPage({ searchParams }) {
       <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 md:px-8">
         <Breadcrumbs items={[{ label: "Search" }]} />
       </div>
-      {hasSearchCriteria && (
-        <SearchAnalyticsTracker
-          query={query}
-          breed={breeds.join(", ")}
-          animal={animal}
-          location={query}
-          resultsCount={totalCount}
-          page={page}
-        />
-      )}
+      <SearchAnalyticsTracker
+        query={query}
+        breed={breeds.join(", ")}
+        animal={animal}
+        location={query}
+        resultsCount={totalCount}
+        page={page}
+      />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0] p-8 sm:p-10 shadow-sm border border-[#00BFA5]/10">
           <div className="relative space-y-3">
