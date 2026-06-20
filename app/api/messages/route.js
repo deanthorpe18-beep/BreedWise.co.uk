@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { sendNewMessageEmail } from "@/lib/emails/resend";
 
 export async function POST(request) {
   try {
@@ -87,6 +88,26 @@ export async function POST(request) {
     if (updateError) {
       // Log but don't fail the request — the message was sent successfully
       console.error("Failed to update conversation:", updateError);
+    }
+
+    // Notify recipient asynchronously (fire-and-forget)
+    try {
+      const adminClient = createAdminClient();
+      const recipientId = senderType === "buyer" ? conversation.breeder_user_id : conversation.buyer_id;
+      if (recipientId) {
+        const { data: recipient } = await adminClient.auth.admin.getUserById(recipientId);
+        const recipientEmail = recipient?.user?.email;
+        if (recipientEmail) {
+          const senderName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email || "Someone";
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk";
+          const conversationUrl = `${siteUrl}/messages/${conversation_id}`;
+          sendNewMessageEmail(recipientEmail, senderName, conversationUrl, content.trim()).catch((err) => {
+            console.error("[messages] Notification email failed:", err?.message || err);
+          });
+        }
+      }
+    } catch (notifyErr) {
+      console.error("[messages] Notification error:", notifyErr?.message || notifyErr);
     }
 
     return NextResponse.json({ message }, { status: 201 });

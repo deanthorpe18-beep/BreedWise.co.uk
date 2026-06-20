@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award, Dog } from "lucide-react";
+import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award, Dog, Calendar, CheckCircle, Shield } from "lucide-react";
 import JustClaimedBadge from "@components/JustClaimedBadge";
 import { isJustClaimed } from "@lib/breeder-utils";
 import MembershipBadge from "@components/MembershipBadge";
@@ -148,6 +148,7 @@ export default async function BreederProfilePage({ params }) {
                           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#00BFA5]">Breeder profile</p>
                           {justClaimed && <JustClaimedBadge claimedAt={breeder.claimed_at} />}
                           <MembershipBadge tier={breeder.membership_tier} size="md" />
+                          <AvailabilityBadge status={breeder.availability_status} />
                         </div>
                         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{breeder.name}</h1>
                         <p className="mt-2 text-sm text-slate-500">
@@ -220,6 +221,9 @@ export default async function BreederProfilePage({ params }) {
                     {breeder.council_licence && <InfoTile label="Council Licence" value={breeder.council_licence} />}
                     {breeder.health_testing && <InfoTile label="Health Testing" value={breeder.health_testing} />}
                 </div>
+
+                {/* Trust Score */}
+                <TrustScoreSection breeder={breeder} />
 
                 {/* Google Rating */}
                 <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
@@ -401,6 +405,65 @@ function InfoTile({ label, value }) {
             <p className="mt-3 text-sm font-semibold text-slate-900">{value}</p>
         </div>
     );
+}
+
+function AvailabilityBadge({ status }) {
+  const config = {
+    available: { text: "Available", className: "bg-green-100 text-green-700" },
+    waitlist: { text: "Waitlist", className: "bg-blue-100 text-blue-700" },
+    not_available: { text: "No litters", className: "bg-slate-100 text-slate-500" },
+    paused: { text: "Paused", className: "bg-amber-100 text-amber-700" },
+  };
+  const c = config[status] || config.available;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${c.className}`}>
+      <Calendar className="h-3 w-3" /> {c.text}
+    </span>
+  );
+}
+
+function TrustScoreSection({ breeder }) {
+  const checks = [
+    { label: "Claimed profile", met: breeder.status === "claimed_profile", points: 30 },
+    { label: "Kennel Club registered", met: !!breeder.kennel_club, points: 20 },
+    { label: "Council licence", met: !!breeder.council_licence, points: 20 },
+    { label: "Health testing listed", met: !!breeder.health_testing, points: 15 },
+    { label: "Google rating 4.0+", met: breeder.google_rating >= 4.0, points: 10 },
+    { label: "Photos uploaded", met: (breeder.breeder_photos?.length || 0) > 0, points: 5 },
+  ];
+  const score = checks.filter((c) => c.met).reduce((sum, c) => sum + c.points, 0);
+  const color = score >= 80 ? "bg-green-500" : score >= 50 ? "bg-[#00BFA5]" : score >= 25 ? "bg-amber-400" : "bg-slate-300";
+  const label = score >= 80 ? "Highly trusted" : score >= 50 ? "Trusted" : score >= 25 ? "Basic info" : "Limited info";
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-[#00BFA5]" />
+          <h3 className="text-lg font-bold text-slate-900">Trust score</h3>
+        </div>
+        <span className={`text-sm font-bold ${score >= 50 ? "text-[#00BFA5]" : "text-slate-400"}`}>{score}/100 · {label}</span>
+      </div>
+      <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${score}%` }} />
+      </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {checks.map((check) => (
+          <div key={check.label} className="flex items-center gap-2 text-sm">
+            {check.met ? (
+              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+            ) : (
+              <span className="h-4 w-4 rounded-full border-2 border-slate-200 flex-shrink-0" />
+            )}
+            <span className={check.met ? "text-slate-700" : "text-slate-400"}>{check.label} <span className="text-xs text-slate-400">(+{check.points})</span></span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs text-slate-500">
+        Trust scores are calculated automatically from public profile information. BreedWise does not independently verify breeder claims.
+      </p>
+    </div>
+  );
 }
 
 function MessageBreederButton({ breederId, breederName }) {

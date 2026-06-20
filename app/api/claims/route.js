@@ -51,14 +51,21 @@ export async function POST(request) {
       return NextResponse.json({ error: msg }, { status: 409 });
     }
 
-    // Check if breeder is already claimed by someone else
-    const { data: breederData } = await supabase
+    // Verify breeder exists and is not already claimed
+    const { data: breederData, error: breederError } = await supabase
       .from("breeders")
       .select("claimed, status")
       .eq("slug", result.data.breederSlug)
-      .single();
+      .maybeSingle();
 
-    if (breederData?.claimed || breederData?.status === "claimed_profile") {
+    if (breederError || !breederData) {
+      return NextResponse.json(
+        { error: "Breeder not found" },
+        { status: 404 }
+      );
+    }
+
+    if (breederData.claimed || breederData.status === "claimed_profile") {
       return NextResponse.json(
         { error: "This profile has already been claimed." },
         { status: 409 }

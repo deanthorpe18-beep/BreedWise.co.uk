@@ -12,7 +12,9 @@ export default function SaveBreederButton({ breederId, breederName, variant = "d
     fetch("/api/saved-breeders")
       .then((r) => r.json())
       .then((data) => {
-        const isSaved = (data.saved || []).some((s) => s.breeder_id === breederId);
+        const isSaved = (data.saved || data.saved_breeders || []).some(
+          (s) => s.breeder_id === breederId || s.breeders?.id === breederId
+        );
         setSaved(isSaved);
         setLoading(false);
       })

@@ -33,12 +33,12 @@ export async function GET(request) {
       .in("action_type", ["phone", "email", "message", "website"]);
 
     const { count: conversations } = await adminClient
-      .from("messages")
+      .from("conversations")
       .select("*", { count: "exact", head: true })
       .gte("created_at", since);
 
     const { count: claims } = await adminClient
-      .from("claim_requests")
+      .from("claims")
       .select("*", { count: "exact", head: true })
       .gte("created_at", since);
 

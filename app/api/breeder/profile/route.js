@@ -103,7 +103,7 @@ export async function GET() {
       .select(`
         id, name, slug, about, phone, email, website,
         kennel_club, council_licence, health_testing,
-        status, membership_tier, claimed,
+        status, membership_tier, claimed, availability_status,
         breeder_breeds(breed, animal_type),
         breeder_photos(*)
       `)
@@ -136,6 +136,7 @@ export async function GET() {
         healthTesting: breeder.health_testing || "",
         status: breeder.status,
         membershipTier: breeder.membership_tier,
+        availabilityStatus: breeder.availability_status || "available",
         breedsByAnimal,
         photos,
         photoCount: photos.length,
@@ -189,7 +190,7 @@ export async function POST(request) {
     }
 
     // Handle profile fields update
-    const allowedFields = ["about", "phone", "email", "website", "kennel_club", "council_licence", "health_testing"];
+    const allowedFields = ["about", "phone", "email", "website", "kennel_club", "council_licence", "health_testing", "availability_status"];
     const updateData = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) {

@@ -2,22 +2,36 @@
 
 import { useEffect, useRef } from "react";
 import { trackSession } from "@lib/analytics-client";
+import { hasAnalyticsConsent } from "@/lib/cookie-consent";
 
-const HEARTBEAT_INTERVAL = 30000; // 30 seconds — keeps session alive in 5-min window
+const HEARTBEAT_INTERVAL = 30000;
 
 export default function SessionTracker() {
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    // Initial session ping
-    trackSession();
+    const startTracking = () => {
+      if (!hasAnalyticsConsent()) return;
 
-    // Periodic heartbeat
-    intervalRef.current = setInterval(() => {
       trackSession();
-    }, HEARTBEAT_INTERVAL);
+      intervalRef.current = setInterval(trackSession, HEARTBEAT_INTERVAL);
+    };
 
-    // Immediate ping when user returns to tab
+    const stopTracking = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    const handleConsentChange = () => {
+      stopTracking();
+      startTracking();
+    };
+
+    startTracking();
+    window.addEventListener("breedwise-consent-changed", handleConsentChange);
+
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         trackSession();
@@ -25,7 +39,6 @@ export default function SessionTracker() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Ping on activity (debounced — don't flood)
     let activityTimeout;
     const handleActivity = () => {
       clearTimeout(activityTimeout);
@@ -36,7 +49,8 @@ export default function SessionTracker() {
     window.addEventListener("keydown", handleActivity, { passive: true });
 
     return () => {
-      clearInterval(intervalRef.current);
+      stopTracking();
+      window.removeEventListener("breedwise-consent-changed", handleConsentChange);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("scroll", handleActivity);
       window.removeEventListener("click", handleActivity);

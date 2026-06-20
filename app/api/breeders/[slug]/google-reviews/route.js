@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
     try {
-        const { slug } = params;
+        const { slug } = await params;
         const supabase = createClient();
 
         const { data: breeder, error } = await supabase

@@ -35,6 +35,14 @@ export async function POST(request) {
       );
     }
 
+    // Fetch breeder slug for return URL
+    const { data: breederRow } = await supabase
+      .from("breeders")
+      .select("slug")
+      .eq("id", breederId)
+      .maybeSingle();
+    const breederSlug = breederRow?.slug || breederId;
+
     if (!subscription) {
       return NextResponse.json(
         { error: "No subscription found for this breeder" },
@@ -61,7 +69,7 @@ export async function POST(request) {
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${siteUrl}/breeder/${breederId}/subscription`,
+      return_url: `${siteUrl}/breeder/${breederSlug}/subscription`,
     });
 
     return NextResponse.json({ url: portalSession.url });

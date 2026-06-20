@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { MessageCircle, Loader2, Mail, Clock, AlertCircle } from "lucide-react";
 
 export default function MessagesPage() {
@@ -12,13 +13,44 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (!user) return;
-    fetch("/api/messages/conversations")
-      .then((r) => r.json())
-      .then((data) => {
-        setConversations(data.conversations || []);
-        setLoadingData(false);
-      })
-      .catch(() => setLoadingData(false));
+    const load = () => {
+      fetch("/api/messages/conversations")
+        .then((r) => r.json())
+        .then((data) => {
+          setConversations(data.conversations || []);
+          setLoadingData(false);
+        })
+        .catch(() => setLoadingData(false));
+    };
+    load();
+
+    // Realtime: listen for conversation changes affecting this user
+    const supabase = createSupabaseClient();
+    const channel = supabase
+      .channel("conversations:mines")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "conversations" },
+        (payload) => {
+          const conv = payload.new;
+          if (conv.buyer_id === user.id || conv.breeder_user_id === user.id) {
+            setConversations((prev) => {
+              const idx = prev.findIndex((c) => c.id === conv.id);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = { ...next[idx], ...conv };
+                return next.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+              }
+              return [conv, ...prev];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   if (loading || loadingData) {

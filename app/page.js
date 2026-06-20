@@ -6,7 +6,7 @@ import NewsletterSignup from "@components/NewsletterSignup";
 
 import { getBreeds } from "@lib/breeders";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
-import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight, Sparkles, TrendingUp } from "lucide-react";
+import { Search, Shield, Heart, MessageCircle, Award, Users, Dog, MapPin, Star, ArrowRight, Sparkles, TrendingUp, PawPrint } from "lucide-react";
 
 export default function HomePage() {
   const breeds = getBreeds().slice(0, 6);
@@ -29,7 +29,7 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5]/10 px-4 py-2">
                 <span className="h-2 w-2 rounded-full bg-[#00BFA5] animate-pulse" />
                 <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#00BFA5]">
-                  UK Dog Breeder Directory
+                  UK Pet Breeder Directory
                 </span>
               </div>
               
@@ -233,7 +233,7 @@ export default function HomePage() {
                   className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:bg-[#E6FFFB] hover:text-[#00BFA5]"
                 >
                   <span className="flex items-center gap-2">
-                    <Dog className="h-4 w-4 flex-shrink-0" />
+                    <PawPrint className="h-4 w-4 flex-shrink-0" />
                     {breedName}
                   </span>
                   <Sparkles className="h-3 w-3 text-slate-300 transition group-hover:text-[#00BFA5]" />
@@ -306,7 +306,7 @@ export default function HomePage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E6FFFB]">
-                      <Dog className="h-5 w-5 text-[#00BFA5]" />
+                      <PawPrint className="h-5 w-5 text-[#00BFA5]" />
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">{item.breed}</p>

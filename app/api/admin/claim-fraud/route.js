@@ -16,16 +16,16 @@ export async function GET(request) {
     const adminClient = createAdminClient();
 
     const { data: claims, error } = await adminClient
-      .from("claim_requests")
-      .select("id, breeder_id, requester_email, requester_name, evidence_type, evidence_url, status, created_at, breeders!inner(id, name, slug, website, phone, email, claimed_at, status as breeder_status)")
+      .from("claims")
+      .select("id, breeder_slug, claimant_email, claimant_name, evidence_type, evidence_url, status, created_at, breeders!inner(id, name, slug, website, phone, email, claimed_at, status as breeder_status)")
       .gte("created_at", since)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
     const { data: allClaims } = await adminClient
-      .from("claim_requests")
-      .select("id, breeder_id, requester_email, status, created_at");
+      .from("claims")
+      .select("id, breeder_slug, claimant_email, status, created_at");
 
     const emailClaims = {};
     (allClaims || []).forEach((c) => {
@@ -35,8 +35,8 @@ export async function GET(request) {
 
     const breederClaims = {};
     (allClaims || []).forEach((c) => {
-      if (!breederClaims[c.breeder_id]) breederClaims[c.breeder_id] = [];
-      breederClaims[c.breeder_id].push(c);
+      if (!breederClaims[c.breeder_slug]) breederClaims[c.breeder_slug] = [];
+      breederClaims[c.breeder_slug].push(c);
     });
 
     const scored = (claims || []).map((claim) => {
@@ -44,13 +44,13 @@ export async function GET(request) {
       let riskScore = 0;
       const riskFlags = [];
 
-      const sameEmail = emailClaims[claim.requester_email] || [];
+      const sameEmail = emailClaims[claim.claimant_email] || [];
       if (sameEmail.length > 1) {
         riskScore += sameEmail.length * 15;
         riskFlags.push(`${sameEmail.length} claims from this email`);
       }
 
-      const sameBreeder = breederClaims[claim.breeder_id] || [];
+      const sameBreeder = breederClaims[claim.breeder_slug] || [];
       if (sameBreeder.length > 1) {
         riskScore += sameBreeder.length * 20;
         riskFlags.push(`${sameBreeder.length} claims for this breeder`);
@@ -66,9 +66,9 @@ export async function GET(request) {
         riskFlags.push("breeder already claimed");
       }
 
-      if (breeder?.website && claim.requester_email) {
+      if (breeder?.website && claim.claimant_email) {
         const domain = breeder.website.toLowerCase().replace(/^https?:\/\//, "").split("/")[0].replace(/^www\./, "");
-        const emailDomain = claim.requester_email.split("@")[1];
+        const emailDomain = claim.claimant_email.split("@")[1];
         if (emailDomain && !emailDomain.includes(domain) && !domain.includes(emailDomain)) {
           riskScore += 15;
           riskFlags.push("email domain doesn't match website");
@@ -82,8 +82,8 @@ export async function GET(request) {
         breeder_id: claim.breeder_id,
         breeder_name: breeder?.name,
         breeder_slug: breeder?.slug,
-        requester_email: claim.requester_email,
-        requester_name: claim.requester_name,
+        requester_email: claim.claimant_email,
+        requester_name: claim.claimant_name,
         evidence_type: claim.evidence_type,
         evidence_url: claim.evidence_url,
         status: claim.status,

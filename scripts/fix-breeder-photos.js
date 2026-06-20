@@ -1,8 +1,6 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAdmin } = require("./_env");
 
-const supabase = createClient('https://zbvwqsjgasgxpphljahs.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpidndxc2pnYXNneHBwaGxqYWhzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDY2MzQwNywiZXhwIjoyMDk2MjM5NDA3fQ.f9oVqi1wfcFXVg4i6eYtQH1mHxKZIk-mcwmjRuKH0E8', {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabase = getSupabaseAdmin();
 
 async function main() {
   const { data: breeders, error } = await supabase

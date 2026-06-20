@@ -14,6 +14,7 @@ export async function GET() {
             .from("saved_breeders")
             .select(`
                 id,
+                breeder_id,
                 saved_at,
                 notes,
                 breeders (
@@ -39,7 +40,7 @@ export async function GET() {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        return NextResponse.json({ saved_breeders: data });
+        return NextResponse.json({ saved: data, saved_breeders: data });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

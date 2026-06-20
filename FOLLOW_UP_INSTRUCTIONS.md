@@ -126,17 +126,57 @@ Key areas to review:
 
 ## 5. Cookie Consent Banner
 
-The Privacy Policy mentions cookies but there is no visible cookie-consent banner yet. Implement a lightweight banner that:
-- Appears on first visit
-- Records consent in `localStorage`
-- Blocks non-essential analytics until consent is given
-- Links to `/privacy`
-
-This is required under UK GDPR + PECR.
+✅ **Implemented** — `app/components/CookieConsent.js` shows on first visit, logs consent to `cookie_consents` table via `/api/cookie-consent`, and analytics tracking (`lib/analytics-client.js`) is gated behind consent.
 
 ---
 
-## 6. Post-Launch Monitoring Checklist
+## 6. Stripe Subscriptions
+
+### Setup checklist
+
+1. Create a Stripe account and switch to **Live** mode when ready
+2. Add to Railway environment:
+   - `STRIPE_SECRET_KEY` — from Stripe Dashboard → Developers → API keys
+   - `STRIPE_WEBHOOK_SECRET` — from Stripe Dashboard → Webhooks → endpoint `https://breedwise.co.uk/api/webhooks/stripe`
+3. In admin (`/admin` → Tiers tab), click **Sync to Stripe** for all tiers (creates products/prices in DB)
+4. Verify in admin **System Health** tab — Stripe check should show 3/3 tiers with price IDs
+
+### Webhook events handled
+
+`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+
+### Breeder flow
+
+Claim listing → `/breeder/[slug]/subscription` → Stripe Checkout → webhook updates `breeder_subscriptions` and `membership_tier`
+
+---
+
+## 7. Security — rotate exposed credentials
+
+**Action required:** Service role keys and Google API keys were previously hardcoded in `scripts/`. These have been removed, but if this repo was ever pushed to a remote:
+
+1. Rotate `SUPABASE_SERVICE_ROLE_KEY` in Supabase Dashboard → Settings → API
+2. Rotate `GOOGLE_PLACES_API_KEY` in Google Cloud Console
+3. Update Railway environment variables with new keys
+
+---
+
+## 8. Migration 028 (breeder availability)
+
+Run in Supabase SQL Editor if not yet applied:
+
+```sql
+-- Contents of supabase/migrations/028_breeder_availability.sql
+ALTER TABLE public.breeders
+ADD COLUMN IF NOT EXISTS availability_status TEXT DEFAULT 'available'
+CHECK (availability_status IN ('available', 'waitlist', 'not_available', 'paused'));
+```
+
+Verify via admin **System Health** tab.
+
+---
+
+## 9. Post-Launch Monitoring Checklist
 
 | Check | How |
 |-------|-----|
@@ -148,7 +188,8 @@ This is required under UK GDPR + PECR.
 | Google Places cron job | Check `google_refresh_log` table weekly |
 | Sitemap valid | Visit `/sitemap.xml`, validate with Google Search Console |
 | robots.txt correct | Visit `/robots.txt` |
-| Security headers | Use [securityheaders.com](https://securityheaders.com) |
+| Stripe subscriptions | Admin → System Health; test checkout on a claimed listing |
+| Migration 028 applied | Admin → System Health → "Migration 028" check |
 
 ---
 
@@ -160,4 +201,8 @@ This is required under UK GDPR + PECR.
 | 2026-06-06 | `4f4f9b8` | ❌ FAILED | Same CVEs (redeploy of old patch) |
 | 2026-06-06 | `9bc791f` | ✅ SUCCESS | Upgraded Next.js to 14.2.35 |
 | 2026-06-06 | `69a80f4` | ✅ SUCCESS | Updated follow-up docs |
-| 2026-06-06 | `8a0df584` | ✅ SUCCESS | Real Supabase anon key + Resend DNS |
+| Security headers | Use [securityheaders.com](https://securityheaders.com) |
+
+---
+
+*Last updated: 2026-06-20*

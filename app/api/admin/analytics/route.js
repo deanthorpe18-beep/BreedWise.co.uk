@@ -33,16 +33,20 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get("days") || "30", 10);
+    const days = Math.min(parseInt(searchParams.get("days") || "30", 10), 365);
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     const adminClient = createAdminClient();
 
-    // Clean stale sessions first (older than 1 hour)
-    await adminClient
-      .from("user_sessions")
-      .delete()
-      .lt("last_active_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    // Clean stale sessions first (older than 1 hour) — don't fail analytics if this errors
+    try {
+      await adminClient
+        .from("user_sessions")
+        .delete()
+        .lt("last_active_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    } catch (cleanupErr) {
+      console.error("[analytics] Failed to clean stale sessions:", cleanupErr?.message || cleanupErr);
+    }
 
     // ── Time boundaries for visitor counters ──
     const now = new Date();

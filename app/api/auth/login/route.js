@@ -93,13 +93,11 @@ export async function POST(request) {
     await logAttempt(supabase, email, ip, true);
 
     if (!data.user.email_confirmed_at) {
+      // Return generic error to prevent account enumeration
+      await logAttempt(supabase, email, ip, false);
       return NextResponse.json(
-        {
-          error: "Please verify your email address before logging in.",
-          needsVerification: true,
-          email: data.user.email,
-        },
-        { status: 403 }
+        { error: "Invalid email or password." },
+        { status: 401 }
       );
     }
 

@@ -76,17 +76,21 @@ export async function POST(request) {
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
 
-        // Log to admin audit log
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        await adminClient
-            .from("admin_audit_log")
-            .insert({
-                admin_id: currentUser.id,
-                action: "create_admin",
-                target_table: "profiles",
-                target_id: userId,
-                new_values: { email, role: "admin", display_name: fullName || "Admin" },
-            });
+        // Log to admin audit log (fire-and-forget — don't fail if logging errors)
+        try {
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            await adminClient
+                .from("admin_audit_log")
+                .insert({
+                    admin_id: currentUser.id,
+                    action: "create_admin",
+                    target_table: "profiles",
+                    target_id: userId,
+                    new_values: { email, role: "admin", display_name: fullName || "Admin" },
+                });
+        } catch (auditErr) {
+            console.error("[admin/users] Audit log error:", auditErr?.message || auditErr);
+        }
 
         return NextResponse.json({
             success: true,

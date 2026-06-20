@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request) {
+export async function GET() {
   try {
     const auth = await requireAdmin();
     if (auth.error) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -12,79 +12,111 @@ export async function GET(request) {
     const adminClient = createAdminClient();
     const checks = [];
 
-    // Database connectivity
+    // Database connectivity + breeder count
     const dbStart = Date.now();
-    const { data: dbTest, error: dbError } = await adminClient.from("breeders").select("id", { count: "exact", head: true });
+    const { count: breederCount, error: dbError } = await adminClient
+      .from("breeders")
+      .select("id", { count: "exact", head: true });
     checks.push({
       name: "Database",
       status: dbError ? "error" : "ok",
       latency: Date.now() - dbStart,
-      detail: dbError ? dbError.message : `${dbTest} breeders in DB`,
+      detail: dbError ? dbError.message : `${breederCount ?? 0} breeders in DB`,
     });
 
-    // Auth table health
-    const { count: userCount, error: authError } = await adminClient
-      .from("users")
-      .select("*", { count: "exact", head: true });
+    // Registered users (profiles table is reliable; auth.admin.listUsers has no total field)
+    const { count: userCount, error: userError } = await adminClient
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
     checks.push({
       name: "Auth",
-      status: authError ? "error" : "ok",
-      detail: authError ? authError.message : `${userCount || 0} registered users`,
+      status: userError ? "error" : "ok",
+      detail: userError ? userError.message : `${userCount ?? 0} registered users`,
     });
 
-    // Recent errors (check for 500s in last hour via page_views table heuristic — no error table yet)
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count: recentViews } = await adminClient
+
+    const { count: recentViews, error: viewsError } = await adminClient
       .from("page_views")
       .select("*", { count: "exact", head: true })
       .gte("created_at", hourAgo);
-
     checks.push({
       name: "Analytics ingestion",
-      status: (recentViews || 0) > 0 ? "ok" : "warning",
-      detail: `${recentViews || 0} page views in last hour`,
+      status: viewsError ? "error" : "ok",
+      detail: viewsError ? viewsError.message : `${recentViews ?? 0} page views in last hour`,
     });
 
-    // Search analytics health
-    const { count: recentSearches } = await adminClient
+    const { count: recentSearches, error: searchError } = await adminClient
       .from("search_analytics")
       .select("*", { count: "exact", head: true })
       .gte("created_at", hourAgo);
-
     checks.push({
       name: "Search analytics",
-      status: (recentSearches || 0) > 0 ? "ok" : "warning",
-      detail: `${recentSearches || 0} searches in last hour`,
+      status: searchError ? "error" : "ok",
+      detail: searchError ? searchError.message : `${recentSearches ?? 0} searches in last hour`,
     });
 
-    // Unprocessed claim queue
-    const { count: pendingClaims } = await adminClient
-      .from("claim_requests")
+    const { count: pendingClaims, error: claimsError } = await adminClient
+      .from("claims")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending");
-
     checks.push({
       name: "Claim queue",
-      status: (pendingClaims || 0) > 10 ? "warning" : "ok",
-      detail: `${pendingClaims || 0} pending claims`,
+      status: claimsError ? "error" : (pendingClaims || 0) > 10 ? "warning" : "ok",
+      detail: claimsError ? claimsError.message : `${pendingClaims ?? 0} pending claims`,
     });
 
-    // CTA click tracking
-    const { count: recentCtas } = await adminClient
+    const { count: recentCtas, error: ctaError } = await adminClient
       .from("cta_clicks")
       .select("*", { count: "exact", head: true })
       .gte("created_at", hourAgo);
-
     checks.push({
       name: "CTA tracking",
-      status: (recentCtas || 0) > 0 ? "ok" : "warning",
-      detail: `${recentCtas || 0} CTA clicks in last hour`,
+      status: ctaError ? "error" : "ok",
+      detail: ctaError ? ctaError.message : `${recentCtas ?? 0} CTA clicks in last hour`,
     });
 
-    const allOk = checks.every((c) => c.status === "ok");
+    // Stripe configuration
+    const stripeSecretSet = Boolean(process.env.STRIPE_SECRET_KEY);
+    const stripeWebhookSet = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+    const { data: stripeTiers, error: tiersError } = await adminClient
+      .from("stripe_tiers")
+      .select("tier, stripe_price_id, is_active")
+      .eq("is_active", true);
+    const tiersWithPrices = (stripeTiers || []).filter((t) => t.stripe_price_id);
+    checks.push({
+      name: "Stripe",
+      status: tiersError
+        ? "error"
+        : stripeSecretSet && stripeWebhookSet && tiersWithPrices.length >= 3
+          ? "ok"
+          : "warning",
+      detail: tiersError
+        ? tiersError.message
+        : stripeSecretSet && stripeWebhookSet
+          ? `${tiersWithPrices.length}/3 active tiers have Stripe price IDs`
+          : `Missing env: ${!stripeSecretSet ? "STRIPE_SECRET_KEY " : ""}${!stripeWebhookSet ? "STRIPE_WEBHOOK_SECRET" : ""}`.trim(),
+    });
+
+    // Migration 028 — breeder availability_status column
+    const { error: availabilityError } = await adminClient
+      .from("breeders")
+      .select("availability_status")
+      .limit(1);
+    checks.push({
+      name: "Migration 028 (availability)",
+      status: availabilityError ? "warning" : "ok",
+      detail: availabilityError
+        ? "Column missing — run supabase/migrations/028_breeder_availability.sql"
+        : "availability_status column present",
+    });
+
+    const hasError = checks.some((c) => c.status === "error");
+    const hasWarning = checks.some((c) => c.status === "warning");
+    const overall = hasError ? "error" : hasWarning ? "degraded" : "healthy";
 
     return NextResponse.json({
-      overall: allOk ? "healthy" : "degraded",
+      overall,
       checks,
       timestamp: new Date().toISOString(),
     });

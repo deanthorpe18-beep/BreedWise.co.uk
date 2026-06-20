@@ -14,6 +14,11 @@ export async function POST(request) {
     const file = formData.get("file");
     const type = formData.get("type");
 
+    const allowedTypeValues = ["licence", "kennel_club", "ownership_proof", "supporting_doc"];
+    if (!type || !allowedTypeValues.includes(type)) {
+      return NextResponse.json({ error: "Invalid evidence type" }, { status: 400 });
+    }
+
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }

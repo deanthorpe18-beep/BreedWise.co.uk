@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -13,6 +14,24 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const urlError = searchParams.get("error");
+    if (urlError) {
+      setError("Your reset link has expired or is invalid. Please request a new one.");
+      setSessionChecked(true);
+      return;
+    }
+    // Verify we have an active session (set by reset-callback route)
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        setError("Your reset link has expired or is invalid. Please request a new one.");
+      }
+      setSessionChecked(true);
+    });
+  }, [searchParams]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,6 +70,14 @@ function ResetPasswordForm() {
       setLoading(false);
     }
   };
+
+  if (!sessionChecked) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 sm:px-6 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#00BFA5]" />
+      </div>
+    );
+  }
 
   if (success) {
     return (

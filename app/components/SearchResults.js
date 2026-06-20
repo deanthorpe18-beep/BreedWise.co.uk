@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, CheckCircle, Heart, ArrowRight, Store } from "lucide-react";
+import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, CheckCircle, Heart, ArrowRight, Store, Calendar } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
 import MembershipBadge, { getTierBorderClasses } from "./MembershipBadge";
 import JustClaimedBadge from "./JustClaimedBadge";
@@ -150,6 +150,47 @@ export default function SearchResults({
   );
 }
 
+function TrustScore({ breeder }) {
+  let score = 0;
+  if (breeder.status === "claimed_profile") score += 30;
+  if (breeder.kennel_club) score += 20;
+  if (breeder.council_licence) score += 20;
+  if (breeder.health_testing) score += 15;
+  if (breeder.google_rating && breeder.google_rating >= 4.0) score += 10;
+  if ((breeder.breeder_photos?.length || breeder.photos?.length || 0) > 0) score += 5;
+
+  const color = score >= 80 ? "bg-green-500" : score >= 50 ? "bg-[#00BFA5]" : score >= 25 ? "bg-amber-400" : "bg-slate-300";
+  const label = score >= 80 ? "Highly trusted" : score >= 50 ? "Trusted" : score >= 25 ? "Basic info" : "Limited info";
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold text-slate-600">Trust score</span>
+        <span className={`font-bold ${score >= 50 ? "text-[#00BFA5]" : "text-slate-400"}`}>{score}/100 · {label}</span>
+      </div>
+      <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${score}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function AvailabilityBadge({ status }) {
+  const config = {
+    available: { text: "Available", className: "bg-green-100 text-green-700", icon: Calendar },
+    waitlist: { text: "Waitlist", className: "bg-blue-100 text-blue-700", icon: Calendar },
+    not_available: { text: "No litters", className: "bg-slate-100 text-slate-500", icon: Calendar },
+    paused: { text: "Paused", className: "bg-amber-100 text-amber-700", icon: Calendar },
+  };
+  const c = config[status] || config.available;
+  const Icon = c.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${c.className}`}>
+      <Icon className="h-3 w-3" /> {c.text}
+    </span>
+  );
+}
+
 function BreederCard({ breeder }) {
   const distance = formatDistance(breeder.distance);
   const breeds = breeder.breeds || [];
@@ -177,6 +218,7 @@ function BreederCard({ breeder }) {
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             <MembershipBadge tier={breeder.membership_tier} status={breeder.status} size="sm" />
             <JustClaimedBadge claimedAt={breeder.claimed_at} size="small" />
+            <AvailabilityBadge status={breeder.availability_status} />
           </div>
           {breeder.is_featured && (
             <div className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
@@ -238,6 +280,9 @@ function BreederCard({ breeder }) {
               <span className="truncate">Health: {breeder.health_testing || "—"}</span>
             </div>
           </div>
+
+          {/* Trust Score */}
+          <TrustScore breeder={breeder} />
 
           {/* Actions */}
           <div className="mt-5 flex flex-wrap gap-2">

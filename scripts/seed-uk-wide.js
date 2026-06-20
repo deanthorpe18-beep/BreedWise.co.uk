@@ -8,15 +8,10 @@
  * Run with: GOOGLE_PLACES_API_KEY=xxx SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/seed-uk-wide.js
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAdmin, getGooglePlacesApiKey } = require("./_env");
 
-const SUPABASE_URL = 'https://zbvwqsjgasgxpphljahs.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpidndxc2pnYXNneHBwaGxqYWhzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDY2MzQwNywiZXhwIjoyMDk2MjM5NDA3fQ.f9oVqi1wfcFXVg4i6eYtQH1mHxKZIk-mcwmjRuKH0E8';
-const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY || 'AIzaSyCy96kjGFWrK-2_EpX4-HvYyIY0l9fuxnA';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabase = getSupabaseAdmin();
+const GOOGLE_API_KEY = getGooglePlacesApiKey();
 
 // Comprehensive UK locations — every major region
 const SEARCH_LOCATIONS = [

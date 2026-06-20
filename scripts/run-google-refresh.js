@@ -1,10 +1,7 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAdmin, getGooglePlacesApiKey } = require("./_env");
 
-const supabase = createClient('https://zbvwqsjgasgxpphljahs.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpidndxc2pnYXNneHBwaGxqYWhzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDY2MzQwNywiZXhwIjoyMDk2MjM5NDA3fQ.f9oVqi1wfcFXVg4i6eYtQH1mHxKZIk-mcwmjRuKH0E8', {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
-
-const GOOGLE_API_KEY = 'AIzaSyCy96kjGFWrK-2_EpX4-HvYyIY0l9fuxnA';
+const supabase = getSupabaseAdmin();
+const GOOGLE_API_KEY = getGooglePlacesApiKey();
 
 async function fetchPlaceDetails(placeId) {
   const url = `https://places.googleapis.com/v1/places/${placeId}`;

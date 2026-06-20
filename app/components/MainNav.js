@@ -126,6 +126,17 @@ export default function MainNav() {
   const { user, loading, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/search", label: "Search" },
@@ -181,7 +192,13 @@ export default function MainNav() {
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg md:hidden z-50">
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 z-40 md:hidden"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg md:hidden z-50">
           <div className="flex flex-col gap-3 text-sm font-medium text-slate-700">
             {navItems.map((item) => {
               const isActive =
@@ -218,6 +235,7 @@ export default function MainNav() {
                 {user.breederSlug && (
                   <Link href="/breeder/dashboard" className="rounded-2xl px-4 py-3 text-purple-700 font-semibold hover:bg-purple-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Store className="h-4 w-4" /> My listing</Link>
                 )}
+                <Link href="/account/claims" className="rounded-2xl px-4 py-3 hover:bg-slate-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Shield className="h-4 w-4" /> My claims</Link>
                 <Link href="/account/settings" className="rounded-2xl px-4 py-3 hover:bg-slate-50" onClick={() => setIsOpen(false)}>Account settings</Link>
                 {(user.role === "admin" || user.role === "super_admin") && (
                   <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin dashboard</Link>
@@ -229,6 +247,7 @@ export default function MainNav() {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

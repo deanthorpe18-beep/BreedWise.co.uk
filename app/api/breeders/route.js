@@ -9,7 +9,7 @@ export async function GET(request) {
         const town = searchParams.get("town") || "";
         const county = searchParams.get("county") || "";
         const status = searchParams.get("status") || "public_listing";
-        const limit = parseInt(searchParams.get("limit") || "100", 10);
+        const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 500);
         const offset = parseInt(searchParams.get("offset") || "0", 10);
 
         const supabase = createClient();

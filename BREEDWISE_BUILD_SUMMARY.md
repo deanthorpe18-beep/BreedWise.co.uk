@@ -1,4 +1,14 @@
-# BreedWise Master Build — Complete Implementation
+# BreedWise Master Build — ARCHIVED (Phase 1 Prototype)
+
+> **This document is outdated.** It describes the original West Sussex prototype with in-memory data (`lib/breeders.js`), localStorage saves, and Vercel deployment.
+>
+> **For the current application**, see [README.md](./README.md) and [PROJECT.md](./PROJECT.md).
+>
+> The live site at [breedwise.co.uk](https://breedwise.co.uk) runs on Supabase, Railway, Stripe, and Resend with UK-wide multi-species coverage.
+
+---
+
+# BreedWise Master Build — Complete Implementation (Historical)
 
 ## ✅ Build Status: READY FOR DEPLOYMENT
 

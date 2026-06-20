@@ -6,7 +6,7 @@
 
 ## 1. Project Overview
 
-**BreedWise** is a UK-wide dog breeder directory built on:
+**BreedWise** is a UK-wide **multi-species** pet breeder directory (dogs, cats, birds, fish, reptiles, small pets) built on:
 
 | Layer | Technology |
 |-------|------------|
@@ -15,6 +15,7 @@
 | Database | Supabase PostgreSQL (eu-west-2) |
 | Auth | Supabase Auth (email/password + OAuth) |
 | Email | Resend |
+| Payments | Stripe (Bronze / Silver / Gold memberships) |
 | Hosting | Railway (custom domain via Cloudflare) |
 | Analytics | Self-hosted (page_views, cta_clicks, user_sessions) |
 
@@ -138,9 +139,9 @@ In-app notification system: `type`, `title`, `message`, `action_url`, `read`.
 ### Role Hierarchy
 ```
 super_admin  → can do everything + manage admins + reset passwords + change emails
-admin        → can manage breeders, claims, removals, view analytics
-breeder      → default registered user, can claim listings
-buyer        → can save favourites (future)
+admin        → can manage breeders, claims, removals, view analytics, Stripe sync
+breeder      → default on signup; can claim listings and subscribe
+buyer        → enum exists; buyer features (save, compare, messaging) work for any authenticated user
 public       → anonymous visitor (no DB row)
 ```
 
@@ -222,13 +223,7 @@ Supabase Auth supports OAuth providers natively. To enable:
 ## 5. Admin & Super Admin System
 
 ### Admin Dashboard (`/admin`)
-Tabs:
-1. **Review Queue** — claims & removals with approve/reject/hard-delete
-2. **Breeders** — CRUD + search/filter + add manually
-3. **Analytics** — unique visitors (today/week/month/year/total), page views, CTA clicks, top breeders
-4. **Audit Log** — breeder change history with before/after diffs
-5. **Statistics** — total breeders, claims, removals, users
-6. **Admins** — list admins, add/remove, super admin actions
+Tabs include: Review Queue, Breeders, Members, Analytics, Funnel, Search Intelligence, Listing Quality, Duplicates, Claim Fraud, SEO, System Health, Audit Log, Statistics, Stripe Tiers, CMS, Outreach, Admins.
 
 ### Super Admin Powers
 Only users with `role = 'super_admin'` can:
@@ -276,6 +271,10 @@ RESEND_API_KEY=your_key
 RESEND_FROM_EMAIL=info@breedwise.co.uk
 RESEND_NOREPLY_EMAIL=noreply@breedwise.co.uk
 RESEND_ADMIN_EMAIL=admin@breedwise.co.uk
+
+# Stripe (required for subscriptions)
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 
 # Admin
 ADMIN_SETUP_SECRET=your_random_secret
@@ -341,48 +340,69 @@ Run in Supabase SQL Editor in this order:
 8. `008_admin_analytics.sql`
 9. `009_enrich_breeders.sql`
 10. `010_visitor_analytics.sql`
-11. `011_comprehensive_auth_roles_security.sql` ⭐ **NEW**
+11. `011_comprehensive_auth_roles_security.sql`
+12. `012_buyer_accounts_messaging_ads_breeds.sql` — saved breeders, messaging, breeds table
+13. `013_fix_breeds_rls_premium_seo_postgis.sql` — Stripe subscriptions, membership tiers
+14. `014_cms_content_email_verification.sql`
+15. `015_fix_super_admin_rls.sql`
+16. `016_fix_breeder_updates_policy.sql`
+17. `017_breed_encyclopedia.sql`
+18. `018_more_breed_encyclopedia.sql`
+19. `019_stripe_tiers.sql` — dynamic tier config in DB
+20. `020_multi_animal.sql` — dogs, cats, birds, fish, reptiles, small pets
+21. `021_exotic_fish_and_encyclopedia_images.sql`
+22. `022_fixes.sql`
+23. `023_claim_and_dashboard_fixes.sql`
+24. `024_one_claim_per_breeder_backfill.sql`
+25. `025_newsletter_and_seo_improvements.sql`
+26. `026_outreach_sends.sql`
+27. `027_security_fixes.sql`
+28. `028_breeder_availability.sql` — `availability_status` column on breeders
+
+Or run all via: `npm run db:migrate` (Supabase CLI).
 
 ---
 
 ## 9. File Structure (key paths)
 
 ```
+middleware.js               → Session refresh + security headers + admin protection (repo root)
 app/
-  layout.js                 → Root layout with AuthProvider + ToastProvider
-  middleware.js             → Session refresh + security headers + admin protection
+  layout.js                 → Root layout with AuthProvider + ToastProvider + CookieConsent
   page.js                   → Homepage
-  search/page.js            → Search results with pagination
+  search/page.js            → Search results (uses lib/search.js)
   breeder/[slug]/page.js    → Public breeder profile
-  auth/
-    login/page.js           → Login with toast
-    signup/page.js          → Signup with toast
-    callback/route.js       → OAuth/email verification callback
-    forgot/page.js          → Password reset request
-    reset/page.js           → Password reset form
-  admin/page.js             → Admin dashboard (6 tabs)
+  breeder/dashboard/        → Claimed breeder management
+  account/                  → saved-breeders, compare, claims, subscription, settings
+  messages/                 → Buyer ↔ breeder messaging
+  breeds/[slug]/            → Breed encyclopedia pages
+  auth/                     → login, signup, callback, forgot, reset, reset-callback
+  admin/page.js             → Admin dashboard (17 tabs)
   api/
     auth/                   → Login, logout, signup, me, forgot, reset, resend
-    admin/                  → Analytics, breeders, claims, removals, users, audit
-    track/                  → page-view, cta, session
-    places/[placeId]        → Google Places proxy (rate-limited)
+    admin/                  → Analytics, breeders, claims, Stripe sync, system-health, …
+    stripe/                 → Subscribe, portal, cancel
+    webhooks/stripe/        → Subscription lifecycle webhook
+    claims/                 → Submit claims, upload evidence, mine
+    messages/               → Conversations and read receipts
+    saved-breeders/         → Buyer saved listings
+    search/                 → JSON search API
+    track/                  → page-view, cta, session (consent-gated client-side)
     cron/google-refresh     → Weekly breeder refresh
 lib/
-  auth.js                   → Shared requireAdmin / requireSuperAdmin helpers
-  supabase/
-    server.js               → createClient() + createAdminClient()
-    middleware.js           → updateSession() for Next.js middleware
-    client.js               → Browser-side Supabase client
-  rate-limit.js             → In-memory rate limiter with TTL cleanup
-  validation.js             → Zod schemas for forms
-  emails/resend.js          → Email sending functions
-  seo/                      → Metadata, structured data helpers
-components/
-  AuthProvider.js           → React context for auth state
-  Toast.js                  → Toast notification system
-  MainNav.js                → Header with user dropdown + role badge
-  SearchForm.js             → Search with geolocation + distance
-  SearchResults.js          → Results with pagination
+  auth.js                   → requireAdmin / requireSuperAdmin helpers
+  search.js                 → Centralised breeder search + ranking
+  stripe.js, stripe-tiers.js → Stripe checkout + DB-driven tier config
+  cookie-consent.js         → Client consent helpers
+  supabase/server.js        → createClient() + createAdminClient()
+  rate-limit.js             → In-memory rate limiter
+  validation.js             → Zod schemas
+  emails/resend.js          → Transactional email
+  seo/                      → Metadata, structured data
+app/components/
+  AuthProvider.js, MainNav.js, SearchForm.js, SearchResults.js, CookieConsent.js, …
+scripts/
+  _env.js                   → Shared env loader (no hardcoded secrets)
 ```
 
 ---
@@ -391,13 +411,14 @@ components/
 
 | Limitation | Reason | Future Fix |
 |------------|--------|------------|
-| In-memory rate limiter | No Redis (cost) | Add Upstash Redis if traffic scales |
-| No real-time updates | No WebSocket | Add Supabase Realtime for notifications |
-| Google Places API quota | Costs money | Cache photos aggressively; consider paid tier |
+| In-memory rate limiter | No Redis (cost) | Add Upstash Redis if traffic scales horizontally |
+| No real-time messaging | No WebSocket | Add Supabase Realtime for live chat |
+| Google Places API quota | Costs money | Cache photos aggressively; monitor usage |
 | OAuth requires dashboard config | Supabase provider settings | Documented in Auth Flow section |
-| No buyer role usage | Not yet implemented | Add favourites, saved searches, messaging |
+| Signup defaults to `breeder` role | Single registration path | Optional buyer/breeder signup choice |
+| No automated tests | Not yet prioritised | Add Playwright E2E for auth, claims, checkout |
 | `no-store` Cache-Control | Active debugging | Switch to `max-age=0, must-revalidate` when stable |
 
 ---
 
-*Last updated: 2026-06-06 by Kimi Code CLI*
+*Last updated: 2026-06-20*

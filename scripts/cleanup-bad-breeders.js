@@ -8,14 +8,9 @@
  * Run with: CONFIRM=1 node scripts/cleanup-bad-breeders.js
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseAdmin } = require("./_env");
 
-const SUPABASE_URL = 'https://zbvwqsjgasgxpphljahs.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpidndxc2pnYXNneHBwaGxqYWhzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDY2MzQwNywiZXhwIjoyMDk2MjM5NDA3fQ.f9oVqi1wfcFXVg4i6eYtQH1mHxKZIk-mcwmjRuKH0E8';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabase = getSupabaseAdmin();
 
 // Postcodes that are acceptable (South East + nearby)
 const ACCEPTABLE_POSTCODE_AREAS = new Set([

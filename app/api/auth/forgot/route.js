@@ -35,7 +35,7 @@ export async function POST(request) {
 
     const supabase = createClient();
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk"}/auth/reset`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk"}/auth/reset-callback`,
     });
 
     return NextResponse.json({

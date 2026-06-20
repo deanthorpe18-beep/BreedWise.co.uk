@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
-import { Heart, MapPin, Star, Phone, Trash2, Loader2, Dog } from "lucide-react";
+import { Heart, MapPin, Star, Phone, Trash2, Loader2, Scale } from "lucide-react";
 
 export default function SavedBreedersPage() {
   const { user, loading } = useAuth();
@@ -55,8 +55,17 @@ export default function SavedBreedersPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-bold text-slate-900">My Saved Breeders</h1>
-      <p className="mt-1 text-sm text-slate-500">Breeders you have saved for quick access.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My Saved Breeders</h1>
+          <p className="mt-1 text-sm text-slate-500">Breeders you have saved for quick access.</p>
+        </div>
+        {saved.length > 0 && (
+          <Link href="/account/compare" className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+            <Scale className="h-4 w-4" /> Compare
+          </Link>
+        )}
+      </div>
 
       {saved.length === 0 ? (
         <div className="mt-8 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">

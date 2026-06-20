@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
-import { Loader2, Mail, Lock, Heart, MessageCircle, Search, ArrowRight, Store } from "lucide-react";
+import { Loader2, Mail, Lock, Heart, MessageCircle, Search, ArrowRight, Store, Shield, CreditCard, Scale } from "lucide-react";
 
 export default function AccountSettingsPage() {
   const { user, loading } = useAuth();
@@ -26,10 +26,13 @@ export default function AccountSettingsPage() {
     const res = await fetch("/api/account/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ newEmail: email, currentPassword }),
     });
     const data = await res.json();
-    if (res.ok) setMessage("Email update initiated. Check your inbox.");
+    if (res.ok) {
+      setMessage(data.message || "Email update initiated. Check your inbox.");
+      setCurrentPassword("");
+    }
     else setError(data.error || "Failed to update email.");
     setSaving(false);
   };
@@ -122,6 +125,32 @@ export default function AccountSettingsPage() {
           </div>
           <ArrowRight className="ml-auto h-4 w-4 text-slate-400" />
         </Link>
+        <Link href="/account/claims" className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+          <Shield className="h-5 w-5 text-amber-500" />
+          <div>
+            <p className="font-semibold text-slate-900">My claims</p>
+            <p className="text-xs text-slate-500">Track profile claims</p>
+          </div>
+          <ArrowRight className="ml-auto h-4 w-4 text-slate-400" />
+        </Link>
+        <Link href="/account/compare" className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+          <Scale className="h-5 w-5 text-[#00BFA5]" />
+          <div>
+            <p className="font-semibold text-slate-900">Compare breeders</p>
+            <p className="text-xs text-slate-500">Side-by-side comparison</p>
+          </div>
+          <ArrowRight className="ml-auto h-4 w-4 text-slate-400" />
+        </Link>
+        {user?.breederSlug && (
+          <Link href="/account/subscription" className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+            <CreditCard className="h-5 w-5 text-[#00BFA5]" />
+            <div>
+              <p className="font-semibold text-slate-900">Subscription</p>
+              <p className="text-xs text-slate-500">Manage billing & plan</p>
+            </div>
+            <ArrowRight className="ml-auto h-4 w-4 text-slate-400" />
+          </Link>
+        )}
       </div>
 
       {/* Email */}
@@ -134,6 +163,13 @@ export default function AccountSettingsPage() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20"
+        />
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="Current password (required to change email)"
           className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20"
         />
         <button

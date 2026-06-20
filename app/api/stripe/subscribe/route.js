@@ -40,6 +40,14 @@ export async function POST(request) {
     }
 
     // Check if breeder already has a subscription owned by someone else
+    // Fetch breeder slug for URLs
+    const { data: breederRow } = await supabase
+      .from("breeders")
+      .select("slug")
+      .eq("id", breederId)
+      .maybeSingle();
+    const breederSlug = breederRow?.slug || breederId;
+
     const { data: existingSub, error: subError } = await supabase
       .from("breeder_subscriptions")
       .select("id, user_id, stripe_customer_id, stripe_subscription_id, status")
@@ -75,7 +83,7 @@ export async function POST(request) {
       customerId = customer.id;
     }
 
-    const session = await createCheckoutSession(customerId, priceId, breederId);
+    const session = await createCheckoutSession(customerId, priceId, breederId, breederSlug);
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

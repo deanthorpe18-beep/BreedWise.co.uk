@@ -68,7 +68,9 @@ export async function GET(request) {
     }));
 
     // Don't await — log asynchronously so response isn't delayed
-    adminClient.from("featured_rotation_log").insert(logEntries).then(() => {});
+    adminClient.from("featured_rotation_log").insert(logEntries).catch((err) => {
+      console.error("[featured-breeders] Rotation log error:", err?.message || err);
+    });
 
     return NextResponse.json({ breeders: selected });
   } catch (err) {

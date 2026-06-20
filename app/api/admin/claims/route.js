@@ -63,47 +63,53 @@ export async function PATCH(request) {
     if (status === "approved" && data?.breeder_slug) {
       const now = new Date().toISOString();
 
-      // 1. Fetch breeder ID by slug
-      const { data: breederRow } = await adminClient
+      // 1. Fetch breeder ID by slug (must exist)
+      const { data: breederRow, error: breederErr } = await adminClient
         .from("breeders")
         .select("id")
         .eq("slug", data.breeder_slug)
-        .single();
+        .maybeSingle();
 
-      const breederId = breederRow?.id;
+      if (breederErr || !breederRow?.id) {
+        console.error("[claims/PATCH] Breeder not found for slug:", data.breeder_slug);
+        return NextResponse.json(
+          { error: "Unable to approve claim: breeder profile not found." },
+          { status: 404 }
+        );
+      }
+
+      const breederId = breederRow.id;
 
       // 2. Update breeder record
-      if (breederId) {
-        const { error: breederErr } = await adminClient
-          .from("breeders")
-          .update({
-            status: "claimed_profile",
-            claimed: true,
-            claimed_at: now,
-            membership_tier: "free",
-          })
-          .eq("id", breederId);
+      const { error: breederUpdateErr } = await adminClient
+        .from("breeders")
+        .update({
+          status: "claimed_profile",
+          claimed: true,
+          claimed_at: now,
+          membership_tier: "free",
+        })
+        .eq("id", breederId);
 
-        if (breederErr) {
-          console.error("[claims/PATCH] Breeder update error:", breederErr.message);
-        }
+      if (breederUpdateErr) {
+        console.error("[claims/PATCH] Breeder update error:", breederUpdateErr.message);
+      }
 
-        // 3. Create free-tier subscription row so dashboard API works
-        if (data.claimant_user_id) {
-          const { error: subErr } = await adminClient
-            .from("breeder_subscriptions")
-            .upsert({
-              breeder_id: breederId,
-              user_id: data.claimant_user_id,
-              tier: "free",
-              status: "active",
-              created_at: now,
-              updated_at: now,
-            }, { onConflict: "breeder_id" });
+      // 3. Create free-tier subscription row so dashboard API works
+      if (data.claimant_user_id) {
+        const { error: subErr } = await adminClient
+          .from("breeder_subscriptions")
+          .upsert({
+            breeder_id: breederId,
+            user_id: data.claimant_user_id,
+            tier: "free",
+            status: "active",
+            created_at: now,
+            updated_at: now,
+          }, { onConflict: "breeder_id" });
 
-          if (subErr) {
-            console.error("[claims/PATCH] Subscription insert error:", subErr.message);
-          }
+        if (subErr) {
+          console.error("[claims/PATCH] Subscription insert error:", subErr.message);
         }
       }
     }
