@@ -58,8 +58,8 @@ export async function GET() {
     })),
     // Top breed + location combos for SEO landing pages
     ...(function () {
-      const topBreeds = (breeds || []).filter((b) => b.is_popular).slice(0, 15);
-      const topTowns = uniqueTowns.slice(0, 30);
+      const topBreeds = (breeds || []).filter((b) => b.is_popular && b.slug).slice(0, 25);
+      const topTowns = uniqueTowns.slice(0, 50);
       const combos = [];
       for (const breed of topBreeds) {
         if (!breed.slug) continue;

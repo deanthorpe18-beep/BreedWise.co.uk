@@ -102,10 +102,12 @@ export async function GET() {
     let website_clicks = 0;
     let phone_clicks = 0;
     let search_impressions = 0;
+    let share_clicks = 0;
     for (const c of ctaClicks || []) {
       if (c.action_type === "website" || c.action_type === "email") website_clicks++;
       if (c.action_type === "call" || c.action_type === "phone") phone_clicks++;
       if (c.action_type === "search_impression") search_impressions++;
+      if (c.action_type === "share") share_clicks++;
     }
 
     const allDays = new Set([...Object.keys(viewsByDay), ...Object.keys(clicksByDay)]);
@@ -127,6 +129,7 @@ export async function GET() {
       phone_clicks,
       favourites_count: favouritesCount || 0,
       search_impressions,
+      share_clicks,
       message_count: messageCount || 0,
     };
 

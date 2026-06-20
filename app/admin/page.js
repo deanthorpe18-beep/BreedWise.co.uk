@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
+import AdminLicencePanel from "@components/AdminLicencePanel";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -160,6 +161,7 @@ export default function AdminPage() {
     { id: "tiers", label: "Tiers", icon: CreditCard },
     { id: "cms", label: "Editor", icon: Pencil },
     { id: "outreach", label: "Outreach", icon: Mail },
+    { id: "licences", label: "Licences", icon: Shield },
     { id: "newsletter", label: "Newsletter", icon: Mail },
     { id: "admins", label: "Admins", icon: Users },
   ];
@@ -2483,6 +2485,10 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
+            )}
+
+            {activeTab === "licences" && (
+              <AdminLicencePanel />
             )}
 
             {activeTab === "newsletter" && (

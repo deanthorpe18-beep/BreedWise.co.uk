@@ -28,7 +28,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "breeder_slug and action_type required" }, { status: 400 });
     }
 
-    const validActions = ["call", "website", "save", "claim", "email", "directions", "search_impression"];
+    const validActions = ["call", "website", "save", "claim", "email", "directions", "search_impression", "share"];
     if (!validActions.includes(action_type)) {
       return NextResponse.json({ error: "Invalid action_type" }, { status: 400 });
     }

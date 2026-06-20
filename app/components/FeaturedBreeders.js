@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Crown, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
 
-export default function FeaturedBreeders() {
+export default function FeaturedBreeders({ page = "home", compact = false }) {
   const [breeders, setBreeders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rotateTick, setRotateTick] = useState(0);
@@ -12,7 +12,7 @@ export default function FeaturedBreeders() {
   useEffect(() => {
     async function fetchFeatured() {
       try {
-        const res = await fetch("/api/featured-breeders?page=home");
+        const res = await fetch(`/api/featured-breeders?page=${encodeURIComponent(page)}`);
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         setBreeders(data.breeders || []);
@@ -51,6 +51,38 @@ export default function FeaturedBreeders() {
   }
 
   if (breeders.length === 0) return null;
+
+  if (compact) {
+    return (
+      <div className="rounded-2xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-white p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Crown className="h-4 w-4 text-amber-500" />
+          <p className="text-sm font-bold text-slate-900">Featured Gold breeders</p>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {breeders.slice(0, 4).map((breeder) => (
+            <Link
+              key={breeder.id}
+              href={`/breeder/${breeder.slug}`}
+              className="flex min-w-[140px] shrink-0 flex-col rounded-xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition"
+            >
+              <div className="aspect-[4/3] bg-slate-100">
+                {breeder.hero_image_url ? (
+                  <img src={breeder.hero_image_url} alt={breeder.name} className="h-full w-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="flex h-full items-center justify-center"><ImageIcon className="h-6 w-6 text-slate-300" /></div>
+                )}
+              </div>
+              <div className="p-2">
+                <p className="text-xs font-bold text-slate-900 truncate">{breeder.name}</p>
+                <p className="text-[10px] text-slate-500 truncate">{breeder.town}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50/50 via-white to-[#E6FFFB]/30 p-6 shadow-sm">

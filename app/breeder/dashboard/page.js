@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
 import TierUpgradeCards from "@components/TierUpgradeCards";
+import LicenceUploadSection from "@components/LicenceUploadSection";
 import {
   Eye, MousePointer, Phone, Heart, Search, MessageCircle, Loader2, TrendingUp, Calendar,
   Dog, Cat, Bird, Fish, PawPrint, X, ChevronDown, Save, Pencil, Upload, Trash2, Camera, Globe, Award, Shield, FileText, ExternalLink, Mail
@@ -365,6 +366,12 @@ export default function BreederDashboardPage() {
               <label className="block text-sm font-semibold text-slate-700">Council Licence</label>
               <input value={profileForm.council_licence} onChange={(e) => setProfileForm((p) => ({ ...p, council_licence: e.target.value }))} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#00BFA5]" placeholder="Licence number" />
             </div>
+            <LicenceUploadSection
+              licenceNumber={profileForm.council_licence}
+              verificationStatus={profile?.licenceVerificationStatus}
+              licenceVerified={profile?.licenceVerified}
+              onNumberChange={(v) => setProfileForm((p) => ({ ...p, council_licence: v }))}
+            />
             <div className="sm:col-span-2">
               <label className="block text-sm font-semibold text-slate-700">Health Testing</label>
               <input value={profileForm.health_testing} onChange={(e) => setProfileForm((p) => ({ ...p, health_testing: e.target.value }))} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#00BFA5]" placeholder="Health tests performed" />

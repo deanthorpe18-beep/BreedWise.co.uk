@@ -2,6 +2,8 @@ import SearchResults from "@components/SearchResults";
 import SearchForm from "@components/SearchForm";
 import SearchQuickFilters from "@components/SearchQuickFilters";
 import CompareBar from "@components/CompareBar";
+import SaveSearchAlert from "@components/SaveSearchAlert";
+import FeaturedBreeders from "@components/FeaturedBreeders";
 import PageViewTracker from "@components/PageViewTracker";
 import SearchAnalyticsTracker from "@components/SearchAnalyticsTracker";
 import RecentSearches from "@components/RecentSearches";
@@ -47,6 +49,8 @@ export default async function SearchPage({ searchParams }) {
   const availableOnly = searchParams?.available === "1";
   const licensedOnly = searchParams?.licensed === "1";
   const kcOnly = searchParams?.kc === "1";
+  const verifiedOnly = searchParams?.verified === "1";
+
   const healthOnly = searchParams?.health === "1";
 
   const hasSearchCriteria = !!(breeds.length > 0 || query.trim() || userLat || animal);
@@ -69,6 +73,7 @@ export default async function SearchPage({ searchParams }) {
       licensedOnly,
       kcOnly,
       healthOnly,
+      verifiedLicenceOnly: verifiedOnly,
     });
     breeders = result.breeders;
     totalCount = result.totalCount;
@@ -120,10 +125,17 @@ export default async function SearchPage({ searchParams }) {
         </div>
 
         {hasSearchCriteria && (
-          <div className="mt-6">
+          <div className="mt-6 space-y-4">
+            <FeaturedBreeders page="search" compact />
             <Suspense fallback={null}>
               <SearchQuickFilters />
             </Suspense>
+            <SaveSearchAlert
+              query={query}
+              breed={breeds.join(", ")}
+              animal={animal}
+              hasResults={totalCount > 0}
+            />
           </div>
         )}
 
@@ -177,6 +189,7 @@ export default async function SearchPage({ searchParams }) {
               licensedOnly={licensedOnly}
               kcOnly={kcOnly}
               healthOnly={healthOnly}
+              verifiedOnly={verifiedOnly}
             />
           )}
 

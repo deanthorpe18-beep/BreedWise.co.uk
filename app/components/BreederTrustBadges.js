@@ -5,8 +5,10 @@ export default function BreederTrustBadges({ breeder, size = "sm" }) {
   if (breeder.status === "claimed_profile") {
     badges.push({ key: "claimed", label: "Claimed", icon: CheckCircle, className: "bg-[#E6FFFB] text-[#00BFA5]" });
   }
-  if (breeder.council_licence?.trim()) {
-    badges.push({ key: "licence", label: "Council licensed", icon: Shield, className: "bg-blue-50 text-blue-700" });
+  if (breeder.licence_verified) {
+    badges.push({ key: "licence", label: "Verified council licensed", icon: Shield, className: "bg-blue-600 text-white ring-2 ring-blue-200" });
+  } else if (breeder.council_licence?.trim()) {
+    badges.push({ key: "licence", label: "Licence listed", icon: Shield, className: "bg-blue-50 text-blue-700" });
   }
   if (breeder.kennel_club?.trim()) {
     badges.push({ key: "kc", label: "KC registered", icon: Award, className: "bg-amber-50 text-amber-700" });

@@ -6,6 +6,7 @@ import { Calendar, Shield, Award, Heart, GitCompare } from "lucide-react";
 
 const FILTERS = [
   { key: "available", label: "Available now", icon: Calendar },
+  { key: "verified", label: "Verified licensed", icon: Shield },
   { key: "licensed", label: "Council licensed", icon: Shield },
   { key: "kc", label: "KC registered", icon: Award },
   { key: "health", label: "Health tested", icon: Heart },

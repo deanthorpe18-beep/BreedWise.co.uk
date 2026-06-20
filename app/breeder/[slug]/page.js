@@ -171,7 +171,7 @@ export default async function BreederProfilePage({ params }) {
                         </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
-                        <SocialShare url={`https://breedwise.co.uk/breeder/${slug}`} title={breeder.name} />
+                        <SocialShare url={`https://breedwise.co.uk/breeder/${slug}`} title={breeder.name} breederSlug={slug} />
                         {breeder.status === "claimed_profile" && (
                           <MessageBreederButton breederId={breeder.id} breederName={breeder.name} />
                         )}

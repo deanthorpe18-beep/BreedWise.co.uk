@@ -36,7 +36,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { name, query, breed, max_distance, sort_by, notify_new } = body;
+        const { name, query, breed, animal, max_distance, sort_by, notify_new } = body;
 
         if (!name) {
             return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -49,6 +49,7 @@ export async function POST(request) {
                 name,
                 query: query || null,
                 breed: breed || null,
+                animal: animal || null,
                 max_distance: max_distance || null,
                 sort_by: sort_by || "relevance",
                 notify_new: notify_new ?? false,

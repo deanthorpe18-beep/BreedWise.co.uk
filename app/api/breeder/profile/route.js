@@ -103,6 +103,7 @@ export async function GET() {
       .select(`
         id, name, slug, about, phone, email, website,
         kennel_club, council_licence, health_testing,
+        licence_verified, licence_verification_status,
         status, membership_tier, claimed, availability_status,
         breeder_breeds(breed, animal_type),
         breeder_photos(*)
@@ -133,6 +134,8 @@ export async function GET() {
         website: breeder.website || "",
         kennelClub: breeder.kennel_club || "",
         councilLicence: breeder.council_licence || "",
+        licenceVerified: breeder.licence_verified || false,
+        licenceVerificationStatus: breeder.licence_verification_status || "none",
         healthTesting: breeder.health_testing || "",
         status: breeder.status,
         membershipTier: breeder.membership_tier,

@@ -34,7 +34,7 @@ function applyFilters(breeders, filters) {
 export default function SearchResults({
   breeders, query, breed, animal, sortBy, userLat, userLng,
   currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 24,
-  availableOnly = false, licensedOnly = false, kcOnly = false, healthOnly = false,
+  availableOnly = false, licensedOnly = false, kcOnly = false, healthOnly = false, verifiedOnly = false,
 }) {
   const [mapView, setMapView] = useState(false);
   const [filters, setFilters] = useState({ maxDistance: 50 });
@@ -80,6 +80,7 @@ export default function SearchResults({
     if (licensedOnly) params.set("licensed", "1");
     if (kcOnly) params.set("kc", "1");
     if (healthOnly) params.set("health", "1");
+    if (verifiedOnly) params.set("verified", "1");
     params.set("page", String(pageNum));
     return `/search?${params.toString()}`;
   };
@@ -170,7 +171,8 @@ function TrustScore({ breeder }) {
   let score = 0;
   if (breeder.status === "claimed_profile") score += 30;
   if (breeder.kennel_club) score += 20;
-  if (breeder.council_licence) score += 20;
+  if (breeder.licence_verified) score += 25;
+  else if (breeder.council_licence) score += 15;
   if (breeder.health_testing) score += 15;
   if (breeder.google_rating && breeder.google_rating >= 4.0) score += 10;
   if ((breeder.breeder_photos?.length || breeder.photos?.length || 0) > 0) score += 5;
