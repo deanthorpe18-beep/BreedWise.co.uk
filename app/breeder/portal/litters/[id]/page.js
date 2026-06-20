@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, ArrowLeft, FileText } from "lucide-react";
+import { Loader2, ArrowLeft, FileText, Megaphone } from "lucide-react";
 import PupSalePanel from "../../PupSalePanel";
 
 const STATUS_OPTIONS = [
@@ -19,6 +19,9 @@ export default function PortalLitterDetailPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingId, setSavingId] = useState(null);
+  const [publishMsg, setPublishMsg] = useState("");
+  const [publishing, setPublishing] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
 
   const load = () => {
     fetch(`/api/breeder/portal/litters/${params.id}`)
@@ -28,6 +31,7 @@ export default function PortalLitterDetailPage({ params }) {
         else {
           setLitter(d.litter);
           setAccess(d.access || null);
+          setAnnouncement(d.litter?.announcement_text || "");
         }
         setLoading(false);
       })
@@ -60,6 +64,33 @@ export default function PortalLitterDetailPage({ params }) {
       ...prev,
       pups: (prev.pups || []).map((p) => (p.id === updatedPup.id ? updatedPup : p)),
     }));
+  };
+
+  const publishLitter = async (makePublic) => {
+    setPublishing(true);
+    setPublishMsg("");
+    setError("");
+    const res = await fetch(`/api/breeder/portal/litters/${params.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        is_public: makePublic,
+        announcement_text: announcement.trim() || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) setError(data.error || "Could not update.");
+    else {
+      setLitter(data.litter);
+      if (makePublic && data.alerts?.emailsSent > 0) {
+        setPublishMsg(`Published on your profile — ${data.alerts.emailsSent} email alert(s) sent.`);
+      } else if (makePublic) {
+        setPublishMsg("Published on your public profile.");
+      } else {
+        setPublishMsg("Removed from public profile.");
+      }
+    }
+    setPublishing(false);
   };
 
   if (loading) {
@@ -124,6 +155,50 @@ export default function PortalLitterDetailPage({ params }) {
             </p>
           )}
         </div>
+      </div>
+
+      <div className="rounded-3xl border border-[#00BFA5]/20 bg-[#E6FFFB]/40 p-6">
+        <div className="flex items-center gap-2">
+          <Megaphone className="h-5 w-5 text-[#00BFA5]" />
+          <h3 className="text-lg font-bold text-slate-900">Announce on your profile</h3>
+        </div>
+        <p className="mt-1 text-sm text-slate-600">
+          Show this litter on your public BreedWise profile. Wait list subscribers and litter alert users will be emailed when you publish.
+        </p>
+        <label className="mt-4 block text-sm">
+          <span className="font-medium text-slate-700">Announcement message (optional)</span>
+          <textarea
+            value={announcement}
+            onChange={(e) => setAnnouncement(e.target.value)}
+            rows={2}
+            placeholder="e.g. 3 Labrador pups available — ready mid July"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
+          />
+        </label>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={publishing}
+            onClick={() => publishLitter(true)}
+            className="rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00a98e] disabled:opacity-50"
+          >
+            {publishing ? "Saving…" : litter.is_public ? "Update public listing" : "Publish on profile"}
+          </button>
+          {litter.is_public && (
+            <button
+              type="button"
+              disabled={publishing}
+              onClick={() => publishLitter(false)}
+              className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Remove from profile
+            </button>
+          )}
+        </div>
+        {litter.is_public && (
+          <p className="mt-2 text-xs font-semibold text-[#008f7a]">Live on your public profile</p>
+        )}
+        {publishMsg && <p className="mt-2 text-sm text-[#008f7a]">{publishMsg}</p>}
       </div>
 
       <div>

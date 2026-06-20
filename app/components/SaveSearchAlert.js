@@ -4,10 +4,10 @@ import { useState } from "react";
 import { Bell, Loader2, CheckCircle } from "lucide-react";
 
 export default function SaveSearchAlert({ query, breed, animal, hasResults }) {
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [notifyLitters, setNotifyLitters] = useState(true);
 
   if (!query && !breed && !animal) return null;
 
@@ -25,6 +25,7 @@ export default function SaveSearchAlert({ query, breed, animal, hasResults }) {
           breed: breed || null,
           animal: animal || null,
           notify_new: true,
+          notify_litters: notifyLitters,
         }),
       });
       const data = await res.json();
@@ -34,7 +35,6 @@ export default function SaveSearchAlert({ query, breed, animal, hasResults }) {
       }
       if (!res.ok) throw new Error(data.error || "Failed to save");
       setDone(true);
-      setOpen(false);
     } catch (e) {
       setError(e.message);
     }
@@ -45,7 +45,7 @@ export default function SaveSearchAlert({ query, breed, animal, hasResults }) {
     return (
       <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
         <CheckCircle className="h-4 w-4 shrink-0" />
-        Alert saved — we&apos;ll email you when new breeders match this search.
+        Alert saved — we&apos;ll email you about new breeders{notifyLitters ? " and announced litters" : ""} matching this search.
       </div>
     );
   }
@@ -59,11 +59,20 @@ export default function SaveSearchAlert({ query, breed, animal, hasResults }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900">
-              {hasResults ? "Get notified about new listings" : "No matches yet — get alerted"}
+              {hasResults ? "Get email alerts" : "No matches yet — get alerted"}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              We&apos;ll email you when new breeders match{breed ? ` ${breed}` : ""}{query ? ` near ${query}` : ""}.
+              New breeders matching{breed ? ` ${breed}` : ""}{query ? ` near ${query}` : ""}.
             </p>
+            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notifyLitters}
+                onChange={(e) => setNotifyLitters(e.target.checked)}
+                className="rounded border-slate-300 text-[#00BFA5]"
+              />
+              Also alert me when matching litters are announced
+            </label>
           </div>
         </div>
         <button

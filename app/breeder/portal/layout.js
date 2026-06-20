@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Dog, Baby, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Dog, Baby, ArrowLeft, Users } from "lucide-react";
 
 const NAV = [
   { href: "/breeder/portal", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/breeder/portal/animals", label: "Breeding stock", icon: Dog },
   { href: "/breeder/portal/litters", label: "Litters", icon: Baby },
+  { href: "/breeder/portal/waitlist", label: "Wait list", icon: Users },
 ];
 
 export default function BreederPortalLayout({ children }) {

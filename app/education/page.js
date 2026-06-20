@@ -11,6 +11,12 @@ export const metadata = baseMetadata({
 
 const guides = [
   {
+    slug: "choosing-a-breeder",
+    title: "How to choose a reputable breeder",
+    description: "Step-by-step guide — licences, visits, paperwork, and using BreedWise to compare properly.",
+    icon: ShieldCheck,
+  },
+  {
     slug: "what-to-ask",
     title: "What to ask a breeder",
     description: "Key questions about health testing, parent dogs, socialisation, and aftercare before you make contact.",

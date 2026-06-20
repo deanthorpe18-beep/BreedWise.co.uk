@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award, Dog, Calendar, CheckCircle, Shield } from "lucide-react";
 import JustClaimedBadge from "@components/JustClaimedBadge";
 import { isJustClaimed } from "@lib/breeder-utils";
@@ -12,6 +12,8 @@ import SocialShare from "@components/SocialShare";
 import Breadcrumbs from "@components/Breadcrumbs";
 import BreederProfileOwnerPanel from "@components/BreederProfileOwnerPanel";
 import BreederTrustBadges from "@components/BreederTrustBadges";
+import BreederPublicLitters from "@components/BreederPublicLitters";
+import BreederWaitlistJoin from "@components/BreederWaitlistJoin";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { getBreederHeroUrl } from "@/lib/breeder-images";
@@ -116,6 +118,16 @@ export default async function BreederProfilePage({ params }) {
     const heroUrl = getBreederHeroUrl(breeder);
     const hasHeroImage = !!heroUrl;
     const justClaimed = isJustClaimed(breeder.claimed_at);
+
+    let publicLitters = [];
+    const adminClient = createAdminClient();
+    const { data: litters } = await adminClient
+      .from("breeding_litters")
+      .select("id, litter_name, breed, animal_type, birth_date, expected_go_home_date, total_born, announcement_text, pups:breeding_litter_animals(status)")
+      .eq("breeder_id", breeder.id)
+      .eq("is_public", true)
+      .order("birth_date", { ascending: false, nullsFirst: false });
+    publicLitters = litters || [];
 
     const structuredData = [
         localBusinessSchema({
@@ -236,6 +248,10 @@ export default async function BreederProfilePage({ params }) {
 
                 {/* Trust Score */}
                 <TrustScoreSection breeder={breeder} />
+
+                <BreederPublicLitters litters={publicLitters} breederName={breeder.name} />
+
+                <BreederWaitlistJoin breederSlug={slug} breederName={breeder.name} breeds={breeds} />
 
                 {/* Google Rating */}
                 <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">

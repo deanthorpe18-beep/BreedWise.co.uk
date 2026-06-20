@@ -119,15 +119,18 @@ export default async function SearchPage({ searchParams }) {
         </div>
 
         <div className="mt-4">
+          <Suspense fallback={null}>
+            <SearchQuickFilters />
+          </Suspense>
+        </div>
+
+        <div className="mt-4">
           <RecentSearches />
         </div>
 
         {hasSearchCriteria && (
           <div className="mt-6 space-y-4">
             <FeaturedBreeders page="search" compact />
-            <Suspense fallback={null}>
-              <SearchQuickFilters />
-            </Suspense>
             <SaveSearchAlert
               query={query}
               breed={breeds.join(", ")}
@@ -151,8 +154,14 @@ export default async function SearchPage({ searchParams }) {
                 <Link href="/near-me" className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#00a98e]">
                   <MapPin className="h-4 w-4" /> Find breeders near me
                 </Link>
+                <Link href="/search?licensed=1" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5]">
+                  Council licensed only
+                </Link>
                 <Link href="/account/compare" className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-100">
                   Compare saved breeders
+                </Link>
+                <Link href="/education/choosing-a-breeder" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5]">
+                  How to choose a breeder
                 </Link>
               </div>
               <div className="mt-4 flex flex-wrap justify-center gap-3">

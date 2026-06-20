@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireBreederPortal, buildPortalAccessResponse, getPortalUsage } from "@/lib/breeder-auth";
+import { notifyLitterPublished } from "@/lib/litter-alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,24 @@ export async function PATCH(request, { params }) {
 
   const body = await request.json();
   const updates = { updated_at: new Date().toISOString() };
-  const fields = ["sire_id", "dam_id", "breed", "animal_type", "litter_name", "birth_date", "expected_go_home_date", "total_born", "notes", "status"];
+  const fields = [
+    "sire_id", "dam_id", "breed", "animal_type", "litter_name", "birth_date",
+    "expected_go_home_date", "total_born", "notes", "status", "is_public", "announcement_text",
+  ];
+
+  const { data: before } = await auth.adminClient
+    .from("breeding_litters")
+    .select("is_public, announced_at")
+    .eq("id", params.id)
+    .eq("breeder_id", auth.breederId)
+    .maybeSingle();
+
   for (const f of fields) {
     if (body[f] !== undefined) updates[f] = body[f];
+  }
+
+  if (body.is_public === false) {
+    updates.announced_at = null;
   }
 
   const { data, error } = await auth.adminClient
@@ -63,7 +79,13 @@ export async function PATCH(request, { params }) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  return NextResponse.json({ litter: data });
+
+  let alertResult = null;
+  if (data.is_public && !before?.is_public && !data.announced_at) {
+    alertResult = await notifyLitterPublished(auth.adminClient, data.id);
+  }
+
+  return NextResponse.json({ litter: data, alerts: alertResult });
 }
 
 export async function DELETE(_request, { params }) {

@@ -36,7 +36,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { name, query, breed, animal, max_distance, sort_by, notify_new } = body;
+        const { name, query, breed, animal, max_distance, sort_by, notify_new, notify_litters } = body;
 
         if (!name) {
             return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -53,6 +53,7 @@ export async function POST(request) {
                 max_distance: max_distance || null,
                 sort_by: sort_by || "relevance",
                 notify_new: notify_new ?? false,
+                notify_litters: notify_litters ?? false,
             })
             .select()
             .single();

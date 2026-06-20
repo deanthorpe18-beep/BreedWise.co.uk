@@ -36,6 +36,7 @@ export async function GET() {
     "/listing-policy",
     "/data-sources",
     "/corrections-removals",
+    "/education/choosing-a-breeder",
     "/education/what-to-ask",
     "/education/red-flags",
     "/education/how-to-compare",
