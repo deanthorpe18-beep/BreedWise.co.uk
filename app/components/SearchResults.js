@@ -23,7 +23,7 @@ function applyFilters(breeders, filters) {
 }
 
 export default function SearchResults({
-  breeders, query, breed, sortBy, userLat, userLng,
+  breeders, query, breed, animal, sortBy, userLat, userLng,
   currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 24,
 }) {
   const [mapView, setMapView] = useState(false);
@@ -62,6 +62,7 @@ export default function SearchResults({
     const params = new URLSearchParams();
     if (query && query !== "My location") params.set("q", query);
     if (breed) params.set("breed", breed);
+    if (animal) params.set("animal", animal);
     if (userLat) params.set("userLat", userLat);
     if (userLng) params.set("userLng", userLng);
     if (sortBy && sortBy !== "relevance") params.set("sort", sortBy);
@@ -76,9 +77,9 @@ export default function SearchResults({
     <section className="space-y-6">
       <SearchFilters onFiltersChange={handleFiltersChange} breeders={breeders} />
 
-      <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-3xl border border-[#00BFA5]/15 bg-gradient-to-r from-white to-[#E6FFFB]/40 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Results</p>
+          <p className="text-sm uppercase tracking-[0.24em] text-[#00BFA5]">Results</p>
           <h2 className="text-2xl font-semibold text-slate-900">{totalCount} breeders found</h2>
           <p className="text-sm text-slate-500">
             {totalCount > 0 ? `Showing ${startIndex}–${endIndex} of ${totalCount}` : "No results"}

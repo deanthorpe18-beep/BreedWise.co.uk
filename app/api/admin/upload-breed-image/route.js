@@ -43,7 +43,7 @@ export async function POST(request) {
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await adminClient.storage
       .from("breed-images")
-      .upload(fileName, file, { contentType: file.type });
+      .upload(fileName, file, { contentType: file.type, upsert: true });
 
     if (uploadError) {
       console.error("[upload-breed-image] Storage error:", uploadError.message);
@@ -60,7 +60,7 @@ export async function POST(request) {
     // Update breed record
     const { error: updateError } = await adminClient
       .from("breeds")
-      .update({ image_url: publicUrl })
+      .update({ image_url: publicUrl, image_reviewed: true })
       .eq("id", breedId);
 
     if (updateError) {

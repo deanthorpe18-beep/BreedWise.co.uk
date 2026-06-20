@@ -80,12 +80,15 @@ export default async function SearchPage({ searchParams }) {
         />
       )}
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8">
-        <div className="space-y-2">
-          <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Search breeders</p>
-          <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Find breeders by town, postcode, or breed</h1>
-          <p className="max-w-3xl text-sm leading-6 text-slate-600">
-            Browse public breeder listings across the UK. Compare available information before reaching out. BreedWise does not endorse or vet breeders.
-          </p>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0] p-8 sm:p-10 shadow-sm border border-[#00BFA5]/10">
+          <div className="relative space-y-3">
+            <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#00BFA5]">Find your next companion</p>
+            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl lg:text-5xl">UK pet breeders, all in one place</h1>
+            <p className="max-w-3xl text-base leading-7 text-slate-600">
+              Dogs, cats, birds, fish, reptiles and small pets — search by breed and location, compare listings, and contact breeders directly.
+            </p>
+          </div>
+          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#00BFA5]/10 blur-2xl" />
         </div>
 
         <div className="mt-8">

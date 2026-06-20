@@ -12,6 +12,8 @@ import {
   CreditCard, Pencil, Dog, RefreshCw, GripVertical, ChevronDown, MoreHorizontal
 } from "lucide-react";
 
+import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading: loadingUser } = useAuth();
@@ -132,6 +134,7 @@ export default function AdminPage() {
   const [breedImageAnimalFilter, setBreedImageAnimalFilter] = useState("");
   const [uploadingBreedId, setUploadingBreedId] = useState(null);
   const [uploadBreedMsg, setUploadBreedMsg] = useState("");
+  const [breedImagePendingOnly, setBreedImagePendingOnly] = useState(false);
 
   // Outreach state
   const [outreachBreeders, setOutreachBreeders] = useState([]);
@@ -157,6 +160,7 @@ export default function AdminPage() {
     { id: "tiers", label: "Tiers", icon: CreditCard },
     { id: "cms", label: "Editor", icon: Pencil },
     { id: "outreach", label: "Outreach", icon: Mail },
+    { id: "newsletter", label: "Newsletter", icon: Mail },
     { id: "admins", label: "Admins", icon: Users },
   ];
 
@@ -788,7 +792,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok) {
         setBreedImageList((prev) =>
-          prev.map((b) => (b.id === breedId ? { ...b, image_url: data.url } : b))
+          prev.map((b) => (b.id === breedId ? { ...b, image_url: data.url, image_reviewed: true } : b))
         );
         setUploadBreedMsg("Image uploaded successfully.");
         setTimeout(() => setUploadBreedMsg(""), 3000);
@@ -799,6 +803,26 @@ export default function AdminPage() {
       setUploadBreedMsg(err.message || "Network error.");
     } finally {
       setUploadingBreedId(null);
+    }
+  };
+
+  const toggleBreedImageReviewed = async (breedId, image_reviewed) => {
+    try {
+      const res = await fetch(`/api/admin/breed-images/${breedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_reviewed }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBreedImageList((prev) =>
+          prev.map((b) => (b.id === breedId ? { ...b, image_reviewed } : b))
+        );
+      } else {
+        setUploadBreedMsg(data.error || "Update failed.");
+      }
+    } catch (err) {
+      setUploadBreedMsg(err.message || "Update failed.");
     }
   };
 
@@ -1950,6 +1974,15 @@ export default function AdminPage() {
                       <option value="reptile">Reptiles</option>
                       <option value="small-pet">Small Pets</option>
                     </select>
+                    <label className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm cursor-pointer hover:bg-slate-50">
+                      <input
+                        type="checkbox"
+                        checked={breedImagePendingOnly}
+                        onChange={(e) => setBreedImagePendingOnly(e.target.checked)}
+                        className="rounded border-slate-300 text-[#00BFA5] focus:ring-[#00BFA5]"
+                      />
+                      Needs review only
+                    </label>
                   </div>
 
                   {uploadBreedMsg && (
@@ -1966,8 +1999,9 @@ export default function AdminPage() {
                     <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {breedImageList
                         .filter((b) => !breedImageAnimalFilter || b.animal_type === breedImageAnimalFilter)
+                        .filter((b) => !breedImagePendingOnly || !b.image_reviewed)
                         .map((breed) => (
-                          <div key={breed.id} className="rounded-xl border border-slate-200 p-3">
+                          <div key={breed.id} className={`rounded-xl border p-3 ${breed.image_reviewed ? "border-green-200 bg-green-50/30" : "border-slate-200"}`}>
                             <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
                               {breed.image_url ? (
                                 <img src={breed.image_url} alt={breed.name} className="h-full w-full object-cover" />
@@ -1982,6 +2016,15 @@ export default function AdminPage() {
                             </div>
                             <p className="mt-2 text-sm font-semibold text-slate-900 truncate">{breed.name}</p>
                             <p className="text-xs text-slate-500 capitalize">{breed.animal_type}</p>
+                            <label className="mt-2 flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+                              <input
+                                type="checkbox"
+                                checked={!!breed.image_reviewed}
+                                onChange={(e) => toggleBreedImageReviewed(breed.id, e.target.checked)}
+                                className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                              />
+                              Image reviewed
+                            </label>
                             <label className="mt-2 block cursor-pointer">
                               <input
                                 type="file"
@@ -2440,6 +2483,10 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
+            )}
+
+            {activeTab === "newsletter" && (
+              <AdminNewsletterPanel />
             )}
 
             {/* Admins */}

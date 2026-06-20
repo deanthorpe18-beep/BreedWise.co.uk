@@ -14,7 +14,7 @@ export async function GET() {
     const adminClient = createAdminClient();
     const { data, error } = await adminClient
       .from("breeds")
-      .select("id, name, slug, animal_type, image_url")
+      .select("id, name, slug, animal_type, image_url, image_reviewed")
       .order("animal_type", { ascending: true })
       .order("name", { ascending: true });
 

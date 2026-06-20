@@ -130,7 +130,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">Two journeys, one platform</h2>
-            <p className="mt-4 text-slate-600">Whether you are looking for a puppy or managing your breeding business, we have got you covered.</p>
+            <p className="mt-4 text-slate-600">Whether you are looking for a new pet or managing your breeding business, we have got you covered.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -178,7 +178,7 @@ export default function HomePage() {
             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F0]">
-                  <Dog className="h-6 w-6 text-[#FF6B6B]" />
+                  <PawPrint className="h-6 w-6 text-[#FF6B6B]" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">For Breeders</h3>
@@ -337,7 +337,7 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
             <div className="flex items-start gap-3">
               <Shield className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
-              <p>BreedWise is a directory only. We do not sell puppies or endorse breeders.</p>
+              <p>BreedWise is a directory only. We do not sell animals or endorse breeders.</p>
             </div>
             <div className="flex items-start gap-3">
               <Search className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />

@@ -10,7 +10,7 @@ import GoogleReviews from "@components/GoogleReviews";
 import BreederPhotos from "@components/BreederPhotos";
 import SocialShare from "@components/SocialShare";
 import Breadcrumbs from "@components/Breadcrumbs";
-import ProfileTracker, { TrackedLink } from "@components/ProfileTracker";
+import BreederProfileOwnerPanel from "@components/BreederProfileOwnerPanel";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -190,6 +190,12 @@ export default async function BreederProfilePage({ params }) {
                     breederName={breeder.name}
                     variant="banner"
                     isClaimed={breeder.status === "claimed_profile"}
+                />
+
+                <BreederProfileOwnerPanel
+                    breederId={breeder.id}
+                    breederSlug={slug}
+                    membershipTier={breeder.membership_tier}
                 />
 
                 {/* Hero Image */}

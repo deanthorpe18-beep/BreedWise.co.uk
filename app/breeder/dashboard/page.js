@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
+import TierUpgradeCards from "@components/TierUpgradeCards";
 import {
   Eye, MousePointer, Phone, Heart, Search, MessageCircle, Loader2, TrendingUp, Calendar,
   Dog, Cat, Bird, Fish, PawPrint, X, ChevronDown, Save, Pencil, Upload, Trash2, Camera, Globe, Award, Shield, FileText, ExternalLink, Mail
@@ -284,53 +285,14 @@ export default function BreederDashboardPage() {
         ))}
       </div>
 
-      {/* Upgrade CTA for Free plan */}
-      {profile?.membershipTier === "free" && (
-        <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-amber-800">You are on the Free Plan</h3>
-              <p className="mt-1 text-sm text-amber-700">
-                Upgrade to unlock more features and stand out to potential buyers.
-              </p>
-
-              {/* Tier comparison table */}
-              <div className="mt-4 overflow-hidden rounded-2xl border border-amber-200/60 bg-white">
-                <div className="grid grid-cols-4 text-center">
-                  <div className="border-b border-r border-amber-100 p-2.5 text-xs font-bold text-slate-500 bg-amber-50/50">Feature</div>
-                  <div className="border-b border-r border-amber-100 p-2.5 text-xs font-bold text-[#00BFA5] bg-[#E6FFFB]/40">Free</div>
-                  <div className="border-b border-r border-amber-100 p-2.5 text-xs font-bold text-orange-600 bg-orange-50/40">Bronze</div>
-                  <div className="border-b border-amber-100 p-2.5 text-xs font-bold text-amber-600 bg-amber-50/40">Silver</div>
-                </div>
-                {[
-                  { label: "Photos", free: "3", bronze: "5", silver: "10" },
-                  { label: "Profile listing", free: "✓", bronze: "✓", silver: "✓" },
-                  { label: "Messaging", free: "✓", bronze: "✓", silver: "✓" },
-                  { label: "Verified badge", free: "—", bronze: "✓", silver: "✓" },
-                  { label: "Priority placement", free: "—", bronze: "—", silver: "✓" },
-                  { label: "Featured slots", free: "—", bronze: "—", silver: "✓" },
-                ].map((row, i) => (
-                  <div key={row.label} className={`grid grid-cols-4 text-center text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-amber-50/20'}`}>
-                    <div className="border-b border-r border-amber-100 p-2 text-slate-600 font-medium">{row.label}</div>
-                    <div className="border-b border-r border-amber-100 p-2 text-slate-700">{row.free}</div>
-                    <div className="border-b border-r border-amber-100 p-2 text-slate-700">{row.bronze}</div>
-                    <div className="border-b border-amber-100 p-2 text-slate-700">{row.silver}</div>
-                  </div>
-                ))}
-                <div className="grid grid-cols-4 text-center">
-                  <div className="border-r border-amber-100 p-2.5 text-xs font-bold text-slate-500 bg-amber-50/50">Feature</div>
-                  <div className="col-span-3 p-2.5 text-xs font-bold text-amber-700 bg-amber-50/40">Gold — Everything in Silver + unlimited photos + homepage featured spot</div>
-                </div>
-              </div>
-            </div>
-            <Link
-              href="/account/settings"
-              className="inline-flex items-center gap-2 rounded-3xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 transition shrink-0 self-center"
-            >
-              <Award className="h-4 w-4" />
-              Upgrade plan
-            </Link>
-          </div>
+      {/* Membership & upgrade */}
+      {(profile?.membershipTier === "free" || profile?.membershipTier === "unclaimed" || !profile?.membershipTier) && profile?.id && (
+        <div className="mt-8">
+          <TierUpgradeCards
+            breederId={profile.id}
+            breederSlug={profile.slug}
+            currentTier={profile.membershipTier || "free"}
+          />
         </div>
       )}
 
