@@ -37,7 +37,7 @@ export default function HomePage() {
               </h1>
               
               <p className="max-w-xl text-lg leading-8 text-slate-600">
-                Compare pet breeder listings across the UK. Read reviews, filter by animal type, breed and location, and find the right breeder for your family.
+                Whether you&apos;re looking for a puppy, kitten, or something more exotic — compare UK breeder listings in one place. Take your time, read reviews, and find someone who feels right for your family.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -92,6 +92,22 @@ export default function HomePage() {
       {/* Social proof + trending + locations (live from DB) */}
       <HomeDynamicContent />
 
+      {/* Personal story */}
+      <section className="border-y border-[#00BFA5]/10 bg-gradient-to-r from-[#FFF9F6] via-white to-[#E6FFFB]">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#FF6B6B]">Built in the UK, for UK pet lovers</p>
+            <h2 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">Finding a breeder shouldn&apos;t feel overwhelming</h2>
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              We started BreedWise because searching for a pet often means jumping between Facebook groups,
+              classified sites, and half-finished listings with no easy way to compare. We bring public breeder
+              information into one calm, searchable place — so you can take your time, ask good questions,
+              and feel confident before you reach out. We&apos;re an independent directory — not a marketplace — and we never sell animals ourselves.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
         <div className="mb-4 text-center">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-600">Gold members</p>
@@ -105,9 +121,9 @@ export default function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
         <div className="text-center mb-12">
           <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#00BFA5]">Why BreedWise</span>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">Everything you need to find a breeder</h2>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">Everything you need to find the right breeder</h2>
           <p className="mt-4 max-w-2xl mx-auto text-slate-600">
-            We make it easier to compare breeders, save your favourites, and make informed decisions.
+            No pressure, no sales pitch — just tools to help you compare, save favourites, and make a decision you feel good about.
           </p>
         </div>
 
@@ -117,7 +133,7 @@ export default function HomePage() {
             { icon: Heart, title: "Save Favourites", desc: "Create an account to save breeders and compare them later." },
             { icon: Star, title: "Real Reviews", desc: "See Google ratings and review counts for transparent comparison." },
             { icon: MessageCircle, title: "Message Breeders", desc: "Contact breeders directly through our secure messaging system." },
-            { icon: Shield, title: "Claimed Profiles", desc: "Breeders can claim profiles with evidence for added transparency." },
+            { icon: Shield, title: "Verified Listings", desc: "Look for verified badges, licence info, and health testing details on breeder profiles." },
             { icon: Award, title: "Buyer Guides", desc: "Learn what to ask, red flags to watch for, and how to stay safe." },
           ].map((benefit) => (
             <div key={benefit.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
@@ -132,11 +148,11 @@ export default function HomePage() {
       </section>
 
       {/* Dual Journey Section */}
-      <section className="bg-[#F1F4F6]">
+      <section className="bg-gradient-to-b from-[#F1F4F6] to-[#FFF9F6]">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">Two journeys, one platform</h2>
-            <p className="mt-4 text-slate-600">Whether you are looking for a new pet or managing your breeding business, we have got you covered.</p>
+            <p className="mt-4 text-slate-600">Whether you&apos;re welcoming a new pet or growing your breeding business — we&apos;re here to help both sides connect with clarity.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -246,7 +262,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-start gap-3">
               <Award className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
-              <p>Claimed profiles show transparency badges for added clarity.</p>
+              <p>Verified breeders can display transparency badges, licence info, and health testing details.</p>
             </div>
           </div>
         </div>

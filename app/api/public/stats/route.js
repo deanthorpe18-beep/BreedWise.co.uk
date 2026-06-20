@@ -10,7 +10,7 @@ export async function GET() {
 
     const [
       { count: breederCount },
-      { count: claimedCount },
+      { count: breedCount },
       { data: topBreeds },
       { data: topTowns },
     ] = await Promise.all([
@@ -19,9 +19,10 @@ export async function GET() {
         .select("*", { count: "exact", head: true })
         .in("status", ["public_listing", "claimed_profile"]),
       admin
-        .from("breeders")
+        .from("breeds")
         .select("*", { count: "exact", head: true })
-        .eq("status", "claimed_profile"),
+        .not("description", "is", null)
+        .neq("description", ""),
       admin
         .from("search_analytics")
         .select("breed")
@@ -58,7 +59,7 @@ export async function GET() {
     return NextResponse.json(
       {
         breederCount: breederCount || 0,
-        claimedCount: claimedCount || 0,
+        breedCount: breedCount || 0,
         trendingBreeds,
         popularTowns,
       },
@@ -68,7 +69,7 @@ export async function GET() {
     console.error("[public/stats]", err?.message);
     return NextResponse.json({
       breederCount: 1632,
-      claimedCount: 0,
+      breedCount: 200,
       trendingBreeds: [],
       popularTowns: [],
     });

@@ -10,7 +10,11 @@
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "db:reset": "supabase db reset",
-    "db:migrate": "supabase migration up"
+    "db:migrate": "supabase migration up",
+    "sync-photos": "node scripts/sync-breeder-photos.js",
+    "seed-cats": "node scripts/seed-cat-breeders.js",
+    "backfill-breeds": "node scripts/backfill-breeder-breeds.js",
+    "fix-locations": "node scripts/fix-breeder-locations.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.3.0",

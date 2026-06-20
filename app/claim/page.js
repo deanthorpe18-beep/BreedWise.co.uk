@@ -6,6 +6,8 @@ import { SearchIcon, UserCheck, CheckCircle, Mail, AlertCircle, Loader2, Upload,
 import PageViewTracker from "@components/PageViewTracker";
 import BreederSearchDropdown from "@components/BreederSearchDropdown";
 
+import WarmHero from "@components/WarmHero";
+
 const EVIDENCE_TYPES = [
   { key: "licence", label: "Breeding Licence", icon: Shield, desc: "Local council breeding licence" },
   { key: "kennel_club", label: "Kennel Club Registration", icon: Award, desc: "KC registration certificate" },
@@ -107,15 +109,11 @@ export default function ClaimPage() {
       <PageViewTracker page="claim" />
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 md:px-8">
         <div className="space-y-8">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="space-y-3">
-              <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">How to claim</p>
-              <h1 className="text-4xl font-semibold text-slate-900">Claim your breeder profile</h1>
-              <p className="text-lg leading-7 text-slate-600">
-                If you are a breeder listed on BreedWise, you can claim your profile to update information and improve accuracy. Claims are reviewed manually before approval.
-              </p>
-            </div>
-          </div>
+          <WarmHero
+            eyebrow="How to claim"
+            title="Claim your breeder profile"
+            description="If you're listed on BreedWise, claiming your profile lets you keep your details accurate and helps buyers trust what they see. We review every claim by hand — usually within a couple of working days."
+          />
 
           {!user && !loadingUser && (
             <div className="rounded-3xl border border-[#00BFA5] bg-[#E6FFFB] p-6">

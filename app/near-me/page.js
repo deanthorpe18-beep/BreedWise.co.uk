@@ -37,10 +37,10 @@ export default async function NearMePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
       <div className="space-y-2 text-center">
-        <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Location search</p>
+        <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#00BFA5]">Location search</p>
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Pet breeders near me</h1>
-        <p className="mx-auto max-w-2xl text-sm leading-6 text-slate-600">
-          Use your location to find pet breeders within 25 miles. Dogs, cats, birds, fish, reptiles and small pets — sorted by proximity.
+        <p className="mx-auto max-w-2xl text-base leading-7 text-slate-600">
+          Share your location and we&apos;ll show breeders within 25 miles — dogs, cats, birds, fish, reptiles and small pets, sorted by distance.
         </p>
       </div>
 

@@ -5,7 +5,7 @@
 :root {
   color-scheme: light;
   font-family: Inter, system-ui, sans-serif;
-  background-color: #FFFFFF;
+  background-color: #FAFBF9;
   color: #2D3436;
 }
 
@@ -18,7 +18,7 @@ body {
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
-  background-color: #FFFFFF;
+  background-color: #FAFBF9;
   color: #2D3436;
 }
 

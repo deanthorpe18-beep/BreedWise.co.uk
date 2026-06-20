@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen, AlertTriangle, Scale, Heart, ShieldCheck } from "lucide-react";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
+import WarmHero from "@components/WarmHero";
 
 export const metadata = baseMetadata({
   title: "Buyer Guides",
@@ -45,13 +46,11 @@ export default function EducationHubPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 md:px-8">
       <div className="space-y-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Buyer education</p>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-900">Using the directory responsibly</h1>
-          <p className="mt-4 text-sm leading-7 text-slate-600">
-            BreedWise helps you compare public breeder information. These guides explain how to do your own checks, ask the right questions, and stay safe while searching for a breeder.
-          </p>
-        </div>
+        <WarmHero
+          eyebrow="Buyer education"
+          title="Using the directory responsibly"
+          description="Choosing a breeder is a big decision. These guides walk you through the questions worth asking, the red flags to watch for, and how to stay safe while you search."
+        />
 
         <div className="grid gap-4">
           {guides.map((guide) => (

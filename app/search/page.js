@@ -141,13 +141,13 @@ export default async function SearchPage({ searchParams }) {
 
         <div className="mt-8">
           {!hasSearchCriteria ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
+            <div className="rounded-3xl border border-dashed border-[#00BFA5]/30 bg-gradient-to-br from-[#E6FFFB]/50 to-white p-12 text-center">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#E6FFFB]">
                 <SearchX className="h-10 w-10 text-[#00BFA5]" />
               </div>
-              <h2 className="mt-6 text-xl font-semibold text-slate-900">Start your search</h2>
-              <p className="mt-2 max-w-md mx-auto text-sm text-slate-500">
-                Select an animal type and breeds, enter a location, or click &quot;Use my location&quot; to find breeders near you.
+              <h2 className="mt-6 text-xl font-semibold text-slate-900">Ready when you are</h2>
+              <p className="mt-2 max-w-md mx-auto text-sm text-slate-600">
+                Pick an animal type, choose a breed, and tell us where you&apos;re looking — or tap &quot;Use my location&quot; to see who&apos;s nearby.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link href="/near-me" className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#00a98e]">

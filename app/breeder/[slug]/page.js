@@ -14,6 +14,7 @@ import BreederProfileOwnerPanel from "@components/BreederProfileOwnerPanel";
 import BreederTrustBadges from "@components/BreederTrustBadges";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
+import { getBreederHeroUrl } from "@/lib/breeder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,8 @@ export default async function BreederProfilePage({ params }) {
     }, {});
     const breeds = breeder.breeder_breeds?.map((bb) => bb.breed) || [];
     const photos = breeder.breeder_photos || [];
-    const hasHeroImage = !!breeder.hero_image_url;
+    const heroUrl = getBreederHeroUrl(breeder);
+    const hasHeroImage = !!heroUrl;
     const justClaimed = isJustClaimed(breeder.claimed_at);
 
     const structuredData = [
@@ -206,7 +208,7 @@ export default async function BreederProfilePage({ params }) {
                 {hasHeroImage && (
                     <div className="relative overflow-hidden rounded-3xl">
                         <img
-                            src={breeder.hero_image_url}
+                            src={heroUrl}
                             alt={`${breeder.name} — breeder photo`}
                             className="h-64 w-full object-cover sm:h-80"
                             loading="eager"

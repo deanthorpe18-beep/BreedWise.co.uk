@@ -1,22 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getBreeds, slugify } from "@lib/breeders";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/schema";
 
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  const breeds = getBreeds();
-  return breeds.map((breed) => ({ breed: slugify(breed) }));
-}
+export async function generateMetadata({ params }) {
+  const supabase = createClient();
+  const { data: breedRow } = await supabase
+    .from("breeds")
+    .select("name, animal_type")
+    .eq("slug", params.breed)
+    .maybeSingle();
 
-export function generateMetadata({ params }) {
-  const breedName = params.breed.replace(/-/g, " ");
+  const breedName = breedRow?.name || params.breed.replace(/-/g, " ");
+  const animalLabel = breedRow?.animal_type === "cat" ? "cat" : "breeder";
+
   return baseMetadata({
-    title: `${breedName} breeders UK`,
-    description: `Compare ${breedName} breeder listings across the UK. Browse public information before making contact. BreedWise is a directory only — we do not sell puppies or endorse breeders.`,
+    title: `${breedName} ${animalLabel}s UK`,
+    description: `Compare ${breedName} ${animalLabel} listings across the UK. Browse public information before making contact. BreedWise is a directory only — we do not sell pets or endorse breeders.`,
     path: `/breeders/${params.breed}`,
   });
 }
@@ -30,19 +33,23 @@ const TIER_RANK = {
 };
 
 export default async function BreedPage({ params }) {
-  const breedName = params.breed.replace(/-/g, " ");
-
-  const breedList = getBreeds();
-  const isValidBreed = breedList.some(
-    (b) => b.toLowerCase() === breedName.toLowerCase()
-  );
-  if (!isValidBreed) return notFound();
-
   const supabase = createClient();
+
+  const { data: breedRow } = await supabase
+    .from("breeds")
+    .select("name, slug, animal_type, description")
+    .eq("slug", params.breed)
+    .maybeSingle();
+
+  if (!breedRow) return notFound();
+
+  const breedName = breedRow.name;
+  const animalType = breedRow.animal_type || "dog";
+  const petLabel = animalType === "cat" ? "cat" : animalType === "dog" ? "dog" : "pet";
 
   const { data: breeders, error } = await supabase
     .from("breeders")
-    .select("*, breeder_breeds(breed)")
+    .select("*, breeder_breeds(breed, animal_type)")
     .in("status", ["public_listing", "claimed_profile"]);
 
   if (error) return notFound();
@@ -50,7 +57,9 @@ export default async function BreedPage({ params }) {
   const breedBreeders = (breeders || [])
     .filter((b) =>
       b.breeder_breeds?.some(
-        (bb) => bb.breed.toLowerCase() === breedName.toLowerCase()
+        (bb) =>
+          bb.breed.toLowerCase() === breedName.toLowerCase() &&
+          bb.animal_type === animalType
       )
     )
     .map((b) => ({
@@ -71,9 +80,11 @@ export default async function BreedPage({ params }) {
     ...new Set(breedBreeders.map((b) => b.town).filter(Boolean)),
   ].slice(0, 8);
 
+  const townSlug = (town) => town.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
   const breadcrumbs = breadcrumbSchema([
     { name: "Home", url: "https://breedwise.co.uk/" },
-    { name: "Breeds", url: "https://breedwise.co.uk/search" },
+    { name: "Breeds", url: "https://breedwise.co.uk/breeds" },
     {
       name: breedName,
       url: `https://breedwise.co.uk/breeders/${params.breed}`,
@@ -104,17 +115,23 @@ export default async function BreedPage({ params }) {
 
       <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">
-          Breed directory
+          {animalType === "cat" ? "Cat breed directory" : "Breed directory"}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
-          {breedName} breeder listings
+          {breedName} {petLabel} breeder listings
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-slate-600">
-          Browse public {breedName} breeder information across the UK. Compare
+          Browse public {breedName} {petLabel} breeder information across the UK. Compare
           contact details, ratings, and locations before making your own
           enquiries. BreedWise is a directory only — we do not endorse or vet
           breeders.
         </p>
+        <Link
+          href={`/search?animal=${encodeURIComponent(animalType)}&breed=${encodeURIComponent(breedName)}`}
+          className="inline-block text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]"
+        >
+          Search all {breedName} {petLabel}s →
+        </Link>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -158,7 +175,7 @@ export default async function BreedPage({ params }) {
           {uniqueTowns.map((town) => (
             <Link
               key={town}
-              href={`/breeders/${params.breed}/${slugify(town)}`}
+              href={`/breeders/${params.breed}/${townSlug(town)}`}
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
             >
               {town}
@@ -166,6 +183,16 @@ export default async function BreedPage({ params }) {
           ))}
         </div>
       </div>
+
+      {breedRow.description && (
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#00BFA5]">About {breedName}s</p>
+          <p className="mt-3 text-sm leading-7 text-slate-600">{breedRow.description.slice(0, 400)}{breedRow.description.length > 400 ? "…" : ""}</p>
+          <Link href={`/breeds/${breedRow.slug}`} className="mt-4 inline-block text-sm font-semibold text-[#00BFA5]">
+            Read full breed guide →
+          </Link>
+        </div>
+      )}
 
       <TrustStrip />
     </div>
@@ -178,7 +205,7 @@ function TrustStrip() {
       <div className="grid gap-4 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-[#00BFA5]" />
-          <p>BreedWise is a directory only. We do not sell puppies.</p>
+          <p>BreedWise is a directory only. We do not sell pets.</p>
         </div>
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-[#00BFA5]" />

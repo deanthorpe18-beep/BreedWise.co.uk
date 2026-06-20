@@ -98,9 +98,18 @@ export async function POST(request) {
         .is("unsubscribed_at", null);
       if (subError) throw subError;
 
-      const emails = (subscribers || []).map((s) => s.email).filter(Boolean);
+      const subscriberEmails = (subscribers || []).map((s) => s.email).filter(Boolean);
+
+      const extraRaw = body.extraEmails || "";
+      const extraEmails = String(extraRaw)
+        .split(/[\n,;]+/)
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+      const emails = [...new Set([...subscriberEmails, ...extraEmails])];
+
       if (emails.length === 0) {
-        return NextResponse.json({ error: "No active subscribers" }, { status: 400 });
+        return NextResponse.json({ error: "No recipients — add subscribers or extra email addresses" }, { status: 400 });
       }
 
       let sent = 0;
@@ -125,7 +134,12 @@ export async function POST(request) {
         })
         .eq("id", campaignId);
 
-      return NextResponse.json({ success: true, sent });
+      return NextResponse.json({
+        success: true,
+        sent,
+        subscriberCount: subscriberEmails.length,
+        extraCount: extraEmails.length,
+      });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

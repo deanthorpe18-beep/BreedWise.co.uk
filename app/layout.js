@@ -33,7 +33,7 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen bg-white text-[#2D3436]`}>
+      <body className={`${inter.className} min-h-screen bg-[#FAFBF9] text-[#2D3436]`}>
         <div className="min-h-screen flex flex-col">
           <AuthProvider>
             <ToastProvider>
@@ -56,12 +56,18 @@ export default function RootLayout({ children }) {
             </ToastProvider>
           </AuthProvider>
 
-          <footer className="border-t border-slate-200 bg-[#F1F4F6] px-4 py-10 sm:px-6 md:px-8">
+          <footer className="border-t border-[#00BFA5]/10 bg-gradient-to-b from-[#FFF9F6] to-[#F1F4F6] px-4 py-10 sm:px-6 md:px-8">
             <div className="mx-auto max-w-6xl space-y-6 text-sm text-slate-600">
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="font-semibold text-slate-900">BreedWise</p>
-                  <p className="mt-2 text-sm leading-6">A UK pet breeder directory for dogs, cats, birds, fish, reptiles and small pets. We help you compare public breeder information before making contact. We do not sell animals.</p>
+                  <p className="mt-2 text-sm leading-6">
+                    A UK pet breeder directory for dogs, cats, birds, fish, reptiles and small pets. We bring public breeder information into one calm place so you can compare, save favourites, and reach out when you feel ready. We never sell animals.
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Made with care in the UK — if something looks wrong or you need a hand, we&apos;re real people at{" "}
+                    <a href="mailto:help@breedwise.co.uk" className="font-medium text-[#00BFA5] hover:text-[#008f7a]">help@breedwise.co.uk</a>.
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900">Directory</p>
@@ -100,7 +106,7 @@ export default function RootLayout({ children }) {
               </div>
               <div className="border-t border-slate-200 pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-slate-500">
-                  © {new Date().getFullYear()} BreedWise. BreedWise is a directory only. We do not sell puppies or guarantee breeder quality. All listings are provided for information purposes.
+                  © {new Date().getFullYear()} BreedWise — a directory, not a marketplace. We do not sell pets or guarantee breeder quality. Always do your own checks before making contact.
                 </p>
                 <div className="flex gap-4 text-xs text-slate-500">
                   <Link href="/request-removal" className="hover:text-[#00BFA5]">Request removal</Link>

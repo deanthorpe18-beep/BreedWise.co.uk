@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { getBreederHeroUrl } from "@/lib/breeder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET(request) {
     const now = new Date().toISOString();
     const { data: eligible, error: eligibleError } = await adminClient
       .from("breeders")
-      .select("id, slug, name, town, county, hero_image_url, membership_tier, is_featured, featured_until, featured_priority")
+      .select("id, slug, name, town, county, hero_image_url, google_photo_urls, membership_tier, is_featured, featured_until, featured_priority, breeder_photos(photo_url, is_primary)")
       .eq("membership_tier", "gold")
       .eq("is_featured", true)
       .gt("featured_until", now)
@@ -56,7 +57,10 @@ export async function GET(request) {
       return new Date(aShown) - new Date(bShown);
     });
 
-    const selected = sorted.slice(0, 6);
+    const selected = sorted.slice(0, 6).map((b) => ({
+      ...b,
+      hero_image_url: getBreederHeroUrl(b),
+    }));
 
     // Log rotation for selected breeders (fire-and-forget)
     const page = new URL(request.url).searchParams.get("page") || "home";

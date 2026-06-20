@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Shield, Users, Star, Heart, MapPin, PawPrint, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import { Shield, Star, Heart, MapPin, PawPrint, TrendingUp, ArrowRight, Sparkles, BookOpen } from "lucide-react";
 
 export default function HomeDynamicContent() {
   const [stats, setStats] = useState(null);
@@ -15,7 +15,7 @@ export default function HomeDynamicContent() {
   }, []);
 
   const breederCount = stats?.breederCount?.toLocaleString() || "1,632";
-  const claimedCount = stats?.claimedCount || 0;
+  const breedCount = stats?.breedCount ? stats.breedCount.toLocaleString() : "200+";
   const trending = stats?.trendingBreeds?.length
     ? stats.trendingBreeds
     : [
@@ -56,11 +56,11 @@ export default function HomeDynamicContent() {
             </div>
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[#FFF5F0]">
-                <Users className="h-5 w-5 text-[#FF6B6B]" />
+                <BookOpen className="h-5 w-5 text-[#FF6B6B]" />
               </div>
               <div>
-                <p className="text-lg font-bold text-slate-900">{claimedCount > 0 ? claimedCount : "Growing"}</p>
-                <p className="text-sm text-slate-500">{claimedCount > 0 ? "Claimed profiles" : "New breeders joining daily"}</p>
+                <p className="text-lg font-bold text-slate-900">{breedCount}</p>
+                <p className="text-sm text-slate-500">Breeds in our encyclopedia</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -105,9 +105,7 @@ export default function HomeDynamicContent() {
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">{item.breed}</p>
-                      <p className="text-xs text-slate-500">
-                        {item.count ? `${item.count} recent searches` : "Popular with buyers"}
-                      </p>
+                      <p className="text-xs text-slate-500">Popular with buyers</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-[#00BFA5]/10 px-2.5 py-0.5 text-xs font-semibold text-[#00BFA5]">
@@ -140,10 +138,7 @@ export default function HomeDynamicContent() {
                   <MapPin className="h-4 w-4 flex-shrink-0" />
                   {town}
                 </span>
-                {count > 0 && (
-                  <span className="text-xs text-slate-400 group-hover:text-[#00BFA5]">{count}</span>
-                )}
-                {!count && <Sparkles className="h-3 w-3 text-slate-300 group-hover:text-[#00BFA5]" />}
+                <Sparkles className="h-3 w-3 text-slate-300 group-hover:text-[#00BFA5]" />
               </Link>
             ))}
           </div>

@@ -90,22 +90,23 @@ export default async function BreedsIndexPage({ searchParams }) {
       </nav>
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2D3436] to-[#4a5568]">
+      <div className="relative overflow-hidden rounded-3xl border border-[#00BFA5]/10 bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0] shadow-sm">
         <div className="relative z-10 px-6 py-12 sm:px-10 sm:py-16">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFA5]/10 px-3 py-1 text-xs font-semibold text-[#00BFA5]">
               <PawPrint className="h-3 w-3" />
               BreedWise Encyclopedia
             </span>
-            <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
+            <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">
               Pet Breed Encyclopedia
             </h1>
-            <p className="mt-3 text-base leading-7 text-white/80">
-              Discover detailed breed information for dogs, cats, birds, fish, reptiles 
-              and small pets. Find the perfect companion for your lifestyle and connect with trusted breeders.
+            <p className="mt-3 text-base leading-7 text-slate-600">
+              Not sure which breed suits your home? Browse temperament, size, and care needs for dogs, cats, birds, fish, reptiles and small pets — then find breeders near you.
             </p>
           </div>
         </div>
+        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#00BFA5]/10 blur-2xl" />
+        <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-[#FF6B6B]/5 blur-3xl" />
       </div>
 
       {/* Animal Type Tabs */}

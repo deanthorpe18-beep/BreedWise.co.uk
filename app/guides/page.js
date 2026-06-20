@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen, AlertTriangle, Scale, Heart, ShieldCheck, ClipboardCheck, FileText, Truck, Baby, Calculator, Search } from "lucide-react";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
+import WarmHero from "@components/WarmHero";
 
 export const metadata = baseMetadata({
   title: "Buyer Guides",
@@ -109,13 +110,11 @@ export default function GuidesHubPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 md:px-8">
       <div className="space-y-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Buyer education</p>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-900">Buyer Safety Hub</h1>
-          <p className="mt-4 text-sm leading-7 text-slate-600">
-            Everything you need to know about finding and buying from a UK dog breeder responsibly. From first search to bringing your puppy home.
-          </p>
-        </div>
+        <WarmHero
+          eyebrow="Buyer guides"
+          title="Buyer Safety Hub"
+          description="From your first search to bringing your pet home — practical, UK-focused guides to help you buy with confidence. No jargon, just honest advice."
+        />
 
         <div className="grid gap-4">
           {guides.map((guide) => (

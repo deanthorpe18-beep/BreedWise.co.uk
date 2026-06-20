@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield, Users, Star, Heart } from "lucide-react";
+import { Shield, Star, Heart, BookOpen } from "lucide-react";
 
 export default function SocialProofBanner() {
   return (
@@ -17,11 +17,11 @@ export default function SocialProofBanner() {
         </div>
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[#FFF5F0]">
-            <Users className="h-5 w-5 text-[#FF6B6B]" />
+            <BookOpen className="h-5 w-5 text-[#FF6B6B]" />
           </div>
           <div>
-            <p className="text-lg font-bold text-slate-900">Growing daily</p>
-            <p className="text-sm text-slate-500">New breeders joining</p>
+            <p className="text-lg font-bold text-slate-900">200+</p>
+            <p className="text-sm text-slate-500">Breeds in our encyclopedia</p>
           </div>
         </div>
         <div className="flex items-start gap-3">

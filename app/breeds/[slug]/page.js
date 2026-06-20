@@ -87,20 +87,20 @@ export default async function BreedPage({ params }) {
       </nav>
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2D3436] to-[#4a5568]">
+      <div className="relative overflow-hidden rounded-3xl border border-[#00BFA5]/10 bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0] shadow-sm">
         <div className="relative z-10 px-6 py-12 sm:px-10 sm:py-16">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFA5]/10 px-3 py-1 text-xs font-semibold text-[#00BFA5]">
                 <PawPrint className="h-3 w-3" />
                 {breed.group_name || "Dog Breed"}
               </span>
-              <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">{breed.name}</h1>
+              <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">{breed.name}</h1>
               {hasEncyclopediaData ? (
-                <p className="mt-3 text-base leading-7 text-white/80">{breed.description?.slice(0, 200)}...</p>
+                <p className="mt-3 text-base leading-7 text-slate-600">{breed.description?.slice(0, 200)}...</p>
               ) : (
-                <p className="mt-3 text-base leading-7 text-white/80">
-                  Breed information coming soon. Browse our breeder listings for {breed.name} across the UK.
+                <p className="mt-3 text-base leading-7 text-slate-600">
+                  We&apos;re still building out this breed guide — in the meantime, browse UK breeders listing {breed.name}.
                 </p>
               )}
               <div className="mt-6 flex flex-wrap gap-3">
@@ -109,7 +109,7 @@ export default async function BreedPage({ params }) {
                   className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/20 transition hover:bg-[#00a98e]"
                 >
                   <Search className="h-4 w-4" />
-                  Search {breed.name} breeders
+                  Find {breed.name} breeders
                   {breederCount > 0 && <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs">{breederCount}</span>}
                 </Link>
               </div>
@@ -119,16 +119,18 @@ export default async function BreedPage({ params }) {
                 <img
                   src={breed.image_url}
                   alt={breed.name}
-                  className="h-48 w-48 rounded-3xl object-cover shadow-2xl ring-4 ring-white/10"
+                  className="h-48 w-48 rounded-3xl object-cover shadow-lg ring-4 ring-[#00BFA5]/10"
                 />
               </div>
             ) : (
-              <div className="hidden h-48 w-48 items-center justify-center rounded-3xl bg-white/10 ring-4 ring-white/10 sm:flex">
-                <PawPrint className="h-16 w-16 text-white/40" />
+              <div className="hidden h-48 w-48 items-center justify-center rounded-3xl bg-[#E6FFFB] ring-4 ring-[#00BFA5]/10 sm:flex">
+                <PawPrint className="h-16 w-16 text-[#00BFA5]/40" />
               </div>
             )}
           </div>
         </div>
+        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#00BFA5]/10 blur-2xl" />
+        <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-[#FF6B6B]/5 blur-3xl" />
       </div>
 
       {hasEncyclopediaData ? (

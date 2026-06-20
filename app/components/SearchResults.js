@@ -12,6 +12,7 @@ import AdSensePlaceholder from "./AdSensePlaceholder";
 import { trackCtaClick } from "@lib/analytics-client";
 import SearchFilters from "./SearchFilters";
 import { trackSearch, trackFilterUsage } from "@lib/analytics";
+import { getBreederHeroUrl } from "@lib/breeder-images";
 
 function formatDistance(distance) {
   return distance === null || distance === undefined ? null : `${distance} mi`;
@@ -158,9 +159,9 @@ export default function SearchResults({
       )}
 
       {filteredBreeders.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-          <p className="text-lg font-semibold">No breeders found.</p>
-          <p className="mt-2">Try adjusting your filters or searching a nearby town.</p>
+        <div className="rounded-3xl border border-dashed border-[#00BFA5]/30 bg-gradient-to-br from-[#E6FFFB]/50 to-white p-8 text-center text-slate-600">
+          <p className="text-lg font-semibold text-slate-900">Nothing matched this search yet</p>
+          <p className="mt-2">Try widening your radius, picking a nearby town, or removing a filter — good breeders are worth the extra look.</p>
         </div>
       )}
     </section>
@@ -213,7 +214,8 @@ function BreederCard({ breeder }) {
   const distance = formatDistance(breeder.distance);
   const breeds = breeder.breeds || [];
   const isClaimed = breeder.status === "claimed_profile";
-  const hasHero = !!breeder.hero_image_url;
+  const heroUrl = getBreederHeroUrl(breeder);
+  const hasHero = !!heroUrl;
 
   // Get border color based on tier + claim status
   const borderClasses = getTierBorderClasses(breeder.membership_tier, breeder.status);
@@ -225,7 +227,7 @@ function BreederCard({ breeder }) {
         <div className="relative sm:w-56 sm:flex-shrink-0">
           <div className="aspect-[4/3] sm:aspect-auto sm:h-full bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
             {hasHero ? (
-              <img src={breeder.hero_image_url} alt={breeder.name} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+              <img src={heroUrl} alt={breeder.name} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <ImageIcon className="h-10 w-10 text-slate-300" />

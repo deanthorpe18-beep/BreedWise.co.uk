@@ -28,6 +28,15 @@ export default function AdminNewsletterPanel() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [showHtml, setShowHtml] = useState(false);
+  const [extraEmails, setExtraEmails] = useState("");
+
+  const parseExtraCount = () =>
+    extraEmails
+      .split(/[\n,;]+/)
+      .map((e) => e.trim())
+      .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)).length;
+
+  const totalRecipients = subscriberCount + parseExtraCount();
 
   const load = async () => {
     setLoading(true);
@@ -74,18 +83,26 @@ export default function AdminNewsletterPanel() {
 
   const send = async () => {
     if (!selected?.id) return;
-    if (!confirm(`Send "${selected.subject}" to ${subscriberCount} subscribers?`)) return;
+    const extraCount = parseExtraCount();
+    const total = subscriberCount + extraCount;
+    if (total === 0) {
+      setError("Add subscribers or enter at least one extra email address.");
+      return;
+    }
+    const extraNote = extraCount > 0 ? ` (+ ${extraCount} extra)` : "";
+    if (!confirm(`Send "${selected.subject}" to ${total} recipient${total !== 1 ? "s" : ""}${extraNote}?`)) return;
     setSending(true);
     setError("");
     try {
       const res = await fetch("/api/admin/newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send", campaignId: selected.id }),
+        body: JSON.stringify({ action: "send", campaignId: selected.id, extraEmails }),
       });
       const data = await res.json();
       if (res.ok) {
-        setMsg(`Sent to ${data.sent} subscribers.`);
+        setMsg(`Sent to ${data.sent} recipient${data.sent !== 1 ? "s" : ""}${data.extraCount ? ` (${data.extraCount} extra)` : ""}.`);
+        setExtraEmails("");
         await load();
       } else {
         setError(data.error || "Send failed");
@@ -243,17 +260,40 @@ export default function AdminNewsletterPanel() {
             )}
 
             {selected.status !== "sent" && (
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Extra recipients (optional)
+                </label>
+                <p className="mt-1 text-xs text-slate-500">
+                  Add email addresses not on the subscriber list — one per line or comma-separated. Useful for test sends or one-off contacts.
+                </p>
+                <textarea
+                  value={extraEmails}
+                  onChange={(e) => setExtraEmails(e.target.value)}
+                  placeholder={"you@example.com\nfriend@example.com"}
+                  rows={3}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#00BFA5] focus:outline-none"
+                />
+                {parseExtraCount() > 0 && (
+                  <p className="mt-1 text-xs text-[#00BFA5] font-semibold">
+                    + {parseExtraCount()} extra address{parseExtraCount() !== 1 ? "es" : ""} · {totalRecipients} total recipients
+                  </p>
+                )}
+              </div>
+            )}
+
+            {selected.status !== "sent" && (
               <div className="flex flex-wrap gap-2 pt-2">
                 <button onClick={save} className="rounded-3xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                   Save edits
                 </button>
                 <button
                   onClick={send}
-                  disabled={sending || subscriberCount === 0}
+                  disabled={sending || totalRecipients === 0}
                   className="inline-flex items-center gap-2 rounded-3xl bg-[#FF6B6B] px-5 py-2 text-sm font-bold text-white hover:bg-[#e85555] disabled:opacity-50"
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Send to {subscriberCount} subscribers
+                  Send to {totalRecipients} recipient{totalRecipients !== 1 ? "s" : ""}
                 </button>
               </div>
             )}
