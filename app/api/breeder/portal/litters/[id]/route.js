@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
+import { requireBreederPortal, buildPortalAccessResponse, getPortalUsage } from "@/lib/breeder-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ async function authPortal() {
   if (portal.error) {
     return { response: NextResponse.json({ error: portal.error }, { status: portal.status }) };
   }
-  return { adminClient, breederId: portal.breederId };
+  return { adminClient, breederId: portal.breederId, access: portal.access };
 }
 
 export async function GET(_request, { params }) {
@@ -34,7 +34,12 @@ export async function GET(_request, { params }) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Litter not found." }, { status: 404 });
-  return NextResponse.json({ litter: data });
+
+  const usage = await getPortalUsage(auth.adminClient, auth.breederId);
+  return NextResponse.json({
+    litter: data,
+    access: buildPortalAccessResponse(auth.access, usage),
+  });
 }
 
 export async function PATCH(request, { params }) {

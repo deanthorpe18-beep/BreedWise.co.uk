@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
+import {
+  requireBreederPortal,
+  getPortalUsage,
+  checkPortalLimit,
+  buildPortalAccessResponse,
+} from "@/lib/breeder-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +16,21 @@ async function authPortal() {
   const adminClient = createAdminClient();
   const portal = await requireBreederPortal(adminClient, user.id, user.email);
   if (portal.error) {
-    return { response: NextResponse.json({ error: portal.error }, { status: portal.status }) };
+    return {
+      response: NextResponse.json(
+        { error: portal.error, upgradeRequired: portal.upgradeRequired || false },
+        { status: portal.status }
+      ),
+    };
   }
-  return { adminClient, breederId: portal.breederId };
+  return { adminClient, ...portal };
 }
 
 export async function GET() {
   const auth = await authPortal();
   if (auth.response) return auth.response;
+
+  const usage = await getPortalUsage(auth.adminClient, auth.breederId);
 
   const { data, error } = await auth.adminClient
     .from("breeding_animals")
@@ -27,12 +39,21 @@ export async function GET() {
     .order("name");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ animals: data || [] });
+  return NextResponse.json({
+    animals: data || [],
+    access: buildPortalAccessResponse(auth.access, usage),
+  });
 }
 
 export async function POST(request) {
   const auth = await authPortal();
   if (auth.response) return auth.response;
+
+  const usage = await getPortalUsage(auth.adminClient, auth.breederId);
+  const limit = checkPortalLimit(auth.access, usage, "animals");
+  if (!limit.allowed) {
+    return NextResponse.json({ error: limit.message, upgradeRequired: auth.access.tier === "silver" }, { status: 403 });
+  }
 
   const body = await request.json();
   const name = (body.name || "").trim();

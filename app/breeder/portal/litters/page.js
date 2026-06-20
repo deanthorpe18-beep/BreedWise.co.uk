@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus } from "lucide-react";
+import PortalAccessBanner from "../PortalAccessBanner";
 
 const emptyForm = {
   litter_name: "",
@@ -18,6 +19,7 @@ const emptyForm = {
 export default function PortalLittersPage() {
   const [litters, setLitters] = useState([]);
   const [animals, setAnimals] = useState([]);
+  const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyForm);
@@ -32,7 +34,10 @@ export default function PortalLittersPage() {
     const lData = await lRes.json();
     const aData = await aRes.json();
     if (lData.error) setError(lData.error);
-    else setLitters(lData.litters || []);
+    else {
+      setLitters(lData.litters || []);
+      setAccess(lData.access || null);
+    }
     setAnimals(aData.animals || []);
     setLoading(false);
   };
@@ -72,14 +77,18 @@ export default function PortalLittersPage() {
 
   return (
     <div className="space-y-6">
+      <PortalAccessBanner access={access} />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Litters</h2>
           <p className="text-sm text-slate-600">Record each litter — who mated, when born, how many pups.</p>
         </div>
-        <button type="button" onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]">
-          <Plus className="h-4 w-4" /> Add litter
-        </button>
+        {access?.canAddLitter !== false && (
+          <button type="button" onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]">
+            <Plus className="h-4 w-4" /> Add litter
+          </button>
+        )}
       </div>
 
       {error && <div className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}

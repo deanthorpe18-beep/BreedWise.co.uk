@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
+import { requireBreederPortal, getPortalUsage, buildPortalAccessResponse } from "@/lib/breeder-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,12 @@ async function authPortal() {
   const adminClient = createAdminClient();
   const portal = await requireBreederPortal(adminClient, user.id, user.email);
   if (portal.error) {
-    return { response: NextResponse.json({ error: portal.error }, { status: portal.status }) };
+    return {
+      response: NextResponse.json(
+        { error: portal.error, upgradeRequired: portal.upgradeRequired || false },
+        { status: portal.status }
+      ),
+    };
   }
   return { adminClient, ...portal };
 }
@@ -20,7 +25,9 @@ export async function GET() {
   const auth = await authPortal();
   if (auth.response) return auth.response;
 
-  const { adminClient, breederId, breeder } = auth;
+  const { adminClient, breederId, breeder, access } = auth;
+
+  const usage = await getPortalUsage(adminClient, breederId);
 
   const [
     { data: animals },
@@ -43,7 +50,9 @@ export async function GET() {
       name: breeder.name,
       slug: breeder.slug,
       licenceVerified: breeder.licence_verified,
+      membershipTier: breeder.membership_tier,
     },
+    access: buildPortalAccessResponse(access, usage),
     stats: {
       breedingAnimals: activeAnimals.length,
       males,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import PortalAccessBanner from "../PortalAccessBanner";
 
 const emptyForm = {
   name: "",
@@ -17,6 +18,7 @@ const emptyForm = {
 
 export default function PortalAnimalsPage() {
   const [animals, setAnimals] = useState([]);
+  const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyForm);
@@ -28,7 +30,10 @@ export default function PortalAnimalsPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
-        else setAnimals(d.animals || []);
+        else {
+          setAnimals(d.animals || []);
+          setAccess(d.access || null);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -67,18 +72,22 @@ export default function PortalAnimalsPage() {
 
   return (
     <div className="space-y-6">
+      <PortalAccessBanner access={access} />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Breeding stock</h2>
           <p className="text-sm text-slate-600">Your studs and dams — who you breed from.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]"
-        >
-          <Plus className="h-4 w-4" /> Add animal
-        </button>
+        {access?.canAddAnimal !== false && (
+          <button
+            type="button"
+            onClick={() => setShowForm(!showForm)}
+            className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]"
+          >
+            <Plus className="h-4 w-4" /> Add animal
+          </button>
+        )}
       </div>
 
       {error && <div className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}

@@ -274,27 +274,45 @@ export default function BreederDashboardPage() {
       </div>
 
       {/* Breeding portal */}
-      <div className="mt-6 rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Breeding portal</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              {profile?.councilLicence || profile?.licenceVerified
-                ? "Record your breeding dogs, litters, and each pup in one place."
-                : "Add your council licence below to unlock the breeding portal."}
-            </p>
+      {(() => {
+        const tier = profile?.membershipTier || "free";
+        const hasLicence = profile?.councilLicence || profile?.licenceVerified;
+        const portalTier = ["silver", "gold"].includes(tier);
+        const portalMessage = !hasLicence
+          ? "Add your council licence below to unlock the breeding portal."
+          : !portalTier
+            ? "Included with Silver (limited) and Gold (full). Upgrade to record breeding stock and litters."
+            : tier === "silver"
+              ? "Limited access: up to 4 animals, 2 litters, and 8 pup records. Upgrade to Gold for unlimited."
+              : "Full access — record unlimited breeding stock, litters, and pups.";
+
+        return (
+          <div className="mt-6 rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Breeding portal</h2>
+                <p className="mt-1 text-sm text-slate-600">{portalMessage}</p>
+              </div>
+              {hasLicence && portalTier ? (
+                <Link
+                  href="/breeder/portal"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00a98e]"
+                >
+                  <FileText className="h-4 w-4" />
+                  Open breeding portal
+                </Link>
+              ) : hasLicence ? (
+                <a
+                  href="#upgrade-plans"
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
+                >
+                  View Silver & Gold plans
+                </a>
+              ) : null}
+            </div>
           </div>
-          {(profile?.councilLicence || profile?.licenceVerified) && (
-            <Link
-              href="/breeder/portal"
-              className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00a98e]"
-            >
-              <FileText className="h-4 w-4" />
-              Open breeding portal
-            </Link>
-          )}
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Stats grid */}
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -310,13 +328,43 @@ export default function BreederDashboardPage() {
       </div>
 
       {/* Membership & upgrade */}
-      {(profile?.membershipTier === "free" || profile?.membershipTier === "unclaimed" || !profile?.membershipTier) && profile?.id && (
-        <div className="mt-8">
-          <TierUpgradeCards
-            breederId={profile.id}
-            breederSlug={profile.slug}
-            currentTier={profile.membershipTier || "free"}
-          />
+      {profile?.id && (
+        <div id="upgrade-plans" className="mt-8">
+          {(profile.membershipTier === "free" || profile.membershipTier === "unclaimed" || !profile.membershipTier) && (
+            <TierUpgradeCards
+              breederId={profile.id}
+              breederSlug={profile.slug}
+              currentTier={profile.membershipTier || "free"}
+            />
+          )}
+          {profile.membershipTier === "bronze" && (
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
+              <p className="text-sm font-semibold text-slate-900">Need the breeding portal?</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Bronze does not include portal access. Upgrade to Silver (limited) or Gold (full).
+              </p>
+              <Link
+                href={profile.slug ? `/breeder/${profile.slug}/subscription` : "/account/subscription"}
+                className="mt-3 inline-block text-sm font-semibold text-[#00BFA5] hover:underline"
+              >
+                Upgrade plan →
+              </Link>
+            </div>
+          )}
+          {profile.membershipTier === "silver" && (
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-sm font-semibold text-slate-900">Want unlimited breeding records?</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Gold removes Silver limits and unlocks receipts and council paperwork when they launch.
+              </p>
+              <Link
+                href={profile.slug ? `/breeder/${profile.slug}/subscription` : "/account/subscription"}
+                className="mt-3 inline-block text-sm font-semibold text-[#00BFA5] hover:underline"
+              >
+                Upgrade to Gold →
+              </Link>
+            </div>
+          )}
         </div>
       )}
 

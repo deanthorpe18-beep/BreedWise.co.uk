@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Dog, Baby, Hash } from "lucide-react";
+import PortalAccessBanner from "./PortalAccessBanner";
 
 export default function BreederPortalHome() {
   const [data, setData] = useState(null);
@@ -36,13 +37,15 @@ export default function BreederPortalHome() {
       <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
         <p className="font-semibold">{error}</p>
         <Link href="/breeder/dashboard" className="mt-3 inline-block font-semibold text-[#00BFA5]">
-          Go to dashboard →
+          {error.includes("Upgrade") || error.includes("Silver") || error.includes("Gold")
+            ? "View upgrade options →"
+            : "Go to dashboard →"}
         </Link>
       </div>
     );
   }
 
-  const { stats, breeder } = data;
+  const { stats, breeder, access } = data;
   const cards = [
     { label: "Breeding dogs/cats on file", value: stats.breedingAnimals, sub: `${stats.males} males · ${stats.females} females`, href: "/breeder/portal/animals", icon: Dog },
     { label: "Total litters recorded", value: stats.totalLitters, sub: `${stats.pupsBorn} born (from litter counts)`, href: "/breeder/portal/litters", icon: Baby },
@@ -51,10 +54,18 @@ export default function BreederPortalHome() {
 
   return (
     <div className="space-y-6">
+      <PortalAccessBanner access={access} />
+
       <div className="rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-br from-[#E6FFFB] to-white p-6">
         <p className="text-sm text-slate-600">Welcome, {breeder.name}</p>
         <p className="mt-1 text-lg font-semibold text-slate-900">
-          {breeder.licenceVerified ? "Licence verified — full portal access" : "Portal open — add your licence on the dashboard if you have not already"}
+          {access?.level === "full"
+            ? "Full portal access on your Gold plan"
+            : access?.level === "restricted"
+              ? "Limited portal access on your Silver plan"
+              : breeder.licenceVerified
+                ? "Licence verified"
+                : "Portal open — keep your council licence up to date on the dashboard"}
         </p>
       </div>
 
@@ -70,12 +81,22 @@ export default function BreederPortalHome() {
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-6">
-        <p className="text-sm font-semibold text-slate-900">What&apos;s next (coming soon)</p>
+        <p className="text-sm font-semibold text-slate-900">Gold features</p>
         <ul className="mt-3 space-y-2 text-sm text-slate-600">
-          <li>• Sale checklist and receipts for each pup</li>
-          <li>• Insurance policy numbers and go-home dates</li>
-          <li>• Download a summary for your council</li>
+          <li>• Sale checklist per pup — deposit, paid in full, food, insurance</li>
+          <li>• Buyer details and receipt uploads</li>
+          <li>• Printable council summary (your council&apos;s form layout can be added later)</li>
         </ul>
+        {access?.canUseSaleFeatures ? (
+          <p className="mt-3 text-sm font-medium text-amber-800">Open a litter to manage sale records and print a council summary.</p>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">
+            Available on Gold.{" "}
+            <Link href="/breeder/dashboard#upgrade-plans" className="font-semibold text-[#00BFA5] hover:underline">
+              Upgrade →
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

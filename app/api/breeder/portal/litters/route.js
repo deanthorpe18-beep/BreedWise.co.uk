@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
+import {
+  requireBreederPortal,
+  getPortalUsage,
+  checkPortalLimit,
+  buildPortalAccessResponse,
+} from "@/lib/breeder-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +23,21 @@ async function authPortal() {
   const adminClient = createAdminClient();
   const portal = await requireBreederPortal(adminClient, user.id, user.email);
   if (portal.error) {
-    return { response: NextResponse.json({ error: portal.error }, { status: portal.status }) };
+    return {
+      response: NextResponse.json(
+        { error: portal.error, upgradeRequired: portal.upgradeRequired || false },
+        { status: portal.status }
+      ),
+    };
   }
-  return { adminClient, breederId: portal.breederId };
+  return { adminClient, ...portal };
 }
 
 export async function GET() {
   const auth = await authPortal();
   if (auth.response) return auth.response;
+
+  const usage = await getPortalUsage(auth.adminClient, auth.breederId);
 
   const { data: litters, error } = await auth.adminClient
     .from("breeding_litters")
@@ -39,7 +51,10 @@ export async function GET() {
     .order("birth_date", { ascending: false, nullsFirst: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ litters: litters || [] });
+  return NextResponse.json({
+    litters: litters || [],
+    access: buildPortalAccessResponse(auth.access, usage),
+  });
 }
 
 export async function POST(request) {
@@ -49,6 +64,20 @@ export async function POST(request) {
   const body = await request.json();
   const breed = (body.breed || "").trim();
   if (!breed) return NextResponse.json({ error: "Breed is required." }, { status: 400 });
+
+  const usage = await getPortalUsage(auth.adminClient, auth.breederId);
+  const litterLimit = checkPortalLimit(auth.access, usage, "litters");
+  if (!litterLimit.allowed) {
+    return NextResponse.json({ error: litterLimit.message, upgradeRequired: auth.access.tier === "silver" }, { status: 403 });
+  }
+
+  const pupCount = Math.max(0, Number(body.total_born) || 0);
+  if (pupCount > 0) {
+    const pupLimit = checkPortalLimit(auth.access, usage, "pups", pupCount);
+    if (!pupLimit.allowed) {
+      return NextResponse.json({ error: pupLimit.message, upgradeRequired: auth.access.tier === "silver" }, { status: 403 });
+    }
+  }
 
   const birthDate = body.birth_date || null;
   const animalType = body.animal_type || "dog";
@@ -72,7 +101,6 @@ export async function POST(request) {
   const { data: litter, error } = await auth.adminClient.from("breeding_litters").insert(row).select("*").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const pupCount = Math.max(0, Number(body.total_born) || 0);
   if (pupCount > 0 && pupCount <= 20) {
     const pups = Array.from({ length: pupCount }, (_, i) => ({
       litter_id: litter.id,
