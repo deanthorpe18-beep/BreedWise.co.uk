@@ -17,19 +17,19 @@ export async function GET(request) {
 
     const { data: zeroResults } = await adminClient
       .from("search_analytics")
-      .select("query, breed, location, created_at")
-      .eq("results_count", 0)
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
+      .select("query, breed, location, searched_at, result_count")
+      .eq("has_results", false)
+      .gte("searched_at", since)
+      .order("searched_at", { ascending: false })
       .limit(50);
 
     const { data: lowResults } = await adminClient
       .from("search_analytics")
-      .select("query, breed, location, results_count, created_at")
-      .gt("results_count", 0)
-      .lt("results_count", 3)
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
+      .select("query, breed, location, result_count, searched_at")
+      .gt("result_count", 0)
+      .lt("result_count", 3)
+      .gte("searched_at", since)
+      .order("searched_at", { ascending: false })
       .limit(50);
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -38,13 +38,13 @@ export async function GET(request) {
     const { data: recentSearches } = await adminClient
       .from("search_analytics")
       .select("breed")
-      .gte("created_at", weekAgo);
+      .gte("searched_at", weekAgo);
 
     const { data: priorSearches } = await adminClient
       .from("search_analytics")
       .select("breed")
-      .gte("created_at", twoWeeksAgo)
-      .lt("created_at", weekAgo);
+      .gte("searched_at", twoWeeksAgo)
+      .lt("searched_at", weekAgo);
 
     const recentCounts = {};
     const priorCounts = {};

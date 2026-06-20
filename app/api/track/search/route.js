@@ -12,14 +12,15 @@ export async function POST(request) {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
+    const resultCount = Number(results_count) || 0;
     const adminClient = createAdminClient();
     await adminClient.from("search_analytics").insert({
       query: query || null,
       breed: breed || null,
       animal: animal || null,
       location: location || null,
-      results_count: results_count || 0,
-      page: page || 1,
+      result_count: resultCount,
+      has_results: resultCount > 0,
       ip_hash,
       user_agent,
     });

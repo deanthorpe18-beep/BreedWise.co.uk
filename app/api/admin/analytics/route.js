@@ -102,8 +102,8 @@ export async function GET(request) {
     // ── Search analytics ──
     const { data: searchData } = await adminClient
       .from("search_analytics")
-      .select("query, breed, location, created_at")
-      .gte("created_at", since);
+      .select("query, breed, location, searched_at")
+      .gte("searched_at", since);
 
     const topSearchTerms = {};
     const topSearchedBreeds = {};

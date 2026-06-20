@@ -18,7 +18,7 @@ export async function GET(request) {
     const { count: searches } = await adminClient
       .from("search_analytics")
       .select("*", { count: "exact", head: true })
-      .gte("created_at", since);
+      .gte("searched_at", since);
 
     const { count: profileViews } = await adminClient
       .from("page_views")
@@ -58,12 +58,12 @@ export async function GET(request) {
 
     const { data: dailySearches } = await adminClient
       .from("search_analytics")
-      .select("created_at")
-      .gte("created_at", since);
+      .select("searched_at")
+      .gte("searched_at", since);
 
     const daily = {};
     (dailySearches || []).forEach((s) => {
-      const day = s.created_at.split("T")[0];
+      const day = s.searched_at.split("T")[0];
       if (!daily[day]) daily[day] = { searches: 0, profileViews: 0, ctaClicks: 0 };
       daily[day].searches++;
     });

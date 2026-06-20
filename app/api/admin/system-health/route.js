@@ -49,7 +49,7 @@ export async function GET() {
     const { count: recentSearches, error: searchError } = await adminClient
       .from("search_analytics")
       .select("*", { count: "exact", head: true })
-      .gte("created_at", hourAgo);
+      .gte("searched_at", hourAgo);
     checks.push({
       name: "Search analytics",
       status: searchError ? "error" : "ok",
