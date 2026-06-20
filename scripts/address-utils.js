@@ -57,9 +57,34 @@ function locationFromPlace(place, fallbackTown = "") {
   return { town, county, region, country, postcode, components };
 }
 
+/** UK bounding box (includes NI, Scotland, Wales, England). */
+function isWithinUkBounds(lat, lng) {
+  if (lat == null || lng == null) return false;
+  return lat >= 49 && lat <= 61 && lng >= -8.5 && lng <= 2.5;
+}
+
+function hasUkPostcode(postcode) {
+  return !!postcode && /^[A-Z]{1,2}\d[A-Z\d]?\s?\d[ABD-HJLNP-UW-Z]{2}$/i.test(postcode.trim());
+}
+
+/**
+ * Returns true when a place/listing is in the United Kingdom.
+ * Requires united_kingdom country OR (UK postcode OR coords inside UK bounds).
+ */
+function isUkLocation({ country, postcode, lat, lng, address } = {}) {
+  const pc = postcode || extractPostcode(address || "");
+  if (country && country !== "united_kingdom") return false;
+  if (hasUkPostcode(pc)) return true;
+  if (isWithinUkBounds(Number(lat), Number(lng))) return country === "united_kingdom" || !country;
+  return country === "united_kingdom";
+}
+
 module.exports = {
   parseAddressComponents,
   extractPostcode,
   normalizeCountry,
   locationFromPlace,
+  isWithinUkBounds,
+  hasUkPostcode,
+  isUkLocation,
 };

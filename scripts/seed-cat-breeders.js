@@ -15,7 +15,7 @@
 require("./_env");
 
 const { getSupabaseAdmin, getGooglePlacesApiKey } = require("./_env");
-const { locationFromPlace, extractPostcode } = require("./address-utils");
+const { locationFromPlace, extractPostcode, isUkLocation } = require("./address-utils");
 
 const SEARCH_LOCATIONS = [
   { town: "London", lat: 51.5074, lng: -0.1278, radius: 25000 },
@@ -180,6 +180,11 @@ async function main() {
         if (seenPlaceIds.has(place.id)) continue;
         if (!isLikelyCatBreeder(place)) continue;
 
+        const geo = locationFromPlace(place, loc.town);
+        if (!isUkLocation({ country: geo.country, postcode: geo.postcode, lat: place.location?.latitude, lng: place.location?.longitude, address: place.formattedAddress })) {
+          continue;
+        }
+
         seenPlaceIds.add(place.id);
         candidates.push({ place, loc, query });
       }
@@ -211,6 +216,12 @@ async function main() {
     const geo = locationFromPlace(details.addressComponents?.length ? details : place, loc.town);
     const postcode = geo.postcode || extractPostcode(address);
     const { town, county, region, country } = geo;
+
+    if (!isUkLocation({ country, postcode, lat: details.location?.latitude || place.location?.latitude, lng: details.location?.longitude || place.location?.longitude, address })) {
+      console.log(`✗ ${name}: skipped (not UK — ${country || "unknown country"})`);
+      continue;
+    }
+
     let slug = generateSlug(name, postcode, town);
 
     if (seenSlugs.has(slug)) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;

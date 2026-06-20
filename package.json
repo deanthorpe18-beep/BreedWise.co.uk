@@ -14,7 +14,8 @@
     "sync-photos": "node scripts/sync-breeder-photos.js",
     "seed-cats": "node scripts/seed-cat-breeders.js",
     "backfill-breeds": "node scripts/backfill-breeder-breeds.js",
-    "fix-locations": "node scripts/fix-breeder-locations.js"
+    "fix-locations": "node scripts/fix-breeder-locations.js",
+    "cleanup-non-uk": "node scripts/cleanup-non-uk-breeders.js --cats"
   },
   "dependencies": {
     "@supabase/ssr": "^0.3.0",
