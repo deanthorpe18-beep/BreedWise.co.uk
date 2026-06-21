@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import PortalAccessBanner from "../PortalAccessBanner";
 import { usePortalApi } from "../usePortalApi";
-import { usePortalApi } from "../usePortalApi";
 
 const emptyForm = {
   name: "",
