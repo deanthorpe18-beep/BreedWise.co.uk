@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Loader2, Upload, FileText, Trash2, Receipt } from "lucide-react";
 import { SALE_CHECKLIST_ITEMS, saleChecklistProgress } from "@/lib/breeder-portal-sale";
+import { usePortalApi } from "./usePortalApi";
 
 export default function PupSalePanel({ pup, onUpdate, disabled }) {
+  const { portalFetch, portalUrl, portalQuery, adminAs } = usePortalApi();
   const depositInput = useRef(null);
   const finalInput = useRef(null);
   const [uploading, setUploading] = useState(null);
@@ -32,7 +34,7 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("type", type);
-    const res = await fetch(`/api/breeder/portal/pups/${pup.id}/receipt`, { method: "POST", body: formData });
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${pup.id}/receipt`), { method: "POST", body: formData });
     const data = await res.json();
     if (!res.ok) setError(data.error || "Upload failed.");
     else onUpdate(data.pup);
@@ -40,7 +42,7 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
   };
 
   const openReceipt = async (type) => {
-    const res = await fetch(`/api/breeder/portal/pups/${pup.id}/receipt?type=${type}`);
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${pup.id}/receipt?type=${type}`));
     const data = await res.json();
     if (res.ok && data.url) window.open(data.url, "_blank");
     else setError(data.error || "Could not open receipt.");
@@ -49,7 +51,7 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
   const removeReceipt = async (type) => {
     if (!confirm("Remove this receipt file?")) return;
     setUploading(type);
-    const res = await fetch(`/api/breeder/portal/pups/${pup.id}/receipt?type=${type}`, { method: "DELETE" });
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${pup.id}/receipt?type=${type}`), { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) setError(data.error || "Could not remove.");
     else onUpdate(data.pup);
@@ -130,13 +132,13 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
-          href={`/breeder/portal/pups/${pup.id}/receipt?type=deposit`}
+          href={`/breeder/portal/pups/${pup.id}/receipt?type=deposit${adminAs ? `&adminAs=${encodeURIComponent(adminAs)}` : ""}`}
           className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-[#00BFA5]"
         >
           <Receipt className="h-3.5 w-3.5" /> Create deposit receipt
         </Link>
         <Link
-          href={`/breeder/portal/pups/${pup.id}/receipt?type=final`}
+          href={`/breeder/portal/pups/${pup.id}/receipt?type=final${adminAs ? `&adminAs=${encodeURIComponent(adminAs)}` : ""}`}
           className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-[#00BFA5]"
         >
           <Receipt className="h-3.5 w-3.5" /> Create payment receipt

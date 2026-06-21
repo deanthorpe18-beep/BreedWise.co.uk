@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Users } from "lucide-react";
+import { usePortalApi } from "../usePortalApi";
 
 const STATUS_LABELS = {
   waiting: "Waiting",
@@ -10,13 +11,14 @@ const STATUS_LABELS = {
 };
 
 export default function PortalWaitlistPage() {
+  const { portalFetch } = usePortalApi();
   const [entries, setEntries] = useState([]);
   const [waitingCount, setWaitingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = () => {
-    fetch("/api/breeder/portal/waitlist")
+    portalFetch("/api/breeder/portal/waitlist")
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
@@ -29,10 +31,10 @@ export default function PortalWaitlistPage() {
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [portalFetch]);
 
   const setStatus = async (id, status) => {
-    await fetch("/api/breeder/portal/waitlist", {
+    await portalFetch("/api/breeder/portal/waitlist", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
-import { canUseSaleFeatures, goldSaleRequiredResponse, saleChecklistProgress } from "@/lib/breeder-portal-sale";
+import { authenticateBreederPortalGold } from "@/lib/breeder-portal-request-auth";
+import { saleChecklistProgress } from "@/lib/breeder-portal-sale";
 
 export const dynamic = "force-dynamic";
 
@@ -10,22 +9,11 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export async function GET(_request, { params }) {
-  const supabase = createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+export async function GET(request, { params }) {
+  const auth = await authenticateBreederPortalGold(request);
+  if (auth.response) return auth.response;
 
-  const adminClient = createAdminClient();
-  const portal = await requireBreederPortal(adminClient, user.id, user.email);
-  if (portal.error) {
-    return NextResponse.json({ error: portal.error }, { status: portal.status });
-  }
-  if (!canUseSaleFeatures(portal.access)) {
-    const blocked = goldSaleRequiredResponse();
-    return NextResponse.json({ error: blocked.error, goldRequired: true }, { status: blocked.status });
-  }
+  const adminClient = auth.adminClient;
 
   const { data: litter, error: litterError } = await adminClient
     .from("breeding_litters")
@@ -36,7 +24,7 @@ export async function GET(_request, { params }) {
       pups:breeding_litter_animals(*)
     `)
     .eq("id", params.id)
-    .eq("breeder_id", portal.breederId)
+    .eq("breeder_id", auth.breederId)
     .maybeSingle();
 
   if (litterError) return NextResponse.json({ error: litterError.message }, { status: 500 });
@@ -45,7 +33,7 @@ export async function GET(_request, { params }) {
   const { data: breeder, error: breederError } = await adminClient
     .from("breeders")
     .select("name, council_licence, licence_verified, address, town, county, postcode, phone, email, kennel_club")
-    .eq("id", portal.breederId)
+    .eq("id", auth.breederId)
     .single();
 
   if (breederError) return NextResponse.json({ error: breederError.message }, { status: 500 });

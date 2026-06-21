@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Dog, Baby, Hash } from "lucide-react";
 import PortalAccessBanner from "./PortalAccessBanner";
+import { usePortalApi } from "./usePortalApi";
 
 export default function BreederPortalHome() {
+  const { portalFetch, portalQuery } = usePortalApi();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/breeder/portal")
+    portalFetch("/api/breeder/portal")
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
@@ -22,7 +24,7 @@ export default function BreederPortalHome() {
         setError("Could not load portal.");
         setLoading(false);
       });
-  }, []);
+  }, [portalFetch]);
 
   if (loading) {
     return (
@@ -47,9 +49,9 @@ export default function BreederPortalHome() {
 
   const { stats, breeder, access } = data;
   const cards = [
-    { label: "Breeding dogs/cats on file", value: stats.breedingAnimals, sub: `${stats.males} males · ${stats.females} females`, href: "/breeder/portal/animals", icon: Dog },
-    { label: "Total litters recorded", value: stats.totalLitters, sub: `${stats.pupsBorn} born (from litter counts)`, href: "/breeder/portal/litters", icon: Baby },
-    { label: "Individual pups/kittens", value: stats.pupsOnRecord, sub: "Tracked in the system", href: "/breeder/portal/litters", icon: Hash },
+    { label: "Breeding dogs/cats on file", value: stats.breedingAnimals, sub: `${stats.males} males · ${stats.females} females`, href: `/breeder/portal/animals${portalQuery}`, icon: Dog },
+    { label: "Total litters recorded", value: stats.totalLitters, sub: `${stats.pupsBorn} born (from litter counts)`, href: `/breeder/portal/litters${portalQuery}`, icon: Baby },
+    { label: "Individual pups/kittens", value: stats.pupsOnRecord, sub: "Tracked in the system", href: `/breeder/portal/litters${portalQuery}`, icon: Hash },
   ];
 
   return (

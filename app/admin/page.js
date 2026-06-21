@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@components/AuthProvider";
 import {
@@ -9,11 +10,12 @@ import {
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
   Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
   Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
-  CreditCard, Pencil, Dog, RefreshCw, GripVertical, ChevronDown, MoreHorizontal
+  CreditCard, Pencil, Dog, RefreshCw, GripVertical, ChevronDown, MoreHorizontal, Baby
 } from "lucide-react";
 
 import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
 import AdminLicencePanel from "@components/AdminLicencePanel";
+import AdminBreedingPortalPanel from "@components/AdminBreedingPortalPanel";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -162,6 +164,7 @@ export default function AdminPage() {
     { id: "cms", label: "Editor", icon: Pencil },
     { id: "outreach", label: "Outreach", icon: Mail },
     { id: "licences", label: "Licences", icon: Shield },
+    { id: "breeding", label: "Breeding", icon: Baby },
     { id: "newsletter", label: "Newsletter", icon: Mail },
     { id: "admins", label: "Admins", icon: Users },
   ];
@@ -183,6 +186,15 @@ export default function AdminPage() {
     } catch {
       setTabOrder(defaultTabs.map((t) => t.id));
     }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      if (tab && defaultTabs.some((t) => t.id === tab)) {
+        setActiveTab(tab);
+      }
+    } catch {}
   }, []);
 
   const tabs = tabOrder
@@ -1231,6 +1243,9 @@ export default function AdminPage() {
                             <a href={`/breeder/${b.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                               <ArrowUpRight className="h-3 w-3" /> View
                             </a>
+                            <Link href={`/breeder/portal?adminAs=${b.id}`} className="inline-flex items-center gap-1 rounded-3xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100">
+                              <Baby className="h-3 w-3" /> Portal
+                            </Link>
                           </div>
                         </div>
                       </div>
@@ -2504,6 +2519,10 @@ export default function AdminPage() {
 
             {activeTab === "licences" && (
               <AdminLicencePanel />
+            )}
+
+            {activeTab === "breeding" && (
+              <AdminBreedingPortalPanel />
             )}
 
             {activeTab === "newsletter" && (

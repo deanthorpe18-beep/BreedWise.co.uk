@@ -1,24 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal, buildPortalAccessResponse, getPortalUsage } from "@/lib/breeder-auth";
+import { buildPortalAccessResponse, getPortalUsage } from "@/lib/breeder-auth";
+import { authenticateBreederPortal } from "@/lib/breeder-portal-request-auth";
 import { notifyLitterPublished } from "@/lib/litter-alerts";
 
 export const dynamic = "force-dynamic";
 
-async function authPortal() {
-  const supabase = createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return { response: NextResponse.json({ error: "Please log in." }, { status: 401 }) };
-  const adminClient = createAdminClient();
-  const portal = await requireBreederPortal(adminClient, user.id, user.email);
-  if (portal.error) {
-    return { response: NextResponse.json({ error: portal.error }, { status: portal.status }) };
-  }
-  return { adminClient, breederId: portal.breederId, access: portal.access };
-}
-
-export async function GET(_request, { params }) {
-  const auth = await authPortal();
+export async function GET(request, { params }) {
+  const auth = await authenticateBreederPortal(request);
   if (auth.response) return auth.response;
 
   const { data, error } = await auth.adminClient
@@ -44,7 +32,7 @@ export async function GET(_request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const auth = await authPortal();
+  const auth = await authenticateBreederPortal(request);
   if (auth.response) return auth.response;
 
   const body = await request.json();
@@ -88,8 +76,8 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({ litter: data, alerts: alertResult });
 }
 
-export async function DELETE(_request, { params }) {
-  const auth = await authPortal();
+export async function DELETE(request, { params }) {
+  const auth = await authenticateBreederPortal(request);
   if (auth.response) return auth.response;
 
   const { error } = await auth.adminClient

@@ -14,9 +14,11 @@ import {
   X,
 } from "lucide-react";
 import { activeLineItems, newItemId, receiptTotalDisplay } from "@/lib/breeder-receipts";
+import { usePortalApi } from "../../../usePortalApi";
 
 export default function ReceiptEditorClient({ params }) {
   const searchParams = useSearchParams();
+  const { portalFetch, portalUrl, portalQuery } = usePortalApi();
   const type = searchParams.get("type") === "final" ? "final" : "deposit";
   const [draft, setDraft] = useState(null);
   const [litterId, setLitterId] = useState(null);
@@ -28,7 +30,7 @@ export default function ReceiptEditorClient({ params }) {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const res = await fetch(`/api/breeder/portal/pups/${params.id}/receipt-draft?type=${type}`);
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${params.id}/receipt-draft?type=${type}`));
     const data = await res.json();
     if (!res.ok) {
       setError(data.error || "Could not load receipt.");
@@ -38,7 +40,7 @@ export default function ReceiptEditorClient({ params }) {
       setLitterId(data.litterId);
     }
     setLoading(false);
-  }, [params.id, type]);
+  }, [params.id, type, portalFetch, portalUrl]);
 
   useEffect(() => {
     load();
@@ -48,7 +50,7 @@ export default function ReceiptEditorClient({ params }) {
     setSaving(true);
     setMessage("");
     setError("");
-    const res = await fetch(`/api/breeder/portal/pups/${params.id}/receipt-draft`, {
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${params.id}/receipt-draft`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, draft }),
@@ -63,7 +65,7 @@ export default function ReceiptEditorClient({ params }) {
     setSaving(true);
     setMessage("");
     setError("");
-    const res = await fetch(`/api/breeder/portal/pups/${params.id}/receipt-draft`, {
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${params.id}/receipt-draft`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, action: "save-default", draft }),
@@ -77,7 +79,7 @@ export default function ReceiptEditorClient({ params }) {
   const resetDraft = async () => {
     if (!confirm("Reset this receipt to auto-filled details? Your edits for this pup will be cleared.")) return;
     setSaving(true);
-    const res = await fetch(`/api/breeder/portal/pups/${params.id}/receipt-draft`, {
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${params.id}/receipt-draft`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, action: "reset" }),
@@ -156,7 +158,7 @@ export default function ReceiptEditorClient({ params }) {
       <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
         {error}
         {litterId && (
-          <Link href={`/breeder/portal/litters/${litterId}`} className="mt-3 block font-semibold text-[#00BFA5]">
+          <Link href={`/breeder/portal/litters/${litterId}${portalQuery}`} className="mt-3 block font-semibold text-[#00BFA5]">
             ← Back to litter
           </Link>
         )}

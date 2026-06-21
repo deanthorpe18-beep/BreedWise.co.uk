@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import PortalAccessBanner from "../PortalAccessBanner";
+import { usePortalApi } from "../usePortalApi";
 
 const emptyForm = {
   name: "",
@@ -17,6 +18,7 @@ const emptyForm = {
 };
 
 export default function PortalAnimalsPage() {
+  const { portalFetch, portalUrl } = usePortalApi();
   const [animals, setAnimals] = useState([]);
   const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ export default function PortalAnimalsPage() {
   const [showForm, setShowForm] = useState(false);
 
   const load = () => {
-    fetch("/api/breeder/portal/animals")
+    portalFetch("/api/breeder/portal/animals")
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
@@ -39,13 +41,13 @@ export default function PortalAnimalsPage() {
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [portalFetch]);
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError("");
-    const res = await fetch("/api/breeder/portal/animals", {
+    const res = await portalFetch("/api/breeder/portal/animals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
@@ -62,7 +64,7 @@ export default function PortalAnimalsPage() {
 
   const remove = async (id) => {
     if (!confirm("Remove this animal from your breeding records?")) return;
-    await fetch(`/api/breeder/portal/animals/${id}`, { method: "DELETE" });
+    await portalFetch(portalUrl(`/api/breeder/portal/animals/${id}`), { method: "DELETE" });
     load();
   };
 

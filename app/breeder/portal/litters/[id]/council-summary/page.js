@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Printer } from "lucide-react";
+import { usePortalApi } from "../../../usePortalApi";
 
 export default function CouncilSummaryPage({ params }) {
+  const { portalFetch, portalUrl, portalQuery } = usePortalApi();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/breeder/portal/litters/${params.id}/council-summary`)
+    portalFetch(portalUrl(`/api/breeder/portal/litters/${params.id}/council-summary`))
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
@@ -21,7 +23,7 @@ export default function CouncilSummaryPage({ params }) {
         setError("Could not load summary.");
         setLoading(false);
       });
-  }, [params.id]);
+  }, [params.id, portalFetch, portalUrl]);
 
   if (loading) {
     return (
@@ -35,7 +37,7 @@ export default function CouncilSummaryPage({ params }) {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
         {error || "Summary not available."}
-        <Link href={`/breeder/portal/litters/${params.id}`} className="mt-3 block font-semibold text-[#00BFA5]">
+        <Link href={`/breeder/portal/litters/${params.id}${portalQuery}`} className="mt-3 block font-semibold text-[#00BFA5]">
           ← Back to litter
         </Link>
       </div>
@@ -47,7 +49,7 @@ export default function CouncilSummaryPage({ params }) {
   return (
     <div className="space-y-4 print:space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/breeder/portal/litters/${params.id}`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]">
+        <Link href={`/breeder/portal/litters/${params.id}${portalQuery}`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]">
           <ArrowLeft className="h-4 w-4" /> Back to litter
         </Link>
         <button

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, ArrowLeft, FileText, Megaphone } from "lucide-react";
 import PupSalePanel from "../../PupSalePanel";
+import { usePortalApi } from "../../usePortalApi";
 
 const STATUS_OPTIONS = [
   ["available", "Available"],
@@ -14,6 +15,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function PortalLitterDetailPage({ params }) {
+  const { portalFetch, portalUrl, portalQuery } = usePortalApi();
   const [litter, setLitter] = useState(null);
   const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function PortalLitterDetailPage({ params }) {
   const [announcement, setAnnouncement] = useState("");
 
   const load = () => {
-    fetch(`/api/breeder/portal/litters/${params.id}`)
+    portalFetch(portalUrl(`/api/breeder/portal/litters/${params.id}`))
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
@@ -38,11 +40,11 @@ export default function PortalLitterDetailPage({ params }) {
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [params.id]);
+  useEffect(() => { load(); }, [params.id, portalFetch, portalUrl]);
 
   const updatePup = async (pupId, updates) => {
     setSavingId(pupId);
-    const res = await fetch(`/api/breeder/portal/pups/${pupId}`, {
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/pups/${pupId}`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
@@ -70,7 +72,7 @@ export default function PortalLitterDetailPage({ params }) {
     setPublishing(true);
     setPublishMsg("");
     setError("");
-    const res = await fetch(`/api/breeder/portal/litters/${params.id}`, {
+    const res = await portalFetch(portalUrl(`/api/breeder/portal/litters/${params.id}`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -101,7 +103,7 @@ export default function PortalLitterDetailPage({ params }) {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
         {error}
-        <Link href="/breeder/portal/litters" className="mt-3 block font-semibold text-[#00BFA5]">← Back to litters</Link>
+        <Link href={`/breeder/portal/litters${portalQuery}`} className="mt-3 block font-semibold text-[#00BFA5]">← Back to litters</Link>
       </div>
     );
   }
@@ -110,7 +112,7 @@ export default function PortalLitterDetailPage({ params }) {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
         Litter not found.
-        <Link href="/breeder/portal/litters" className="mt-3 block font-semibold text-[#00BFA5]">← Back to litters</Link>
+        <Link href={`/breeder/portal/litters${portalQuery}`} className="mt-3 block font-semibold text-[#00BFA5]">← Back to litters</Link>
       </div>
     );
   }
@@ -120,7 +122,7 @@ export default function PortalLitterDetailPage({ params }) {
 
   return (
     <div className="space-y-6">
-      <Link href="/breeder/portal/litters" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]">
+      <Link href={`/breeder/portal/litters${portalQuery}`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]">
         <ArrowLeft className="h-4 w-4" /> All litters
       </Link>
 
@@ -141,7 +143,7 @@ export default function PortalLitterDetailPage({ params }) {
           </div>
           {canUseSale ? (
             <Link
-              href={`/breeder/portal/litters/${params.id}/council-summary`}
+              href={`/breeder/portal/litters/${params.id}/council-summary${portalQuery}`}
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#00BFA5]"
             >
               <FileText className="h-4 w-4" /> Council summary

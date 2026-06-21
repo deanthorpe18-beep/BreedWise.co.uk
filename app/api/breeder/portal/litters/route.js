@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
-  requireBreederPortal,
   getPortalUsage,
   checkPortalLimit,
   buildPortalAccessResponse,
 } from "@/lib/breeder-auth";
+import { authenticateBreederPortal } from "@/lib/breeder-portal-request-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,25 +15,8 @@ function addWeeks(dateStr, weeks) {
   return d.toISOString().split("T")[0];
 }
 
-async function authPortal() {
-  const supabase = createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return { response: NextResponse.json({ error: "Please log in." }, { status: 401 }) };
-  const adminClient = createAdminClient();
-  const portal = await requireBreederPortal(adminClient, user.id, user.email);
-  if (portal.error) {
-    return {
-      response: NextResponse.json(
-        { error: portal.error, upgradeRequired: portal.upgradeRequired || false },
-        { status: portal.status }
-      ),
-    };
-  }
-  return { adminClient, ...portal };
-}
-
-export async function GET() {
-  const auth = await authPortal();
+export async function GET(request) {
+  const auth = await authenticateBreederPortal(request);
   if (auth.response) return auth.response;
 
   const usage = await getPortalUsage(auth.adminClient, auth.breederId);
@@ -58,7 +40,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const auth = await authPortal();
+  const auth = await authenticateBreederPortal(request);
   if (auth.response) return auth.response;
 
   const body = await request.json();

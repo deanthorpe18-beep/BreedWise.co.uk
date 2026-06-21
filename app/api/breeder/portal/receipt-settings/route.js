@@ -1,29 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
-import { canUseSaleFeatures, goldSaleRequiredResponse } from "@/lib/breeder-portal-sale";
+import { authenticateBreederPortalGold } from "@/lib/breeder-portal-request-auth";
 import { defaultReceiptSettings, draftToTemplateSettings } from "@/lib/breeder-receipts";
 
 export const dynamic = "force-dynamic";
 
-async function authGoldPortal() {
-  const supabase = createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return { response: NextResponse.json({ error: "Please log in." }, { status: 401 }) };
-  const adminClient = createAdminClient();
-  const portal = await requireBreederPortal(adminClient, user.id, user.email);
-  if (portal.error) {
-    return { response: NextResponse.json({ error: portal.error }, { status: portal.status }) };
-  }
-  if (!canUseSaleFeatures(portal.access)) {
-    const blocked = goldSaleRequiredResponse();
-    return { response: NextResponse.json({ error: blocked.error, goldRequired: true }, { status: blocked.status }) };
-  }
-  return { adminClient, breederId: portal.breederId };
-}
-
-export async function GET() {
-  const auth = await authGoldPortal();
+export async function GET(request) {
+  const auth = await authenticateBreederPortalGold(request);
   if (auth.response) return auth.response;
 
   const { data, error } = await auth.adminClient
@@ -46,7 +28,7 @@ export async function GET() {
 }
 
 export async function PATCH(request) {
-  const auth = await authGoldPortal();
+  const auth = await authenticateBreederPortalGold(request);
   if (auth.response) return auth.response;
 
   const body = await request.json();

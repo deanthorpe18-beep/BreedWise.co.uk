@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { requireBreederPortal } from "@/lib/breeder-auth";
-import { canUseSaleFeatures, goldSaleRequiredResponse } from "@/lib/breeder-portal-sale";
+import { authenticateBreederPortalGold } from "@/lib/breeder-portal-request-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,26 +8,8 @@ const RECEIPT_TYPES = {
   final: "final_receipt_path",
 };
 
-async function authPortal() {
-  const supabase = createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return { response: NextResponse.json({ error: "Please log in." }, { status: 401 }) };
-  const adminClient = createAdminClient();
-  const portal = await requireBreederPortal(adminClient, user.id, user.email);
-  if (portal.error) {
-    return {
-      response: NextResponse.json({ error: portal.error }, { status: portal.status }),
-    };
-  }
-  if (!canUseSaleFeatures(portal.access)) {
-    const blocked = goldSaleRequiredResponse();
-    return { response: NextResponse.json({ error: blocked.error, goldRequired: true }, { status: blocked.status }) };
-  }
-  return { adminClient, breederId: portal.breederId };
-}
-
 export async function GET(request, { params }) {
-  const auth = await authPortal();
+  const auth = await authenticateBreederPortalGold(request);
   if (auth.response) return auth.response;
 
   const type = request.nextUrl.searchParams.get("type");
@@ -57,7 +37,7 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const auth = await authPortal();
+  const auth = await authenticateBreederPortalGold(request);
   if (auth.response) return auth.response;
 
   const formData = await request.formData();
@@ -114,7 +94,7 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const auth = await authPortal();
+  const auth = await authenticateBreederPortalGold(request);
   if (auth.response) return auth.response;
 
   const type = request.nextUrl.searchParams.get("type");

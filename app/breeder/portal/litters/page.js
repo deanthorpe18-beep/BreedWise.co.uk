@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus } from "lucide-react";
 import PortalAccessBanner from "../PortalAccessBanner";
+import { usePortalApi } from "../usePortalApi";
 
 const emptyForm = {
   litter_name: "",
@@ -17,6 +18,7 @@ const emptyForm = {
 };
 
 export default function PortalLittersPage() {
+  const { portalFetch, portalQuery } = usePortalApi();
   const [litters, setLitters] = useState([]);
   const [animals, setAnimals] = useState([]);
   const [access, setAccess] = useState(null);
@@ -28,8 +30,8 @@ export default function PortalLittersPage() {
 
   const load = async () => {
     const [lRes, aRes] = await Promise.all([
-      fetch("/api/breeder/portal/litters"),
-      fetch("/api/breeder/portal/animals"),
+      portalFetch("/api/breeder/portal/litters"),
+      portalFetch("/api/breeder/portal/animals"),
     ]);
     const lData = await lRes.json();
     const aData = await aRes.json();
@@ -42,13 +44,13 @@ export default function PortalLittersPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [portalFetch]);
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError("");
-    const res = await fetch("/api/breeder/portal/litters", {
+    const res = await portalFetch("/api/breeder/portal/litters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -148,7 +150,7 @@ export default function PortalLittersPage() {
       ) : (
         <div className="grid gap-3">
           {litters.map((l) => (
-            <Link key={l.id} href={`/breeder/portal/litters/${l.id}`} className="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-[#00BFA5] hover:shadow-sm">
+            <Link key={l.id} href={`/breeder/portal/litters/${l.id}${portalQuery}`} className="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-[#00BFA5] hover:shadow-sm">
               <p className="font-semibold text-slate-900">{l.litter_name || l.breed}{l.birth_date ? ` · ${formatDate(l.birth_date)}` : ""}</p>
               <p className="text-sm text-slate-600">
                 {l.sire?.name || "Unknown sire"} × {l.dam?.name || "Unknown dam"}
