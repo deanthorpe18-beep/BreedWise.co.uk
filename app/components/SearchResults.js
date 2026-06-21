@@ -56,12 +56,13 @@ export default function SearchResults({
   }, [tracked, breeders.length, totalCount, query, breed]);
 
   const mapPoints = useMemo(() => {
-    if (!filteredBreeders.length) return [];
-    const lats = filteredBreeders.map((b) => b.lat || 0);
-    const lngs = filteredBreeders.map((b) => b.lng || 0);
+    const withCoords = filteredBreeders.filter((b) => b.lat != null && b.lng != null);
+    if (!withCoords.length) return [];
+    const lats = withCoords.map((b) => b.lat);
+    const lngs = withCoords.map((b) => b.lng);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-    return filteredBreeders.map((item) => ({
+    return withCoords.map((item) => ({
       slug: item.slug,
       x: maxLng === minLng ? 50 : ((item.lng - minLng) / (maxLng - minLng)) * 100,
       y: maxLat === minLat ? 50 : ((maxLat - item.lat) / (maxLat - minLat)) * 100,
@@ -117,15 +118,23 @@ export default function SearchResults({
 
       {mapView ? (
         <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 shadow-sm">
-          <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gradient-to-br from-slate-100 via-white to-slate-200">
-            {mapPoints.map((point) => (
-              <Link key={point.slug} href={`/breeder/${point.slug}`} className="absolute inline-flex translate-x-[-50%] translate-y-[-50%] flex-col items-center gap-2 text-xs" style={{ left: `${point.x}%`, top: `${point.y}%` }}>
-                <span className="rounded-full bg-[#00BFA5] px-2 py-1 text-white shadow-lg shadow-[#00BFA5]/20">{point.name.split(" ")[0]}</span>
-                <span className="h-3 w-3 rounded-full bg-[#FF6B6B] ring-2 ring-white" />
-              </Link>
-            ))}
-          </div>
-          <p className="mt-4 text-sm text-slate-500">Map markers show approximate public listing locations.</p>
+          {mapPoints.length > 0 ? (
+            <>
+              <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gradient-to-br from-slate-100 via-white to-slate-200">
+                {mapPoints.map((point) => (
+                  <Link key={point.slug} href={`/breeder/${point.slug}`} className="absolute inline-flex translate-x-[-50%] translate-y-[-50%] flex-col items-center gap-2 text-xs" style={{ left: `${point.x}%`, top: `${point.y}%` }}>
+                    <span className="rounded-full bg-[#00BFA5] px-2 py-1 text-white shadow-lg shadow-[#00BFA5]/20">{point.name.split(" ")[0]}</span>
+                    <span className="h-3 w-3 rounded-full bg-[#FF6B6B] ring-2 ring-white" />
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-4 text-sm text-slate-500">
+                Showing {mapPoints.length} mapped listing{mapPoints.length === 1 ? "" : "s"} on this page. Markers use Google Places coordinates.
+              </p>
+            </>
+          ) : (
+            <p className="py-12 text-center text-sm text-slate-500">No mapped locations on this page — try list view or widen your search.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-5">

@@ -15,27 +15,10 @@ require("./_env");
 
 const { getSupabaseAdmin, getGooglePlacesApiKey } = require("./_env");
 const { locationFromPlace, extractPostcode, isUkLocation } = require("./address-utils");
+const { UK_SEARCH_LOCATIONS } = require("./uk-search-locations");
+const { loadExistingBreederKeys } = require("./seed-common");
 
-const SEARCH_LOCATIONS = [
-  { town: "London", lat: 51.5074, lng: -0.1278, radius: 25000 },
-  { town: "Birmingham", lat: 52.4862, lng: -1.8904, radius: 25000 },
-  { town: "Manchester", lat: 53.4808, lng: -2.2426, radius: 25000 },
-  { town: "Leeds", lat: 53.8008, lng: -1.5491, radius: 25000 },
-  { town: "Glasgow", lat: 55.8642, lng: -4.2518, radius: 25000 },
-  { town: "Edinburgh", lat: 55.9533, lng: -3.1883, radius: 25000 },
-  { town: "Bristol", lat: 51.4545, lng: -2.5879, radius: 25000 },
-  { town: "Cardiff", lat: 51.4816, lng: -3.1791, radius: 25000 },
-  { town: "Belfast", lat: 54.5973, lng: -5.9301, radius: 25000 },
-  { town: "Liverpool", lat: 53.4084, lng: -2.9916, radius: 25000 },
-  { town: "Sheffield", lat: 53.3811, lng: -1.4701, radius: 25000 },
-  { town: "Newcastle", lat: 54.9783, lng: -1.6178, radius: 25000 },
-  { town: "Norwich", lat: 52.6309, lng: 1.2974, radius: 25000 },
-  { town: "Exeter", lat: 50.7184, lng: -3.5339, radius: 25000 },
-  { town: "Cambridge", lat: 52.2053, lng: 0.1218, radius: 20000 },
-  { town: "Brighton", lat: 50.8229, lng: -0.1363, radius: 20000 },
-  { town: "Harrogate", lat: 53.9921, lng: -1.5418, radius: 20000 },
-  { town: "Chester", lat: 53.191, lng: -2.891, radius: 20000 },
-];
+const SEARCH_LOCATIONS = UK_SEARCH_LOCATIONS;
 
 const FISH_QUERIES = [
   "koi breeder",
@@ -50,6 +33,12 @@ const FISH_QUERIES = [
   "fish farm UK",
   "aquaculture fish",
   "marine fish breeder",
+  "trout farm",
+  "fish hatchery",
+  "betta breeder",
+  "carp fishery",
+  "pond koi supplier",
+  "aquarium fish wholesale",
 ];
 
 const FISH_BREED_KEYWORDS = [
@@ -141,20 +130,24 @@ async function main() {
   const maxNew = parseInt(args.find((a) => a.startsWith("--limit="))?.split("=")[1] || "50", 10);
   const dryRun = args.includes("--dry-run");
 
+  const maxSearches = parseInt(
+    args.find((a) => a.startsWith("--max-searches="))?.split("=")[1] ||
+      String(Math.min(SEARCH_LOCATIONS.length * FISH_QUERIES.length, maxNew * 8)),
+    10
+  );
+
   const supabase = getSupabaseAdmin();
   const apiKey = getGooglePlacesApiKey();
 
   console.log("=== UK Fish Breeder Discovery (cache-first) ===\n");
 
-  const { data: existing } = await supabase
-    .from("breeders")
-    .select("google_place_id, slug")
-    .neq("status", "archived");
+  const existing = await loadExistingBreederKeys(supabase);
 
-  const seenPlaceIds = new Set((existing || []).map((b) => b.google_place_id).filter(Boolean));
-  const seenSlugs = new Set((existing || []).map((b) => b.slug).filter(Boolean));
+  const seenPlaceIds = new Set(existing.map((b) => b.google_place_id).filter(Boolean));
+  const seenSlugs = new Set(existing.map((b) => b.slug).filter(Boolean));
 
-  console.log(`Existing breeders: ${existing?.length || 0}`);
+  console.log(`Existing breeders: ${existing.length}`);
+  console.log(`Search hubs: ${SEARCH_LOCATIONS.length}, queries: ${FISH_QUERIES.length}, max searches: ${maxSearches}`);
   console.log(`Target new fish breeders: up to ${maxNew}\n`);
 
   const candidates = [];
@@ -162,9 +155,11 @@ async function main() {
 
   for (const loc of SEARCH_LOCATIONS) {
     if (candidates.length >= maxNew * 2) break;
+    if (searchApiCalls >= maxSearches) break;
 
     for (const query of FISH_QUERIES) {
       if (candidates.length >= maxNew * 2) break;
+      if (searchApiCalls >= maxSearches) break;
 
       const { places, apiCalls } = await searchPlaces(apiKey, query, loc.lat, loc.lng, loc.radius);
       searchApiCalls += apiCalls;
@@ -180,6 +175,10 @@ async function main() {
 
         seenPlaceIds.add(place.id);
         candidates.push({ place, loc, query });
+      }
+
+      if (searchApiCalls % 50 === 0) {
+        console.log(`  … ${searchApiCalls} searches, ${candidates.length} candidates (${loc.town})`);
       }
 
       await new Promise((r) => setTimeout(r, 200));
@@ -252,16 +251,29 @@ async function main() {
       continue;
     }
 
-    const { data: insertedRow, error: insertErr } = await supabase
-      .from("breeders")
-      .insert(row)
-      .select("id, slug")
-      .single();
+    let insertedRow = null;
+    let insertSlug = slug;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error: insertErr } = await supabase
+        .from("breeders")
+        .insert({ ...row, slug: insertSlug })
+        .select("id, slug")
+        .single();
 
-    if (insertErr) {
+      if (!insertErr) {
+        insertedRow = data;
+        slug = insertSlug;
+        break;
+      }
+      if (insertErr.message.includes("breeders_slug_key") && attempt < 2) {
+        insertSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+        continue;
+      }
       console.log(`✗ ${name}: ${insertErr.message}`);
-      continue;
+      break;
     }
+
+    if (!insertedRow) continue;
 
     const breed = inferredBreed || "Mixed / Various";
     await supabase.from("breeder_breeds").upsert(

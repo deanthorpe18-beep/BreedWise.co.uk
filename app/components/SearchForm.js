@@ -73,7 +73,7 @@ export default function SearchForm({
       .catch(() => setLoadingBreeds(false));
   }, [animal]);
 
-  const hasCriteria = !!(selectedBreeds.length > 0 || locationQuery.trim() || userLat);
+  const hasCriteria = !!(selectedBreeds.length > 0 || locationQuery.trim() || userLat || animal);
 
   const handleGeolocation = useCallback(() => {
     setGeoLoading(true);
@@ -323,12 +323,12 @@ export default function SearchForm({
         }`}
       >
         <Search className="h-4 w-4" />
-        {hasCriteria ? "Search breeders" : "Select a breed or location to search"}
+        {hasCriteria ? "Search breeders" : "Select an animal type, breed, or location"}
       </button>
 
       {!hasCriteria && (
         <p className="text-center text-xs text-slate-400">
-          Please select an animal type and breed, or enter a location to find breeders
+          Pick cats, fish, or another animal type — or add a breed or location to narrow results
         </p>
       )}
     </form>

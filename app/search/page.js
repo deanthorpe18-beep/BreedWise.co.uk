@@ -151,6 +151,12 @@ export default async function SearchPage({ searchParams }) {
                 Pick an animal type, choose a breed, and tell us where you&apos;re looking — or tap &quot;Use my location&quot; to see who&apos;s nearby.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Link href="/search?animal=cat" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5]">
+                  Browse cat breeders
+                </Link>
+                <Link href="/search?animal=fish" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5]">
+                  Browse fish breeders
+                </Link>
                 <Link href="/near-me" className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#00a98e]">
                   <MapPin className="h-4 w-4" /> Find breeders near me
                 </Link>
