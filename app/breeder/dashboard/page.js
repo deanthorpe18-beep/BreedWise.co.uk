@@ -36,7 +36,8 @@ export default function BreederDashboardPage() {
 
   // Profile edit state
   const [profile, setProfile] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [allBreeds, setAllBreeds] = useState([]);
   const [loadingBreeds, setLoadingBreeds] = useState(false);
@@ -62,7 +63,10 @@ export default function BreederDashboardPage() {
   const [photoUploadError, setPhotoUploadError] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoadingProfile(false);
+      return;
+    }
     fetch("/api/breeder/analytics")
       .then((r) => r.json())
       .then((data) => {
@@ -76,6 +80,7 @@ export default function BreederDashboardPage() {
 
   const loadProfile = async () => {
     setLoadingProfile(true);
+    setProfileError("");
     try {
       const res = await fetch("/api/breeder/profile");
       const data = await res.json();
@@ -92,9 +97,63 @@ export default function BreederDashboardPage() {
           health_testing: data.breeder.healthTesting || "",
           availability_status: data.breeder.availabilityStatus || "available",
         });
+      } else {
+        setProfileError(data.error || "Could not load your profile.");
       }
-    } catch {}
+    } catch {
+      setProfileError("Could not load your profile. Please try again.");
+    }
     setLoadingProfile(false);
+  };
+
+  const hasLinkedListing = !!(user?.breederSlug || user?.breederId);
+
+  const renderProfileMissing = () => {
+    if (loadingProfile) {
+      return (
+        <div className="mt-6 flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-[#00BFA5]" />
+        </div>
+      );
+    }
+
+    if (hasLinkedListing) {
+      return (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <p className="text-sm text-amber-900">
+            Your listing is linked to this account. The editor could not load just now.
+          </p>
+          {profileError && <p className="mt-2 text-xs text-amber-800">{profileError}</p>}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={loadProfile}
+              className="rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e]"
+            >
+              Try again
+            </button>
+            {user?.breederSlug && (
+              <Link
+                href={`/breeder/${user.breederSlug}`}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 rounded-3xl border border-amber-300 bg-white px-5 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                <ExternalLink className="h-4 w-4" /> View public profile
+              </Link>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+        <p className="text-sm text-slate-500">No breeder profile found. Claim a profile first.</p>
+        <Link href="/claim" className="mt-3 inline-block rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e]">
+          Claim a profile
+        </Link>
+      </div>
+    );
   };
 
   const loadBreedsForAnimal = async (animal) => {
@@ -490,12 +549,7 @@ export default function BreederDashboardPage() {
             )}
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm text-slate-500">No breeder profile found. Claim a profile first.</p>
-            <Link href="/claim" className="mt-3 inline-block rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e]">
-              Claim a profile
-            </Link>
-          </div>
+          renderProfileMissing()
         )}
       </div>
 
@@ -742,12 +796,7 @@ export default function BreederDashboardPage() {
             )}
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm text-slate-500">No breeder profile found. Claim a profile first.</p>
-            <Link href="/claim" className="mt-3 inline-block rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e]">
-              Claim a profile
-            </Link>
-          </div>
+          renderProfileMissing()
         )}
       </div>
 

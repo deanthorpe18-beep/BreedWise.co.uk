@@ -1,86 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { getUserBreederId } from "@/lib/breeder-auth";
 
 export const dynamic = "force-dynamic";
-
-// Find breeder ID for current user via multiple methods
-async function getUserBreederId(adminClient, userId, userEmail) {
-  // Method 1: breeder_subscriptions table
-  const { data: subscription } = await adminClient
-    .from("breeder_subscriptions")
-    .select("breeder_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (subscription?.breeder_id) {
-    return subscription.breeder_id;
-  }
-
-  // Method 2: approved claims by user ID
-  const { data: claim } = await adminClient
-    .from("claims")
-    .select("breeder_slug")
-    .eq("claimant_user_id", userId)
-    .eq("status", "approved")
-    .order("reviewed_at", { ascending: false })
-    .maybeSingle();
-
-  if (claim?.breeder_slug) {
-    const { data: breeder } = await adminClient
-      .from("breeders")
-      .select("id")
-      .eq("slug", claim.breeder_slug)
-      .maybeSingle();
-    if (breeder?.id) return breeder.id;
-  }
-
-  // Method 3: match by email on claimed breeders
-  if (userEmail) {
-    const { data: breederByEmail } = await adminClient
-      .from("breeders")
-      .select("id")
-      .eq("email", userEmail)
-      .eq("status", "claimed_profile")
-      .maybeSingle();
-
-    if (breederByEmail?.id) {
-      // Auto-create subscription so this works next time
-      await adminClient
-        .from("breeder_subscriptions")
-        .upsert({
-          breeder_id: breederByEmail.id,
-          user_id: userId,
-          tier: "free",
-          status: "active",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "breeder_id" });
-      return breederByEmail.id;
-    }
-  }
-
-  // Method 4: match by email in claims table
-  if (userEmail) {
-    const { data: claimByEmail } = await adminClient
-      .from("claims")
-      .select("breeder_slug")
-      .eq("claimant_email", userEmail)
-      .eq("status", "approved")
-      .order("reviewed_at", { ascending: false })
-      .maybeSingle();
-
-    if (claimByEmail?.breeder_slug) {
-      const { data: breeder } = await adminClient
-        .from("breeders")
-        .select("id")
-        .eq("slug", claimByEmail.breeder_slug)
-        .maybeSingle();
-      if (breeder?.id) return breeder.id;
-    }
-  }
-
-  return null;
-}
 
 export async function GET() {
   try {
@@ -98,7 +20,7 @@ export async function GET() {
       return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
     }
 
-    const { data: breeder } = await adminClient
+    const { data: breeder, error: breederError } = await adminClient
       .from("breeders")
       .select(`
         id, name, slug, about, phone, email, website,
@@ -111,7 +33,8 @@ export async function GET() {
       .eq("id", breederId)
       .single();
 
-    if (!breeder) {
+    if (breederError || !breeder) {
+      console.error("[breeder/profile GET] Breeder fetch error:", breederError?.message, breederError?.code);
       return NextResponse.json({ error: "Breeder not found" }, { status: 404 });
     }
 
