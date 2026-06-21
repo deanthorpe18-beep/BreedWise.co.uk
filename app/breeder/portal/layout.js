@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { LayoutDashboard, Dog, Baby, ArrowLeft, Users, Shield } from "lucide-react";
+import { LayoutDashboard, Dog, Baby, ArrowLeft, Users } from "lucide-react";
 import { usePortalApi } from "./usePortalApi";
+import AdminBreederPortalPicker from "@components/AdminBreederPortalPicker";
+import { useAuth } from "@components/AuthProvider";
 
 const NAV = [
   { href: "/breeder/portal", label: "Overview", icon: LayoutDashboard, exact: true },
@@ -15,34 +17,58 @@ const NAV = [
 
 function PortalNav() {
   const pathname = usePathname();
-  const { adminAs, portalQuery } = usePortalApi();
+  const router = useRouter();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const { adminAs, adminBreederName, adminPreview, portalQuery, exitAdminPreview } = usePortalApi();
+
+  if (isAdmin && !adminPreview && !user?.breederSlug) {
+    return (
+      <div className="space-y-6">
+        <Link href="/admin?tab=breeding" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]">
+          <ArrowLeft className="h-4 w-4" /> Back to admin
+        </Link>
+        <AdminBreederPortalPicker compact />
+      </div>
+    );
+  }
+
+  const displayName = adminBreederName || user?.breederName;
 
   return (
     <>
-      {adminAs && (
-        <div className="mb-6 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="flex items-center gap-2 font-semibold">
-              <Shield className="h-4 w-4" />
-              Admin view — managing this breeder&apos;s portal
-            </p>
-            <Link href="/admin?tab=breeding" className="font-semibold text-purple-700 hover:underline">
-              Back to admin panel
-            </Link>
-          </div>
+      {adminPreview && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <span>
+            Viewing as <strong className="text-slate-900">{displayName || "breeder"}</strong> — same portal breeders use
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              exitAdminPreview();
+              router.push("/admin?tab=breeding");
+            }}
+            className="font-semibold text-[#00BFA5] hover:underline"
+          >
+            Exit preview
+          </button>
         </div>
       )}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link
-            href={adminAs ? "/admin?tab=breeding" : "/breeder/dashboard"}
+            href={adminPreview ? "/admin?tab=breeding" : "/breeder/dashboard"}
             className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]"
           >
-            <ArrowLeft className="h-4 w-4" /> {adminAs ? "Back to admin" : "Back to dashboard"}
+            <ArrowLeft className="h-4 w-4" /> {adminPreview ? "Back to admin" : "Back to dashboard"}
           </Link>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">Breeding portal</h1>
-          <p className="text-sm text-slate-600">Manage dogs, litters, and pups in one place.</p>
+          <p className="text-sm text-slate-600">
+            {adminPreview && displayName
+              ? `Managing ${displayName}'s breeding records`
+              : "Manage dogs, litters, and pups in one place."}
+          </p>
         </div>
       </div>
 
@@ -67,13 +93,27 @@ function PortalNav() {
   );
 }
 
+function PortalBody({ children }) {
+  const { user } = useAuth();
+  const { adminPreview } = usePortalApi();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+
+  if (isAdmin && !adminPreview && !user?.breederSlug) {
+    return null;
+  }
+
+  return children;
+}
+
 export default function BreederPortalLayout({ children }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
       <Suspense fallback={<div className="mb-8 h-24 animate-pulse rounded-2xl bg-slate-100" />}>
         <PortalNav />
       </Suspense>
-      <Suspense>{children}</Suspense>
+      <Suspense>
+        <PortalBody>{children}</PortalBody>
+      </Suspense>
     </div>
   );
 }

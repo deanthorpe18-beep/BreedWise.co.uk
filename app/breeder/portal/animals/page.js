@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import PortalAccessBanner from "../PortalAccessBanner";
 import { usePortalApi } from "../usePortalApi";
+import { usePortalApi } from "../usePortalApi";
 
 const emptyForm = {
   name: "",
@@ -18,7 +19,7 @@ const emptyForm = {
 };
 
 export default function PortalAnimalsPage() {
-  const { portalFetch, portalUrl } = usePortalApi();
+  const { portalFetch, portalUrl, adminPreview } = usePortalApi();
   const [animals, setAnimals] = useState([]);
   const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,7 @@ export default function PortalAnimalsPage() {
 
   return (
     <div className="space-y-6">
-      <PortalAccessBanner access={access} />
+      <PortalAccessBanner access={access} adminPreview={adminPreview} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

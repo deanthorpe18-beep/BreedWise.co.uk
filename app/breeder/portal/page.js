@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Loader2, Dog, Baby, Hash } from "lucide-react";
 import PortalAccessBanner from "./PortalAccessBanner";
 import { usePortalApi } from "./usePortalApi";
+import { setPortalAdminContext } from "@/lib/portal-admin-context";
 
 export default function BreederPortalHome() {
-  const { portalFetch, portalQuery } = usePortalApi();
+  const { portalFetch, portalQuery, adminPreview, adminAs } = usePortalApi();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -17,14 +18,19 @@ export default function BreederPortalHome() {
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
-        else setData(d);
+        else {
+          setData(d);
+          if (adminAs && d.breeder?.name) {
+            setPortalAdminContext(adminAs, d.breeder.name);
+          }
+        }
         setLoading(false);
       })
       .catch(() => {
         setError("Could not load portal.");
         setLoading(false);
       });
-  }, [portalFetch]);
+  }, [portalFetch, adminAs]);
 
   if (loading) {
     return (
@@ -38,16 +44,18 @@ export default function BreederPortalHome() {
     return (
       <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
         <p className="font-semibold">{error}</p>
-        <Link href="/breeder/dashboard" className="mt-3 inline-block font-semibold text-[#00BFA5]">
-          {error.includes("Upgrade") || error.includes("Silver") || error.includes("Gold")
-            ? "View upgrade options →"
-            : "Go to dashboard →"}
-        </Link>
+        {!adminPreview && (
+          <Link href="/breeder/dashboard" className="mt-3 inline-block font-semibold text-[#00BFA5]">
+            {error.includes("Upgrade") || error.includes("Silver") || error.includes("Gold")
+              ? "View upgrade options →"
+              : "Go to dashboard →"}
+          </Link>
+        )}
       </div>
     );
   }
 
-  const { stats, breeder, access } = data;
+  const { stats, breeder, access, adminView } = data;
   const cards = [
     { label: "Breeding dogs/cats on file", value: stats.breedingAnimals, sub: `${stats.males} males · ${stats.females} females`, href: `/breeder/portal/animals${portalQuery}`, icon: Dog },
     { label: "Total litters recorded", value: stats.totalLitters, sub: `${stats.pupsBorn} born (from litter counts)`, href: `/breeder/portal/litters${portalQuery}`, icon: Baby },
@@ -56,18 +64,20 @@ export default function BreederPortalHome() {
 
   return (
     <div className="space-y-6">
-      <PortalAccessBanner access={access} />
+      <PortalAccessBanner access={access} adminPreview={adminPreview || adminView} />
 
       <div className="rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-br from-[#E6FFFB] to-white p-6">
         <p className="text-sm text-slate-600">Welcome, {breeder.name}</p>
         <p className="mt-1 text-lg font-semibold text-slate-900">
-          {access?.level === "full"
-            ? "Full portal access on your Gold plan"
-            : access?.level === "restricted"
-              ? "Limited portal access on your Silver plan"
-              : breeder.licenceVerified
-                ? "Licence verified"
-                : "Portal open — keep your council licence up to date on the dashboard"}
+          {adminPreview || adminView
+            ? "Full portal access — add stock, litters, pups, and announcements"
+            : access?.level === "full"
+              ? "Full portal access on your Gold plan"
+              : access?.level === "restricted"
+                ? "Limited portal access on your Silver plan"
+                : breeder.licenceVerified
+                  ? "Licence verified"
+                  : "Portal open — keep your council licence up to date on the dashboard"}
         </p>
       </div>
 
@@ -89,7 +99,7 @@ export default function BreederPortalHome() {
           <li>• Add or remove line items and terms to suit your business</li>
           <li>• Printable council summary (custom council form layout coming later)</li>
         </ul>
-        {access?.canUseSaleFeatures ? (
+        {access?.canUseSaleFeatures || adminPreview || adminView ? (
           <p className="mt-3 text-sm font-medium text-amber-800">Open a litter to manage sale records and print a council summary.</p>
         ) : (
           <p className="mt-3 text-sm text-slate-500">

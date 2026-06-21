@@ -18,7 +18,7 @@ const emptyForm = {
 };
 
 export default function PortalLittersPage() {
-  const { portalFetch, portalQuery } = usePortalApi();
+  const { portalFetch, portalQuery, adminPreview } = usePortalApi();
   const [litters, setLitters] = useState([]);
   const [animals, setAnimals] = useState([]);
   const [access, setAccess] = useState(null);
@@ -79,7 +79,7 @@ export default function PortalLittersPage() {
 
   return (
     <div className="space-y-6">
-      <PortalAccessBanner access={access} />
+      <PortalAccessBanner access={access} adminPreview={adminPreview} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

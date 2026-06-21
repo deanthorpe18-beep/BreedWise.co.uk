@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-export default function PortalAccessBanner({ access }) {
-  if (!access) return null;
+export default function PortalAccessBanner({ access, adminPreview }) {
+  if (!access || adminPreview) return null;
 
   if (access.level === "full") {
     return (

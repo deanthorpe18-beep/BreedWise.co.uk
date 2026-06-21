@@ -16,6 +16,7 @@ import {
 import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
 import AdminLicencePanel from "@components/AdminLicencePanel";
 import AdminBreedingPortalPanel from "@components/AdminBreedingPortalPanel";
+import { setPortalAdminContext } from "@/lib/portal-admin-context";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -1243,7 +1244,7 @@ export default function AdminPage() {
                             <a href={`/breeder/${b.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                               <ArrowUpRight className="h-3 w-3" /> View
                             </a>
-                            <Link href={`/breeder/portal?adminAs=${b.id}`} className="inline-flex items-center gap-1 rounded-3xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100">
+                            <Link href={`/breeder/portal?adminAs=${b.id}`} onClick={() => setPortalAdminContext(b.id, b.name)} className="inline-flex items-center gap-1 rounded-3xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100">
                               <Baby className="h-3 w-3" /> Portal
                             </Link>
                           </div>

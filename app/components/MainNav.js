@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@components/AuthProvider";
-import { Menu, X, User, LogOut, Shield, ChevronDown, Settings, Heart, MessageCircle, Store, Search } from "lucide-react";
+import { Menu, X, User, LogOut, Shield, ChevronDown, Settings, Heart, MessageCircle, Store, Search, Baby } from "lucide-react";
 
 function getInitials(name) {
   if (!name) return "?";
@@ -104,14 +104,24 @@ function UserDropdown({ user, onLogout }) {
               Account settings
             </Link>
             {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-[#00BFA5] hover:bg-[#E6FFFB]"
-              >
-                <Shield className="h-4 w-4" />
-                Admin dashboard
-              </Link>
+              <>
+                <Link
+                  href="/admin?tab=breeding"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50"
+                >
+                  <Baby className="h-4 w-4 text-purple-500" />
+                  Breeding portal
+                </Link>
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-[#00BFA5] hover:bg-[#E6FFFB]"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin dashboard
+                </Link>
+              </>
             )}
           </div>
           <div className="border-t border-slate-100 py-1">
@@ -249,7 +259,10 @@ export default function MainNav() {
                 <Link href="/account/claims" className="rounded-2xl px-4 py-3 hover:bg-slate-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Shield className="h-4 w-4" /> My claims</Link>
                 <Link href="/account/settings" className="rounded-2xl px-4 py-3 hover:bg-slate-50" onClick={() => setIsOpen(false)}>Account settings</Link>
                 {(user.role === "admin" || user.role === "super_admin") && (
-                  <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin dashboard</Link>
+                  <>
+                    <Link href="/admin?tab=breeding" className="rounded-2xl px-4 py-3 text-purple-700 font-semibold hover:bg-purple-50 flex items-center gap-2" onClick={() => setIsOpen(false)}><Baby className="h-4 w-4" /> Breeding portal</Link>
+                    <Link href="/admin" className="rounded-2xl px-4 py-3 text-[#00BFA5] font-semibold hover:bg-[#E6FFFB]" onClick={() => setIsOpen(false)}>Admin dashboard</Link>
+                  </>
                 )}
                 <button onClick={() => { logout(); setIsOpen(false); }} className="rounded-2xl px-4 py-3 text-left text-red-500 hover:bg-red-50">Log out</button>
               </>

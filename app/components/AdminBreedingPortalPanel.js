@@ -10,8 +10,9 @@ import {
   Users,
   Megaphone,
   ExternalLink,
-  Settings,
 } from "lucide-react";
+import AdminBreederPortalPicker from "@components/AdminBreederPortalPicker";
+import { setPortalAdminContext } from "@/lib/portal-admin-context";
 
 export default function AdminBreedingPortalPanel() {
   const [data, setData] = useState(null);
@@ -30,16 +31,22 @@ export default function AdminBreedingPortalPanel() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" />
+      <div className="space-y-6">
+        <AdminBreederPortalPicker />
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" />
+        </div>
       </div>
     );
   }
 
   if (!data?.summary) {
     return (
-      <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
-        Could not load breeding portal data.
+      <div className="space-y-6">
+        <AdminBreederPortalPicker />
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+          Could not load platform stats. You can still open a breeder portal using the search above.
+        </div>
       </div>
     );
   }
@@ -65,15 +72,7 @@ export default function AdminBreedingPortalPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-white p-6">
-        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-          <Baby className="h-5 w-5 text-[#00BFA5]" />
-          Breeding portal & litter management
-        </h3>
-        <p className="mt-1 text-sm text-slate-600">
-          View platform-wide litter activity, wait lists, and open any breeder&apos;s portal to manage stock, litters, and announcements.
-        </p>
-      </div>
+      <AdminBreederPortalPicker />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {statCards.map(({ label, value, icon: Icon }) => (
@@ -90,7 +89,7 @@ export default function AdminBreedingPortalPanel() {
           <h4 className="text-base font-semibold text-slate-900">Breeders with portal activity</h4>
           <input
             type="search"
-            placeholder="Search breeders..."
+            placeholder="Filter list..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full sm:w-64 rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
@@ -98,7 +97,7 @@ export default function AdminBreedingPortalPanel() {
         </div>
 
         {filteredBreeders.length === 0 ? (
-          <p className="mt-6 text-center text-sm text-slate-500">No breeders with portal records yet.</p>
+          <p className="mt-6 text-center text-sm text-slate-500">No breeders with portal records yet. Use the search above to open any listing.</p>
         ) : (
           <div className="mt-4 space-y-3">
             {filteredBreeders.map((b) => (
@@ -127,9 +126,10 @@ export default function AdminBreedingPortalPanel() {
                   </a>
                   <Link
                     href={`/breeder/portal?adminAs=${b.id}`}
+                    onClick={() => setPortalAdminContext(b.id, b.name)}
                     className="inline-flex items-center gap-1 rounded-full bg-[#00BFA5] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#00a98e]"
                   >
-                    <Settings className="h-3.5 w-3.5" /> Manage portal
+                    Open portal
                   </Link>
                 </div>
               </div>
