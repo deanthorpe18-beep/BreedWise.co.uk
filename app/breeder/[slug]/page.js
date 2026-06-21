@@ -6,7 +6,7 @@ import JustClaimedBadge from "@components/JustClaimedBadge";
 import { isJustClaimed } from "@lib/breeder-utils";
 import MembershipBadge from "@components/MembershipBadge";
 import ClaimProfileButton from "@components/ClaimProfileButton";
-import GoogleReviews from "@components/GoogleReviews";
+import GoogleRatingSummary from "@components/GoogleRatingSummary";
 import BreederPhotos from "@components/BreederPhotos";
 import SocialShare from "@components/SocialShare";
 import Breadcrumbs from "@components/Breadcrumbs";
@@ -253,35 +253,12 @@ export default async function BreederProfilePage({ params }) {
 
                 <BreederWaitlistJoin breederSlug={slug} breederName={breeder.name} breeds={breeds} />
 
-                {/* Google Rating */}
-                <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <Star className="h-5 w-5 text-[#FFB545] fill-[#FFB545]" />
-                        <p className="font-semibold text-slate-900">Google rating</p>
-                    </div>
-                    <div className="mt-4 flex items-baseline gap-3">
-                        <p className="text-3xl font-semibold text-slate-900">
-                            {breeder.google_rating ? `${breeder.google_rating}` : "No rating"}
-                        </p>
-                        {breeder.google_review_count ? (
-                            <p className="text-sm text-slate-500">{breeder.google_review_count} reviews</p>
-                        ) : null}
-                    </div>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                        Profile information is sourced from Google Places. BreedWise does not independently verify breeder claims.
-                    </p>
-                    <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(breeder.name)}&query_place_id=${breeder.google_place_id || ""}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#00BFA5] hover:text-[#008f7a]"
-                    >
-                        View on Google <ExternalLink className="h-3 w-3" />
-                    </a>
-                </div>
-
-                {/* Google Reviews */}
-                <GoogleReviews slug={slug} breederName={breeder.name} />
+                <GoogleRatingSummary
+                    rating={breeder.google_rating}
+                    reviewCount={breeder.google_review_count}
+                    breederName={breeder.name}
+                    googlePlaceId={breeder.google_place_id}
+                />
 
                 {/* About */}
                 {breeder.about && (

@@ -1,15 +1,14 @@
 /**
- * Discover UK cat breeders via Google Business / Places — cache everything in Supabase.
+ * Discover UK fish / aquarium breeders via Google Places — cache everything in Supabase.
  *
  * - Skips place IDs already in the database (0 duplicate API work)
- * - Caches full place payloads in google_places_cache
- * - Downloads photos once into breeder-photos storage
- * - Uses search results directly when they include photos (avoids extra Details calls)
+ * - Caches full place payloads (including reviews) in google_places_cache
+ * - One Place Details call per new listing when search results lack reviews/photos
  *
  * Usage:
- *   node scripts/seed-cat-breeders.js
- *   node scripts/seed-cat-breeders.js --limit=50
- *   node scripts/seed-cat-breeders.js --dry-run
+ *   node scripts/seed-fish-breeders.js
+ *   node scripts/seed-fish-breeders.js --limit=30
+ *   node scripts/seed-fish-breeders.js --dry-run
  */
 
 require("./_env");
@@ -30,57 +29,51 @@ const SEARCH_LOCATIONS = [
   { town: "Liverpool", lat: 53.4084, lng: -2.9916, radius: 25000 },
   { town: "Sheffield", lat: 53.3811, lng: -1.4701, radius: 25000 },
   { town: "Newcastle", lat: 54.9783, lng: -1.6178, radius: 25000 },
-  { town: "Nottingham", lat: 52.9548, lng: -1.1581, radius: 25000 },
-  { town: "Leicester", lat: 52.6369, lng: -1.1398, radius: 25000 },
-  { town: "Southampton", lat: 50.9097, lng: -1.4044, radius: 25000 },
-  { town: "Brighton", lat: 50.8229, lng: -0.1363, radius: 20000 },
-  { town: "Cambridge", lat: 52.2053, lng: 0.1218, radius: 20000 },
-  { town: "Oxford", lat: 51.752, lng: -1.2577, radius: 20000 },
-  { town: "Reading", lat: 51.4543, lng: -0.9781, radius: 20000 },
   { town: "Norwich", lat: 52.6309, lng: 1.2974, radius: 25000 },
   { town: "Exeter", lat: 50.7184, lng: -3.5339, radius: 25000 },
-  { town: "York", lat: 53.9599, lng: -1.0873, radius: 20000 },
-  { town: "Chester", lat: 53.191, lng: -2.891, radius: 20000 },
-  { town: "Durham", lat: 54.7761, lng: -1.5733, radius: 20000 },
-  { town: "Canterbury", lat: 51.2802, lng: 1.0789, radius: 20000 },
-  { town: "Guildford", lat: 51.2362, lng: -0.5704, radius: 20000 },
-  { town: "Winchester", lat: 51.0632, lng: -1.308, radius: 20000 },
-  { town: "Bath", lat: 51.3814, lng: -2.3597, radius: 20000 },
-  { town: "Cheltenham", lat: 51.8994, lng: -2.0783, radius: 20000 },
+  { town: "Cambridge", lat: 52.2053, lng: 0.1218, radius: 20000 },
+  { town: "Brighton", lat: 50.8229, lng: -0.1363, radius: 20000 },
   { town: "Harrogate", lat: 53.9921, lng: -1.5418, radius: 20000 },
+  { town: "Chester", lat: 53.191, lng: -2.891, radius: 20000 },
 ];
 
-const CAT_QUERIES = [
-  "cat breeder",
-  "kitten breeder",
-  "cattery",
-  "ragdoll breeder",
-  "british shorthair breeder",
-  "bengal cat breeder",
-  "maine coon breeder",
-  "persian cat breeder",
-  "siamese cat breeder",
-  "sphynx cat breeder",
-  "scottish fold breeder",
-  "ragdoll kittens",
+const FISH_QUERIES = [
+  "koi breeder",
+  "koi carp breeder",
+  "tropical fish breeder",
+  "aquarium fish breeder",
+  "ornamental fish breeder",
+  "discus breeder",
+  "cichlid breeder",
+  "goldfish breeder",
+  "pond fish breeder",
+  "fish farm UK",
+  "aquaculture fish",
+  "marine fish breeder",
 ];
 
-const CAT_BREED_KEYWORDS = [
-  { keywords: ["ragdoll"], breed: "Ragdoll" },
-  { keywords: ["british shorthair", "british blue"], breed: "British Shorthair" },
-  { keywords: ["bengal"], breed: "Bengal" },
-  { keywords: ["maine coon"], breed: "Maine Coon" },
-  { keywords: ["persian"], breed: "Persian" },
-  { keywords: ["siamese"], breed: "Siamese" },
-  { keywords: ["sphynx"], breed: "Sphynx" },
-  { keywords: ["scottish fold"], breed: "Scottish Fold" },
+const FISH_BREED_KEYWORDS = [
+  { keywords: ["koi"], breed: "Koi Carp" },
+  { keywords: ["discus"], breed: "Discus" },
+  { keywords: ["goldfish", "fancy gold"], breed: "Goldfish" },
+  { keywords: ["betta", "fighting fish"], breed: "Betta" },
+  { keywords: ["angelfish"], breed: "Angelfish" },
+  { keywords: ["oscar"], breed: "Oscar" },
+  { keywords: ["flowerhorn"], breed: "Flowerhorn Cichlid" },
+  { keywords: ["clownfish", "clown fish"], breed: "Clownfish" },
+  { keywords: ["arowana"], breed: "Arowana" },
+  { keywords: ["pleco", "plecostomus"], breed: "Plecostomus" },
+  { keywords: ["neon tetra", "tetra"], breed: "Neon Tetra" },
+  { keywords: ["cichlid"], breed: "Oscar" },
 ];
 
 const REJECT_KEYWORDS = [
   "veterinary", "vet ", "animal hospital", "pet shop", "pet store",
-  "grooming", "groomer", "boarding", "rescue", "rehoming", "sanctuary",
-  "charity", "rspca", "cats protection", "cattery boarding", "cattery hotel",
-  "pet supplies", "pet sitting", "dog", "puppy", "kennel",
+  "aquatics superstore", "aquatic centre", "aquatics centre", "fish shop",
+  "tackle shop", "angling", "fishing tackle", "seafood", "fish and chips",
+  "restaurant", "wholesale only", "cash and carry",
+  "grooming", "boarding", "rescue", "charity",
+  "dog", "puppy", "kennel", "cattery", "cat breeder",
 ];
 
 function generateSlug(name, postcode, town) {
@@ -89,15 +82,15 @@ function generateSlug(name, postcode, town) {
   return `${cleanName}-${cleanLocation}`.replace(/-+/g, "-").slice(0, 100);
 }
 
-function inferCatBreed(name) {
+function inferFishBreed(name) {
   const lower = name.toLowerCase();
-  for (const { keywords, breed } of CAT_BREED_KEYWORDS) {
+  for (const { keywords, breed } of FISH_BREED_KEYWORDS) {
     if (keywords.some((kw) => lower.includes(kw))) return breed;
   }
   return null;
 }
 
-function isLikelyCatBreeder(place) {
+function isLikelyFishBreeder(place) {
   const name = (place.displayName?.text || "").toLowerCase();
   if (!name || name.length < 3) return false;
 
@@ -106,10 +99,10 @@ function isLikelyCatBreeder(place) {
   }
 
   const accept = [
-    "cat breeder", "cat breeding", "kitten", "kittens", "cattery",
-    "ragdoll", "bengal", "maine coon", "british shorthair", "persian",
-    "siamese", "sphynx", "scottish fold", "birman", "burmese", "oriental",
-    "siberian", "norwegian forest", "devon rex", "cornish rex",
+    "fish breeder", "fish breeding", "koi", "carp breeder", "discus",
+    "tropical fish", "aquarium", "aquaculture", "fish farm", "ornamental fish",
+    "cichlid", "goldfish", "marine breeder", "pond fish", "hatchery",
+    "aquatic farm", "fish hatchery",
   ];
 
   return accept.some((kw) => name.includes(kw));
@@ -145,13 +138,13 @@ async function main() {
   } = await import("../lib/google-places-sync.js");
 
   const args = process.argv.slice(2);
-  const maxNew = parseInt(args.find((a) => a.startsWith("--limit="))?.split("=")[1] || "80", 10);
+  const maxNew = parseInt(args.find((a) => a.startsWith("--limit="))?.split("=")[1] || "50", 10);
   const dryRun = args.includes("--dry-run");
 
   const supabase = getSupabaseAdmin();
   const apiKey = getGooglePlacesApiKey();
 
-  console.log("=== UK Cat Breeder Discovery (cache-first) ===\n");
+  console.log("=== UK Fish Breeder Discovery (cache-first) ===\n");
 
   const { data: existing } = await supabase
     .from("breeders")
@@ -162,7 +155,7 @@ async function main() {
   const seenSlugs = new Set((existing || []).map((b) => b.slug).filter(Boolean));
 
   console.log(`Existing breeders: ${existing?.length || 0}`);
-  console.log(`Target new cat breeders: up to ${maxNew}\n`);
+  console.log(`Target new fish breeders: up to ${maxNew}\n`);
 
   const candidates = [];
   let searchApiCalls = 0;
@@ -170,7 +163,7 @@ async function main() {
   for (const loc of SEARCH_LOCATIONS) {
     if (candidates.length >= maxNew * 2) break;
 
-    for (const query of CAT_QUERIES) {
+    for (const query of FISH_QUERIES) {
       if (candidates.length >= maxNew * 2) break;
 
       const { places, apiCalls } = await searchPlaces(apiKey, query, loc.lat, loc.lng, loc.radius);
@@ -178,7 +171,7 @@ async function main() {
 
       for (const place of places) {
         if (seenPlaceIds.has(place.id)) continue;
-        if (!isLikelyCatBreeder(place)) continue;
+        if (!isLikelyFishBreeder(place)) continue;
 
         const geo = locationFromPlace(place, loc.town);
         if (!isUkLocation({ country: geo.country, postcode: geo.postcode, lat: place.location?.latitude, lng: place.location?.longitude, address: place.formattedAddress })) {
@@ -194,7 +187,7 @@ async function main() {
   }
 
   console.log(`Search API calls: ${searchApiCalls}`);
-  console.log(`Unique cat breeder candidates: ${candidates.length}\n`);
+  console.log(`Unique fish breeder candidates: ${candidates.length}\n`);
 
   let inserted = 0;
   let placeDetailCalls = 0;
@@ -211,7 +204,7 @@ async function main() {
       if (result.data) details = result.data;
     }
 
-    const name = place.displayName?.text || details.displayName?.text || "Unknown Cattery";
+    const name = place.displayName?.text || details.displayName?.text || "Unknown Fish Breeder";
     const address = details.formattedAddress || place.formattedAddress || "";
     const geo = locationFromPlace(details.addressComponents?.length ? details : place, loc.town);
     const postcode = geo.postcode || extractPostcode(address);
@@ -227,7 +220,7 @@ async function main() {
     if (seenSlugs.has(slug)) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
     seenSlugs.add(slug);
 
-    const inferredBreed = inferCatBreed(name);
+    const inferredBreed = inferFishBreed(name);
 
     const row = {
       google_place_id: place.id,
@@ -245,10 +238,10 @@ async function main() {
       phone: details.nationalPhoneNumber || place.nationalPhoneNumber || place.internationalPhoneNumber || null,
       google_rating: (details.rating ?? place.rating) != null ? Number(details.rating ?? place.rating) : null,
       google_review_count: (details.userRatingCount ?? place.userRatingCount) != null ? Number(details.userRatingCount ?? place.userRatingCount) : null,
-      business_type: details.primaryType || place.primaryType || place.types?.[0] || "cattery",
+      business_type: details.primaryType || place.primaryType || place.types?.[0] || "aquarium",
       status: "public_listing",
-      source_tags: ["google_places", "cat_breeder"],
-      confidence_score: 0.9,
+      source_tags: ["google_places", "fish_breeder"],
+      confidence_score: 0.85,
       about: details.editorialSummary?.text || place.editorialSummary?.text || null,
       last_updated_at: new Date().toISOString(),
     };
@@ -270,25 +263,15 @@ async function main() {
       continue;
     }
 
-    if (inferredBreed) {
-      await supabase.from("breeder_breeds").upsert(
-        {
-          breeder_id: insertedRow.id,
-          breed: inferredBreed,
-          animal_type: "cat",
-        },
-        { onConflict: "breeder_id,breed,animal_type" }
-      );
-    } else {
-      await supabase.from("breeder_breeds").upsert(
-        {
-          breeder_id: insertedRow.id,
-          breed: "Mixed / Various",
-          animal_type: "cat",
-        },
-        { onConflict: "breeder_id,breed,animal_type" }
-      );
-    }
+    const breed = inferredBreed || "Mixed / Various";
+    await supabase.from("breeder_breeds").upsert(
+      {
+        breeder_id: insertedRow.id,
+        breed,
+        animal_type: "fish",
+      },
+      { onConflict: "breeder_id,breed,animal_type" }
+    );
 
     const meta = buildMetadataUpdate(details);
     if (meta) {
@@ -299,13 +282,13 @@ async function main() {
     photoCalls += apiCalls;
 
     inserted++;
-    console.log(`✓ ${name} → /breeder/${slug}${inferredBreed ? ` (${inferredBreed})` : ""} — ${apiCalls} photo API call(s)`);
+    console.log(`✓ ${name} → /breeder/${slug} (${breed}) — ${apiCalls} photo API call(s)`);
 
     await new Promise((r) => setTimeout(r, 250));
   }
 
   console.log("\n=== Summary ===");
-  console.log(`New cat breeders:     ${inserted}`);
+  console.log(`New fish breeders:    ${inserted}`);
   console.log(`Text Search API:      ${searchApiCalls}`);
   console.log(`Place Details API:    ${placeDetailCalls}`);
   console.log(`Place Photo API:      ${photoCalls}`);
