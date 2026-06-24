@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, ArrowRight, Calendar } from "lucide-react";
+import { MapPin, Phone, Star, ChevronRight, Layers, Image as ImageIcon, ChevronLeft, MessageCircle, Crown, ArrowRight, Calendar, ExternalLink } from "lucide-react";
 import SaveBreederButton from "./SaveBreederButton";
 import MembershipBadge, { getTierBorderClasses } from "./MembershipBadge";
 import JustClaimedBadge from "./JustClaimedBadge";
@@ -10,7 +10,7 @@ import BreederTrustBadges from "./BreederTrustBadges";
 import SearchImpressionTracker from "./SearchImpressionTracker";
 import AdSensePlaceholder from "./AdSensePlaceholder";
 import { trackCtaClick } from "@lib/analytics-client";
-import SearchFilters from "./SearchFilters";
+import SearchFilters, { DEFAULT_FILTERS } from "./SearchFilters";
 import { trackSearch, trackFilterUsage } from "@lib/analytics";
 import { getBreederHeroUrl } from "@lib/breeder-images";
 
@@ -37,8 +37,22 @@ export default function SearchResults({
   currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 24,
   availableOnly = false, licensedOnly = false, kcOnly = false, healthOnly = false, verifiedOnly = false,
 }) {
+  const urlInitialFilters = useMemo(() => ({
+    councilLicence: licensedOnly || verifiedOnly ? "yes" : null,
+    kennelClub: kcOnly ? "yes" : null,
+    healthTesting: healthOnly ? "yes" : null,
+    availableOnly: availableOnly || false,
+  }), [licensedOnly, verifiedOnly, kcOnly, healthOnly, availableOnly]);
+
+  const lockedFilters = useMemo(() => ({
+    ...(licensedOnly || verifiedOnly ? { councilLicence: true } : {}),
+    ...(kcOnly ? { kennelClub: true } : {}),
+    ...(healthOnly ? { healthTesting: true } : {}),
+    ...(availableOnly ? { availableOnly: true } : {}),
+  }), [licensedOnly, verifiedOnly, kcOnly, healthOnly, availableOnly]);
+
   const [mapView, setMapView] = useState(false);
-  const [filters, setFilters] = useState({ maxDistance: 50 });
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, ...urlInitialFilters });
   const [tracked, setTracked] = useState(false);
 
   const handleFiltersChange = (newFilters) => {
@@ -48,6 +62,12 @@ export default function SearchResults({
 
   const filteredBreeders = useMemo(() => applyFilters(breeders, filters), [breeders, filters]);
 
+  const hasExtraClientFilters = useMemo(() => {
+    return filters.maxDistance !== DEFAULT_FILTERS.maxDistance;
+  }, [filters.maxDistance]);
+
+  const displayCount = hasExtraClientFilters ? filteredBreeders.length : totalCount;
+
   useEffect(() => {
     if (!tracked && breeders.length > 0) {
       trackSearch(query, breed, totalCount);
@@ -55,19 +75,20 @@ export default function SearchResults({
     }
   }, [tracked, breeders.length, totalCount, query, breed]);
 
-  const mapPoints = useMemo(() => {
-    const withCoords = filteredBreeders.filter((b) => b.lat != null && b.lng != null);
-    if (!withCoords.length) return [];
-    const lats = withCoords.map((b) => b.lat);
-    const lngs = withCoords.map((b) => b.lng);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-    return withCoords.map((item) => ({
-      slug: item.slug,
-      x: maxLng === minLng ? 50 : ((item.lng - minLng) / (maxLng - minLng)) * 100,
-      y: maxLat === minLat ? 50 : ((maxLat - item.lat) / (maxLat - minLat)) * 100,
-      name: item.name,
-    }));
+  const locationItems = useMemo(() => {
+    return filteredBreeders
+      .filter((b) => b.lat != null && b.lng != null)
+      .map((b) => ({
+        slug: b.slug,
+        name: b.name,
+        town: b.town,
+        county: b.county,
+        distance: b.distance,
+        lat: b.lat,
+        lng: b.lng,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${b.lat},${b.lng}`)}`,
+      }))
+      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
   }, [filteredBreeders]);
 
   const buildPageUrl = (pageNum) => {
@@ -93,14 +114,23 @@ export default function SearchResults({
   return (
     <section className="space-y-6">
       <SearchImpressionTracker slugs={breeders.map((b) => b.slug)} />
-      <SearchFilters onFiltersChange={handleFiltersChange} breeders={breeders} />
+      <SearchFilters
+        onFiltersChange={handleFiltersChange}
+        breeders={breeders}
+        initialFilters={urlInitialFilters}
+        lockedFilters={lockedFilters}
+      />
 
       <div className="flex flex-col gap-3 rounded-3xl border border-[#00BFA5]/15 bg-gradient-to-r from-white to-[#E6FFFB]/40 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-[#00BFA5]">Results</p>
-          <h2 className="text-2xl font-semibold text-slate-900">{totalCount} breeders found</h2>
+          <h2 className="text-2xl font-semibold text-slate-900">{displayCount} breeders found</h2>
           <p className="text-sm text-slate-500">
-            {totalCount > 0 ? `Showing ${startIndex}–${endIndex} of ${totalCount}` : "No results"}
+            {displayCount > 0
+              ? hasExtraClientFilters
+                ? `Showing ${filteredBreeders.length} on this page (${totalCount} total from search)`
+                : `Showing ${startIndex}–${endIndex} of ${totalCount}`
+              : "No results"}
             {breed ? ` · ${breed}` : ""}
             {userLat && userLng ? " · sorted by distance" : ""}
             {sortBy === "rating" ? " · sorted by rating" : ""}
@@ -111,29 +141,51 @@ export default function SearchResults({
             <Layers className="h-4 w-4" /> List
           </button>
           <button type="button" className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${mapView ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`} onClick={() => setMapView(true)}>
-            <MapPin className="h-4 w-4" /> Map
+            <MapPin className="h-4 w-4" /> Locations
           </button>
         </div>
       </div>
 
       {mapView ? (
         <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5 shadow-sm">
-          {mapPoints.length > 0 ? (
+          {locationItems.length > 0 ? (
             <>
-              <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gradient-to-br from-slate-100 via-white to-slate-200">
-                {mapPoints.map((point) => (
-                  <Link key={point.slug} href={`/breeder/${point.slug}`} className="absolute inline-flex translate-x-[-50%] translate-y-[-50%] flex-col items-center gap-2 text-xs" style={{ left: `${point.x}%`, top: `${point.y}%` }}>
-                    <span className="rounded-full bg-[#00BFA5] px-2 py-1 text-white shadow-lg shadow-[#00BFA5]/20">{point.name.split(" ")[0]}</span>
-                    <span className="h-3 w-3 rounded-full bg-[#FF6B6B] ring-2 ring-white" />
-                  </Link>
+              <p className="text-sm text-slate-600">
+                {locationItems.length} listing{locationItems.length === 1 ? "" : "s"} with map coordinates on this page.
+                Open in Google Maps or view the full profile.
+              </p>
+              <div className="mt-4 space-y-3 max-h-[480px] overflow-y-auto">
+                {locationItems.map((item) => (
+                  <div key={item.slug} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 truncate">{item.name}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {item.town}{item.county ? `, ${item.county}` : ""}
+                        {item.distance != null ? ` · ${item.distance} mi` : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={item.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Google Maps
+                      </a>
+                      <Link
+                        href={`/breeder/${item.slug}`}
+                        className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#00a98e]"
+                      >
+                        View profile <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </div>
                 ))}
               </div>
-              <p className="mt-4 text-sm text-slate-500">
-                Showing {mapPoints.length} mapped listing{mapPoints.length === 1 ? "" : "s"} on this page. Markers use Google Places coordinates.
-              </p>
             </>
           ) : (
-            <p className="py-12 text-center text-sm text-slate-500">No mapped locations on this page — try list view or widen your search.</p>
+            <p className="py-12 text-center text-sm text-slate-500">No locations with coordinates on this page — try list view or widen your search.</p>
           )}
         </div>
       ) : (

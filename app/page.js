@@ -4,11 +4,23 @@ import PageViewTracker from "@components/PageViewTracker";
 import FeaturedBreeders from "@components/FeaturedBreeders";
 import HomeDynamicContent from "@components/HomeDynamicContent";
 import NewsletterSignup from "@components/NewsletterSignup";
+import { loadCmsContent } from "@/lib/cms-content";
 
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
+import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { Search, Shield, Heart, MessageCircle, Award, Users, MapPin, Star, ArrowRight, PawPrint } from "lucide-react";
 
-export default function HomePage() {
+export async function generateMetadata() {
+  const cms = await loadCmsContent();
+  return baseMetadata({
+    title: "UK Pet Breeder Directory",
+    description: cms.hero_subtitle,
+    path: "/",
+  });
+}
+
+export default async function HomePage() {
+  const cms = await loadCmsContent();
   const structuredData = [
     websiteSchema(),
     organizationSchema(),
@@ -33,11 +45,18 @@ export default function HomePage() {
               </div>
               
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-                Find your perfect <span className="text-[#00BFA5]">companion</span>
+                {cms.hero_title.includes("companion") ? (
+                  <>
+                    {cms.hero_title.replace(/\s*companion\s*$/i, " ")}
+                    <span className="text-[#00BFA5]">companion</span>
+                  </>
+                ) : (
+                  cms.hero_title
+                )}
               </h1>
               
               <p className="max-w-xl text-lg leading-8 text-slate-600">
-                Whether you&apos;re looking for a puppy, kitten, or something more exotic — compare UK breeder listings in one place. Take your time, read reviews, and find someone who feels right for your family.
+                {cms.hero_subtitle}
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -46,14 +65,14 @@ export default function HomePage() {
                   className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#00BFA5]/25 transition hover:bg-[#00a98e] hover:shadow-xl hover:shadow-[#00BFA5]/30"
                 >
                   <Search className="h-4 w-4" />
-                  Search breeders
+                  {cms.hero_cta_primary}
                 </Link>
                 <Link
                   href="/education"
                   className="inline-flex items-center gap-2 rounded-3xl border-2 border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-[#00BFA5] hover:text-[#00BFA5]"
                 >
                   <Heart className="h-4 w-4" />
-                  Buyer guides
+                  {cms.hero_cta_secondary}
                 </Link>
               </div>
 
@@ -287,7 +306,7 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
             <div className="flex items-start gap-3">
               <Shield className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
-              <p>BreedWise is a directory only. We do not sell animals or endorse breeders.</p>
+              <p>{cms.trust_banner_text}</p>
             </div>
             <div className="flex items-start gap-3">
               <Search className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />

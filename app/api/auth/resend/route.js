@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimitByEmail, rateLimitByIp } from "@/lib/rate-limit";
+import { authCallbackUrl } from "@/lib/site-url";
 
 export async function POST(request) {
   try {
@@ -33,7 +34,7 @@ export async function POST(request) {
       type: "signup",
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk"}/auth/callback`,
+        emailRedirectTo: authCallbackUrl(),
       },
     });
 

@@ -1,12 +1,31 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isSiteOffline, SITE_OFFLINE_MESSAGE } from "@/lib/site-offline";
+
+const OFFLINE_ALLOW_PATHS = new Set(["/offline", "/icon.svg", "/manifest.webmanifest"]);
 
 export async function middleware(request) {
+  const pathname = request.nextUrl.pathname;
+
+  if (isSiteOffline()) {
+    if (OFFLINE_ALLOW_PATHS.has(pathname)) {
+      return NextResponse.next();
+    }
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json(
+        { error: SITE_OFFLINE_MESSAGE, offline: true },
+        { status: 503, headers: { "Retry-After": "3600" } }
+      );
+    }
+    if (pathname !== "/offline") {
+      return NextResponse.redirect(new URL("/offline", request.url));
+    }
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
 
-  // Create Supabase client for middleware (uses request/response cookie API)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -33,10 +52,8 @@ export async function middleware(request) {
     }
   );
 
-  // Refresh session if expired
   const { data: { user }, error: sessionError } = await supabase.auth.getUser();
 
-  // Clear corrupted auth cookies on failure
   if (sessionError) {
     try {
       const projectRef = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").match(/https:\/\/([^.]+)/)?.[1] || "";
@@ -48,10 +65,8 @@ export async function middleware(request) {
     }
   }
 
-  const pathname = request.nextUrl.pathname;
   const headers = response.headers;
 
-  // Security headers
   headers.set("X-Frame-Options", "DENY");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -71,7 +86,6 @@ export async function middleware(request) {
   ].join("; ");
   headers.set("Content-Security-Policy", csp);
 
-  // Admin route protection
   if (pathname.startsWith("/admin")) {
     if (!user) {
       return NextResponse.redirect(new URL("/auth/login?redirect=/admin", request.url));
@@ -90,11 +104,19 @@ export async function middleware(request) {
     }
   }
 
+  const authRequiredPrefixes = ["/breeder/dashboard", "/breeder/portal", "/account", "/messages"];
+  if (authRequiredPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+    if (!user) {
+      const redirect = encodeURIComponent(pathname + request.nextUrl.search);
+      return NextResponse.redirect(new URL(`/auth/login?redirect=${redirect}`, request.url));
+    }
+  }
+
   return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

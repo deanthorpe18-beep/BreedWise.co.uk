@@ -46,6 +46,8 @@ export async function GET(request) {
         created_at: p.created_at,
         updated_at: p.updated_at,
         email,
+        account_intent: userData?.user?.user_metadata?.account_intent || p.role || "breeder",
+        email_confirmed: Boolean(userData?.user?.email_confirmed_at),
       });
     }
 

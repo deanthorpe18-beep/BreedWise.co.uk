@@ -6,6 +6,7 @@ import {
   isMetadataStale,
   backfillHeroFromStorage,
 } from "@/lib/google-places-sync";
+import { isGooglePlacesApiEnabled, getGooglePlacesApiKey, GOOGLE_API_DISABLED_MESSAGE } from "@/lib/google-api-config";
 
 /** Max breeders per cron run — avoids timeouts and API spend spikes. */
 const BATCH_LIMIT = 50;
@@ -20,6 +21,17 @@ export async function GET(request) {
   const supabase = createAdminClient();
   let logEntry = null;
 
+  if (!isGooglePlacesApiEnabled()) {
+    return NextResponse.json({
+      message: GOOGLE_API_DISABLED_MESSAGE,
+      disabled: true,
+      processed: 0,
+      placeApiCalls: 0,
+      photoApiCalls: 0,
+      totalApiCalls: 0,
+    });
+  }
+
   try {
     const { data: le, error: leErr } = await supabase
       .from("google_refresh_log")
@@ -32,9 +44,9 @@ export async function GET(request) {
     }
     logEntry = le;
 
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    const apiKey = getGooglePlacesApiKey();
     if (!apiKey) {
-      throw new Error("GOOGLE_PLACES_API_KEY is not configured.");
+      throw new Error(GOOGLE_API_DISABLED_MESSAGE);
     }
 
     const { data: breeders, error: breedersErr } = await supabase

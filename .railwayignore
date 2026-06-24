@@ -1,0 +1,16 @@
+# Reduce Railway upload size and avoid intermittent upload failures
+.next
+node_modules
+.git
+.cursor
+terminals
+agent-transcripts
+API keys.txt
+API keys/
+.env.local
+.env.*.local
+*.log
+temp/
+supabase/.temp
+.DS_Store
+Thumbs.db

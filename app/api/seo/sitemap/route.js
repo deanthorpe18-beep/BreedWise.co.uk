@@ -3,8 +3,13 @@ import { createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+function townSlug(town) {
+  return town.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
 export async function GET() {
   const baseUrl = "https://breedwise.co.uk";
+  const today = new Date().toISOString().split("T")[0];
   const supabase = createAdminClient();
 
   const staticPaths = [
@@ -19,62 +24,60 @@ export async function GET() {
 
   const [{ data: breeders }, { data: breeds }, { data: locations }] = await Promise.all([
     supabase.from("breeders").select("slug, last_updated_at").in("status", ["public_listing", "claimed_profile"]),
-    supabase.from("breeds").select("name, slug, is_popular"),
+    supabase.from("breeds").select("name, slug, animal_type, is_popular").not("slug", "is", null),
     supabase.from("breeders").select("town, county").in("status", ["public_listing", "claimed_profile"]),
   ]);
 
   const uniqueTowns = [...new Set((locations || []).map((l) => l.town).filter(Boolean))];
+  const topTowns = uniqueTowns.slice(0, 50);
+  const topDogBreeds = (breeds || []).filter((b) => b.is_popular && b.animal_type === "dog" && b.slug).slice(0, 25);
+  const topCatBreeds = (breeds || []).filter((b) => b.is_popular && b.animal_type === "cat" && b.slug);
+  const topBreeds = [...topDogBreeds, ...topCatBreeds];
+
+  const breedCombos = [];
+  for (const breed of topBreeds) {
+    for (const town of topTowns) {
+      breedCombos.push({
+        loc: `${baseUrl}/breeders/${breed.slug}/${townSlug(town)}`,
+        lastmod: today,
+        changefreq: "weekly",
+        priority: breed.animal_type === "cat" ? "0.72" : "0.75",
+      });
+    }
+  }
 
   const urls = [
     ...staticPaths.map((path) => ({
       loc: `${baseUrl}${path}`,
-      lastmod: new Date().toISOString().split("T")[0],
+      lastmod: today,
       changefreq: path === "" ? "daily" : "weekly",
       priority: path === "" ? "1.0" : "0.8",
     })),
     ...(breeders || []).map((b) => ({
       loc: `${baseUrl}/breeder/${b.slug}`,
-      lastmod: b.last_updated_at ? new Date(b.last_updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      lastmod: b.last_updated_at ? new Date(b.last_updated_at).toISOString().split("T")[0] : today,
       changefreq: "weekly",
       priority: "0.9",
     })),
-    ...(breeds || []).map((b) => ({
-      loc: `${baseUrl}/breeders/${encodeURIComponent(b.name)}`,
-      lastmod: new Date().toISOString().split("T")[0],
+    ...(breeds || []).filter((b) => b.slug).map((b) => ({
+      loc: `${baseUrl}/breeders/${b.slug}`,
+      lastmod: today,
       changefreq: "weekly",
-      priority: "0.8",
+      priority: b.is_popular ? "0.82" : "0.75",
     })),
     ...(breeds || []).filter((b) => b.slug).map((b) => ({
       loc: `${baseUrl}/breeds/${b.slug}`,
-      lastmod: new Date().toISOString().split("T")[0],
+      lastmod: today,
       changefreq: "weekly",
       priority: b.is_popular ? "0.85" : "0.7",
     })),
     ...uniqueTowns.map((town) => ({
-      loc: `${baseUrl}/breeders/location/${encodeURIComponent(town)}`,
-      lastmod: new Date().toISOString().split("T")[0],
+      loc: `${baseUrl}/breeders/location/${townSlug(town)}`,
+      lastmod: today,
       changefreq: "weekly",
       priority: "0.7",
     })),
-    // Top breed + location combos for SEO landing pages
-    ...(function () {
-      const topBreeds = (breeds || []).filter((b) => b.is_popular).slice(0, 15);
-      const topTowns = uniqueTowns.slice(0, 30);
-      const combos = [];
-      for (const breed of topBreeds) {
-        if (!breed.slug) continue;
-        for (const town of topTowns) {
-          const townSlug = town.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-          combos.push({
-            loc: `${baseUrl}/breeders/${breed.slug}/${townSlug}`,
-            lastmod: new Date().toISOString().split("T")[0],
-            changefreq: "weekly",
-            priority: "0.75",
-          });
-        }
-      }
-      return combos;
-    })(),
+    ...breedCombos,
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

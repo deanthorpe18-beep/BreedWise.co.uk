@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/validation";
 import { rateLimitAuth } from "@/lib/rate-limit";
+import { buildClaimPath } from "@/lib/breeder-onboarding";
+
+function safeRedirectPath(next) {
+  if (!next || typeof next !== "string") return null;
+  if (!next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
 
 function hashString(str) {
   // Simple non-cryptographic hash for server-side logging/lookup
@@ -67,7 +74,7 @@ export async function POST(request) {
       );
     }
 
-    const { email, password } = result.data;
+    const { email, password, next: requestedNext } = result.data;
     const supabase = createClient();
 
     if (await isLockedOut(supabase, email, ip)) {
@@ -111,6 +118,8 @@ export async function POST(request) {
     let redirectTo = "/";
     if (role === "admin" || role === "super_admin") {
       redirectTo = "/admin";
+    } else if (role === "buyer") {
+      redirectTo = "/account/saved-breeders";
     } else {
       // Check if this user is a breeder
       const { data: breederSub } = await supabase
@@ -127,8 +136,17 @@ export async function POST(request) {
           .eq("claimant_user_id", data.user.id)
           .eq("status", "approved")
           .maybeSingle();
-        if (claim) redirectTo = "/breeder/dashboard";
+        if (claim) {
+          redirectTo = "/breeder/dashboard";
+        } else {
+          redirectTo = buildClaimPath(data.user.user_metadata || {});
+        }
       }
+    }
+
+    const safeNext = safeRedirectPath(requestedNext);
+    if (safeNext && role !== "admin" && role !== "super_admin") {
+      redirectTo = safeNext;
     }
 
     return NextResponse.json({

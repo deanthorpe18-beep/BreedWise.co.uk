@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, ChevronDown, MapPin, Building2 } from "lucide-react";
 
-export default function BreederSearchDropdown({ value, onChange, disabled }) {
+export default function BreederSearchDropdown({ value, onChange, disabled, selectedName }) {
   const [breeders, setBreeders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -63,14 +63,16 @@ export default function BreederSearchDropdown({ value, onChange, disabled }) {
         }`}
       >
         <span className="flex items-center gap-2 truncate">
-          {selectedBreeder ? (
+          {selectedBreeder || (value && selectedName) ? (
             <>
               <Building2 className="h-4 w-4 flex-shrink-0 text-[#00BFA5]" />
-              <span className="truncate">{selectedBreeder.name}</span>
-              <span className="text-xs text-slate-400 flex-shrink-0">
-                <MapPin className="inline h-3 w-3 mr-0.5" />
-                {selectedBreeder.town}
-              </span>
+              <span className="truncate">{selectedBreeder?.name || selectedName}</span>
+              {selectedBreeder?.town && (
+                <span className="text-xs text-slate-400 flex-shrink-0">
+                  <MapPin className="inline h-3 w-3 mr-0.5" />
+                  {selectedBreeder.town}
+                </span>
+              )}
             </>
           ) : (
             <span className="text-slate-400">Search and select your breeder profile...</span>

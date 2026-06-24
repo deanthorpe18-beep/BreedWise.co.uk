@@ -1,41 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, X } from "lucide-react";
 
-export default function SearchFilters({ onFiltersChange, breeders }) {
+const DEFAULT_FILTERS = {
+  maxDistance: 50,
+  healthTesting: null,
+  kennelClub: null,
+  councilLicence: null,
+  availableOnly: false,
+};
+
+export default function SearchFilters({ onFiltersChange, breeders, initialFilters = {}, lockedFilters = {} }) {
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    maxDistance: 50,
-    healthTesting: null,
-    kennelClub: null,
-    councilLicence: null,
-    availableOnly: false,
-  });
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, ...initialFilters });
+
+  useEffect(() => {
+    setFilters({ ...DEFAULT_FILTERS, ...initialFilters });
+  }, [initialFilters]);
 
   const handleFilterChange = (key, value) => {
+    if (lockedFilters[key]) return;
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFiltersChange(newFilters);
   };
 
   const resetFilters = () => {
-    const defaultFilters = {
-      maxDistance: 50,
-      healthTesting: null,
-      kennelClub: null,
-      councilLicence: null,
-      availableOnly: false,
-    };
-    setFilters(defaultFilters);
-    onFiltersChange(defaultFilters);
+    const reset = { ...DEFAULT_FILTERS, ...initialFilters };
+    setFilters(reset);
+    onFiltersChange(reset);
   };
 
   const activeFilterCount = Object.entries(filters).filter(([key, v]) => {
-    if (key === "maxDistance") return v !== 50;
-    if (key === "availableOnly") return v === true;
-    return v !== null;
+    if (lockedFilters[key]) return false;
+    const initial = initialFilters[key];
+    if (key === "maxDistance") return v !== (initial ?? DEFAULT_FILTERS.maxDistance);
+    if (key === "availableOnly") return v === true && !initial;
+    return v !== (initial ?? null);
   }).length;
+
+  const isLocked = (key) => !!lockedFilters[key];
 
   return (
     <div className="space-y-4">
@@ -56,16 +61,19 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
 
       {showFilters && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          {/* Distance Filter */}
           <div>
             <label className="flex items-center gap-3 cursor-pointer mb-4">
               <input
                 type="checkbox"
                 checked={filters.availableOnly}
                 onChange={(e) => handleFilterChange("availableOnly", e.target.checked)}
-                className="accent-[#00BFA5] rounded"
+                disabled={isLocked("availableOnly")}
+                className="accent-[#00BFA5] rounded disabled:opacity-50"
               />
-              <span className="text-sm font-semibold text-slate-900">Available now only</span>
+              <span className="text-sm font-semibold text-slate-900">
+                Available now only
+                {isLocked("availableOnly") && <span className="ml-2 text-xs font-normal text-slate-400">(from search URL)</span>}
+              </span>
             </label>
             <label className="block text-sm font-semibold text-slate-900 mb-3">
               Maximum distance: <span className="text-[#00BFA5]">{filters.maxDistance} mi</span>
@@ -84,86 +92,45 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
             </div>
           </div>
 
-          {/* Health Testing Filter */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-3">Health testing</label>
-            <div className="space-y-2">
-              {[
-                { value: null, label: "Any status" },
-                { value: "yes", label: "✓ Confirmed" },
-                { value: "no", label: "Not confirmed" }
-              ].map((option) => (
-                <label key={option.value} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="healthTesting"
-                    value={option.value}
-                    checked={filters.healthTesting === option.value}
-                    onChange={(e) => handleFilterChange("healthTesting", e.target.value === "null" ? null : e.target.value)}
-                    className="accent-[#00BFA5]"
-                  />
-                  <span className="text-sm text-slate-700">{option.label}</span>
-                </label>
-              ))}
+          {[
+            { key: "healthTesting", label: "Health testing" },
+            { key: "kennelClub", label: "Kennel club registration" },
+            { key: "councilLicence", label: "Council licence holder" },
+          ].map(({ key, label }) => (
+            <div key={key}>
+              <label className="block text-sm font-semibold text-slate-900 mb-3">
+                {label}
+                {isLocked(key) && <span className="ml-2 text-xs font-normal text-slate-400">(from search URL)</span>}
+              </label>
+              <div className="space-y-2">
+                {[
+                  { value: null, label: "Any status" },
+                  { value: "yes", label: "✓ Confirmed" },
+                  { value: "no", label: "Not confirmed" },
+                ].map((option) => (
+                  <label key={String(option.value)} className={`flex items-center gap-3 ${isLocked(key) ? "opacity-60" : "cursor-pointer"}`}>
+                    <input
+                      type="radio"
+                      name={key}
+                      checked={filters[key] === option.value}
+                      onChange={() => handleFilterChange(key, option.value)}
+                      disabled={isLocked(key)}
+                      className="accent-[#00BFA5]"
+                    />
+                    <span className="text-sm text-slate-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
 
-          {/* Kennel Club Filter */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-3">Kennel club registration</label>
-            <div className="space-y-2">
-              {[
-                { value: null, label: "Any status" },
-                { value: "yes", label: "✓ Registered" },
-                { value: "no", label: "Not registered" }
-              ].map((option) => (
-                <label key={option.value} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="kennelClub"
-                    value={option.value}
-                    checked={filters.kennelClub === option.value}
-                    onChange={(e) => handleFilterChange("kennelClub", e.target.value === "null" ? null : e.target.value)}
-                    className="accent-[#00BFA5]"
-                  />
-                  <span className="text-sm text-slate-700">{option.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Council Licence Filter */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-3">Council licence holder</label>
-            <div className="space-y-2">
-              {[
-                { value: null, label: "Any status" },
-                { value: "yes", label: "✓ Licensed" },
-                { value: "no", label: "Not licensed" }
-              ].map((option) => (
-                <label key={option.value} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="councilLicence"
-                    value={option.value}
-                    checked={filters.councilLicence === option.value}
-                    onChange={(e) => handleFilterChange("councilLicence", e.target.value === "null" ? null : e.target.value)}
-                    className="accent-[#00BFA5]"
-                  />
-                  <span className="text-sm text-slate-700">{option.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Reset Button */}
           {activeFilterCount > 0 && (
             <button
               onClick={resetFilters}
               className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 flex items-center justify-center gap-2"
             >
               <X className="h-4 w-4" />
-              Clear all filters
+              Clear extra filters
             </button>
           )}
         </div>
@@ -171,3 +138,5 @@ export default function SearchFilters({ onFiltersChange, breeders }) {
     </div>
   );
 }
+
+export { DEFAULT_FILTERS };

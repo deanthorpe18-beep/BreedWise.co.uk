@@ -1,35 +1,22 @@
-const { Client } = require("pg");
+/**
+ * Scrape contact emails from breeder websites and update breeders.email.
+ *
+ * Usage:
+ *   node scripts/find-breeder-emails.js
+ *   node scripts/find-breeder-emails.js --limit=100
+ *   node scripts/find-breeder-emails.js --refresh-invalid
+ */
 
-const client = new Client({
-  connectionString:
-    "postgresql://postgres:gjAGNF4F6QtcOrZk@db.zbvwqsjgasgxpphljahs.supabase.co:5432/postgres",
-  ssl: { rejectUnauthorized: false },
-});
+require("./_env");
+
+const { getSupabaseAdmin } = require("./_env");
+const { isValidBreederEmail, normalizeBreederEmail } = require("./email-utils");
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
 const SKIP_DOMAINS = [
   "facebook.com", "instagram.com", "twitter.com", "x.com",
   "tiktok.com", "youtube.com", "linkedin.com",
-];
-
-const SKIP_EMAILS = [
-  "example@mysite.com",
-  "your@email.com",
-  "your@email.co.uk",
-  "info@ndiscovered.com",
-  "impallari@gmail.com",
-  "eben@eyebytes.com",
-  "micah@micahrich.com",
-  "support@webador.com",
-  "contact@sansoxygen.com",
-  "developers@kal-group.com",
-  "hello@northernmediauk.com",
-  "logo_250x@2x.png",
-  "cropped_logo_250x@2x.png",
-  "assured%20breeders%202@2x.jpeg",
-  "asset-8@4x.png",
-  "hound@2x.png",
 ];
 
 function shouldSkip(url) {
@@ -41,27 +28,6 @@ function shouldSkip(url) {
   }
 }
 
-function isValidEmail(email) {
-  if (!email || !email.includes("@")) return false;
-  const lower = email.toLowerCase();
-  if (SKIP_EMAILS.includes(lower)) return false;
-  if (lower.includes("example@")) return false;
-  if (lower.includes("your@")) return false;
-  if (lower.includes("sentry")) return false;
-  if (lower.includes("wixpress")) return false;
-  if (lower.includes("wix.com")) return false;
-  if (lower.includes("squarespace")) return false;
-  if (lower.includes("shopify")) return false;
-  if (lower.includes("wordpress")) return false;
-  if (lower.includes("webador")) return false;
-  if (lower.includes("@2x.png")) return false;
-  if (lower.includes("@4x.png")) return false;
-  if (lower.includes(".jpeg")) return false;
-  if (lower.includes(".jpg")) return false;
-  if (lower.includes(".png")) return false;
-  return true;
-}
-
 async function fetchText(url, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -69,7 +35,7 @@ async function fetchText(url, timeoutMs = 8000) {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "User-Agent": "Mozilla/5.0 (compatible; BreedWise/1.0; +https://breedwise.co.uk)",
       },
     });
     clearTimeout(timer);
@@ -84,72 +50,146 @@ async function fetchText(url, timeoutMs = 8000) {
 function extractEmails(html) {
   if (!html) return [];
   const matches = html.match(EMAIL_REGEX) || [];
-  return matches.map((e) => e.toLowerCase()).filter(isValidEmail);
+  return [...new Set(
+    matches
+      .map((e) => e.replace(/(phone|tel|fax|email|mail)$/i, ""))
+      .map((e) => normalizeBreederEmail(e))
+      .filter(Boolean)
+  )];
 }
 
-async function findEmailForBreeder(website) {
+async function findEmailForWebsite(website) {
   if (!website || shouldSkip(website)) return null;
-  let html = await fetchText(website);
-  let emails = extractEmails(html);
-  if (emails.length > 0) return emails[0];
-  html = await fetchText(website.replace(/\/?$/, "/contact"));
-  emails = extractEmails(html);
-  if (emails.length > 0) return emails[0];
-  html = await fetchText(website.replace(/\/?$/, "/contact-us"));
-  emails = extractEmails(html);
-  if (emails.length > 0) return emails[0];
+
+  const base = website.replace(/\/$/, "");
+  const paths = ["", "/contact", "/contact-us", "/about", "/about-us"];
+
+  for (const path of paths) {
+    const html = await fetchText(`${base}${path}`);
+    const emails = extractEmails(html);
+    if (emails.length > 0) return emails[0];
+  }
+
   return null;
 }
 
-async function run() {
-  await client.connect();
-  console.log("Connected. Searching for real breeder emails...\n");
-
-  const { rows: breeders } = await client.query(
-    `SELECT slug, name, website
-     FROM breeders
-     WHERE status = 'public_listing'
-       AND claimed = false
-       AND (email IS NULL OR email = '')
-       AND website IS NOT NULL
-     ORDER BY name`
-  );
-
-  console.log(`Found ${breeders.length} breeders with websites but no emails.\n`);
-
-  let found = 0;
-  let checked = 0;
-
-  for (const breeder of breeders) {
-    if (shouldSkip(breeder.website)) {
-      console.log(`[SKIP] ${breeder.name} — social media link`);
-      continue;
-    }
-
-    checked++;
-    const email = await findEmailForBreeder(breeder.website);
-
-    if (email) {
-      console.log(`[FOUND] ${breeder.name} → ${email}`);
-      await client.query(`UPDATE breeders SET email = $1 WHERE slug = $2`, [
-        email,
-        breeder.slug,
-      ]);
-      found++;
-    } else {
-      console.log(`[NONE]  ${breeder.name}`);
-    }
-
-    await new Promise((r) => setTimeout(r, 1000));
+async function loadAllWithEmail(supabase) {
+  let all = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("breeders")
+      .select("id, slug, name, email, website")
+      .neq("status", "archived")
+      .not("email", "is", null)
+      .neq("email", "")
+      .range(from, from + 999);
+    if (error) throw error;
+    if (!data?.length) break;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
   }
-
-  console.log(`\n---`);
-  console.log(`Checked: ${checked}`);
-  console.log(`Found and saved: ${found}`);
-  await client.end();
+  return all;
 }
 
-run().catch((err) => {
-  console.error(err);
+async function main() {
+  const args = process.argv.slice(2);
+  const limitArg = args.find((a) => a.startsWith("--limit="))?.split("=")[1];
+  const limit = args.includes("--all")
+    ? 10000
+    : parseInt(limitArg || "150", 10);
+  const refreshInvalid = args.includes("--refresh-invalid");
+  const dryRun = args.includes("--dry-run");
+  const newestFirst = args.includes("--newest") || limit > 500;
+
+  const supabase = getSupabaseAdmin();
+
+  console.log("=== Breeder email discovery ===\n");
+
+  // Step 1: Clear junk emails already stored
+  const withEmail = await loadAllWithEmail(supabase);
+  const invalid = withEmail.filter((b) => !isValidBreederEmail(b.email));
+  console.log(`Invalid emails to clear: ${invalid.length}`);
+
+  if (!dryRun && invalid.length > 0) {
+    for (const b of invalid) {
+      await supabase.from("breeders").update({ email: null }).eq("id", b.id);
+    }
+    console.log(`Cleared ${invalid.length} invalid email(s)\n`);
+  }
+
+  // Step 2: Re-scrape breeders with invalid email that have a website
+  if (refreshInvalid) {
+    const toRefresh = invalid.filter((b) => b.website);
+    console.log(`Re-scraping ${Math.min(toRefresh.length, limit)} previously invalid…\n`);
+    let refreshed = 0;
+    for (const b of toRefresh.slice(0, limit)) {
+      const email = await findEmailForWebsite(b.website);
+      if (email) {
+        console.log(`[FIX] ${b.name} → ${email}`);
+        if (!dryRun) await supabase.from("breeders").update({ email }).eq("id", b.id);
+        refreshed++;
+      } else {
+        console.log(`[NONE] ${b.name}`);
+      }
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    console.log(`\nRefreshed: ${refreshed}`);
+  }
+
+  // Step 3: Find emails for unclaimed listings with website but no email
+  let candidates = [];
+  let from = 0;
+  while (candidates.length < limit) {
+    const { data, error } = await supabase
+      .from("breeders")
+      .select("id, slug, name, website")
+      .eq("status", "public_listing")
+      .eq("claimed", false)
+      .not("website", "is", null)
+      .neq("website", "")
+      .or("email.is.null,email.eq.")
+      .order(newestFirst ? "created_at" : "name", { ascending: newestFirst ? false : true })
+      .range(from, from + 199);
+
+    if (error) throw error;
+    if (!data?.length) break;
+    candidates = candidates.concat(data.filter((b) => !shouldSkip(b.website)));
+    if (data.length < 200) break;
+    from += 200;
+  }
+
+  candidates = candidates.slice(0, limit);
+  console.log(`\nScraping ${candidates.length} breeders with website but no email…\n`);
+
+  let found = 0;
+  for (const b of candidates) {
+    const email = await findEmailForWebsite(b.website);
+    if (email) {
+      console.log(`[FOUND] ${b.name} → ${email}`);
+      if (!dryRun) await supabase.from("breeders").update({ email }).eq("id", b.id);
+      found++;
+    } else {
+      console.log(`[NONE]  ${b.name}`);
+    }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+
+  const { count: outreachReady } = await supabase
+    .from("breeders")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "public_listing")
+    .eq("claimed", false)
+    .not("email", "is", null)
+    .neq("email", "");
+
+  console.log("\n=== Summary ===");
+  console.log(`New emails found:     ${found}`);
+  console.log(`Outreach-ready rows:  ${outreachReady} (before validation filter in admin)`);
+}
+
+main().catch((err) => {
+  console.error("Fatal:", err);
   process.exit(1);
 });

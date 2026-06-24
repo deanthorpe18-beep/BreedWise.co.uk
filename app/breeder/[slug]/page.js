@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award, Dog, Calendar, CheckCircle, Shield } from "lucide-react";
 import JustClaimedBadge from "@components/JustClaimedBadge";
 import { isJustClaimed } from "@lib/breeder-utils";
@@ -18,12 +18,12 @@ import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { getBreederHeroUrl } from "@/lib/breeder-images";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }) {
     const { slug } = params;
     try {
-        const supabase = createClient();
+        const supabase = createAdminClient();
         const { data: breeder } = await supabase
             .from("breeders")
             .select("name, town, county")
@@ -49,7 +49,7 @@ export default async function BreederProfilePage({ params }) {
     let fetchError = null;
 
     try {
-        const supabase = createClient();
+        const supabase = createAdminClient();
 
         const { data, error } = await supabase
             .from("breeders")
@@ -280,16 +280,26 @@ export default async function BreederProfilePage({ params }) {
                         {breeder.address || `${breeder.town}${breeder.county ? `, ${breeder.county}` : ""}`}
                     </p>
                     {breeder.lat && breeder.lng && (
-                        <div className="mt-4 h-72 overflow-hidden rounded-3xl">
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                loading="lazy"
-                                allowFullScreen
-                                referrerPolicy="no-referrer-when-downgrade"
-                                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&q=place_id:${breeder.google_place_id || `${breeder.lat},${breeder.lng}`}&zoom=14`}
-                            />
+                        <div className="mt-4 space-y-2">
+                            <div className="h-72 overflow-hidden rounded-3xl">
+                                <iframe
+                                    title={`Map showing location of ${breeder.name}`}
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${breeder.lng - 0.02},${breeder.lat - 0.015},${breeder.lng + 0.02},${breeder.lat + 0.015}`)}&layer=mapnik&marker=${encodeURIComponent(`${breeder.lat},${breeder.lng}`)}`}
+                                />
+                            </div>
+                            <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${breeder.lat},${breeder.lng}`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm font-semibold text-[#00BFA5] hover:underline"
+                            >
+                                <ExternalLink className="h-4 w-4" /> Open in Google Maps
+                            </a>
                         </div>
                     )}
                 </section>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { removalSchema } from "@/lib/validation";
 import { rateLimitByIp } from "@/lib/rate-limit";
-import { sendRemovalConfirmation, sendRemovalAdminNotification } from "@/lib/emails/resend";
+import { sendRemovalConfirmation } from "@/lib/emails/resend";
 
 export async function POST(request) {
   try {
@@ -55,7 +55,6 @@ export async function POST(request) {
 
     Promise.allSettled([
       sendRemovalConfirmation(result.data.email, result.data.breederName || "your listing"),
-      sendRemovalAdminNotification(result.data.breederName || "Unknown", result.data.email),
     ]);
 
     return NextResponse.json(

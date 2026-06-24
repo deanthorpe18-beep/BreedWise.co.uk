@@ -1,24 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { getUserBreederId } from "@/lib/breeder-auth";
+import { authenticateBreederAccess } from "@/lib/breeder-request-auth";
+import { getPhotoLimit } from "@/lib/tiers";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const auth = await authenticateBreederAccess(request);
+    if (auth.response) return auth.response;
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const adminClient = createAdminClient();
-    const breederId = await getUserBreederId(adminClient, user.id, user.email);
-
-    if (!breederId) {
-      return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
-    }
+    const { adminClient, breederId } = auth;
 
     const { data: breeder, error: breederError } = await adminClient
       .from("breeders")
@@ -66,8 +57,9 @@ export async function GET() {
         breedsByAnimal,
         photos,
         photoCount: photos.length,
-        maxPhotos: breeder.membership_tier === "free" ? 3 : breeder.membership_tier === "bronze" ? 5 : breeder.membership_tier === "silver" ? 10 : 999,
+        maxPhotos: getPhotoLimit(breeder.membership_tier || "free"),
       },
+      adminView: auth.adminView || false,
     });
   } catch (err) {
     console.error("[breeder/profile GET] Error:", err?.message);
@@ -77,20 +69,11 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await authenticateBreederAccess(request);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
-    const adminClient = createAdminClient();
-    const breederId = await getUserBreederId(adminClient, user.id, user.email);
-
-    if (!breederId) {
-      return NextResponse.json({ error: "No breeder profile found" }, { status: 404 });
-    }
+    const { adminClient, breederId } = auth;
 
     // Handle breeds update
     if (body.breedsByAnimal !== undefined) {

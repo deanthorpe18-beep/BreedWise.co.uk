@@ -57,7 +57,7 @@ export default function BreederPortalHome() {
 
   const { stats, breeder, access, adminView } = data;
   const cards = [
-    { label: "Breeding dogs/cats on file", value: stats.breedingAnimals, sub: `${stats.males} males · ${stats.females} females`, href: `/breeder/portal/animals${portalQuery}`, icon: Dog },
+    { label: "Dogs & cats on file", value: stats.breedingAnimals, sub: `${stats.males} studs · ${stats.females} dams`, href: `/breeder/portal/animals${portalQuery}`, icon: Dog },
     { label: "Total litters recorded", value: stats.totalLitters, sub: `${stats.pupsBorn} born (from litter counts)`, href: `/breeder/portal/litters${portalQuery}`, icon: Baby },
     { label: "Individual pups/kittens", value: stats.pupsOnRecord, sub: "Tracked in the system", href: `/breeder/portal/litters${portalQuery}`, icon: Hash },
   ];

@@ -16,12 +16,20 @@ export async function GET() {
     const { count: pendingRemovals } = await adminClient.from("removals").select("*", { count: "exact", head: true }).eq("status", "pending");
     const { count: totalUsers } = await adminClient.from("profiles").select("*", { count: "exact", head: true });
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentSignups7d } = await adminClient
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .not("role", "in", "(admin,super_admin)")
+      .gte("created_at", sevenDaysAgo);
+
     return NextResponse.json({
       totalClaims: totalClaims || 0,
       pendingClaims: pendingClaims || 0,
       totalRemovals: totalRemovals || 0,
       pendingRemovals: pendingRemovals || 0,
       totalUsers: totalUsers || 0,
+      recentSignups7d: recentSignups7d || 0,
     });
   } catch (err) {
     return NextResponse.json({ error: "Unable to fetch stats." }, { status: 500 });

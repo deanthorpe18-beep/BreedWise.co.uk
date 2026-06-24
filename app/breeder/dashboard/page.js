@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@components/AuthProvider";
 import TierUpgradeCards from "@components/TierUpgradeCards";
 import LicenceUploadSection from "@components/LicenceUploadSection";
+import { useBreederAdminContext } from "../useBreederAdminContext";
+import { setPortalAdminContext } from "@/lib/portal-admin-context";
 import {
-  Eye, MousePointer, Phone, Heart, Search, MessageCircle, Loader2, TrendingUp, Calendar,
+  Eye, MousePointer, Phone, Heart, Search, MessageCircle, Loader2, TrendingUp, Calendar, Users,
   Dog, Cat, Bird, Fish, PawPrint, X, ChevronDown, Save, Pencil, Upload, Trash2, Camera, Globe, Award, Shield, FileText, ExternalLink, Mail
 } from "lucide-react";
 
@@ -30,6 +32,7 @@ const ANIMAL_LABELS = {
 
 export default function BreederDashboardPage() {
   const { user, loading } = useAuth();
+  const { adminAs, adminBreederName, adminPreview, breederFetch, breederUrl, adminQuery } = useBreederAdminContext();
   const [analytics, setAnalytics] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [period, setPeriod] = useState("7d");
@@ -61,13 +64,21 @@ export default function BreederDashboardPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUploadMsg, setPhotoUploadMsg] = useState("");
   const [photoUploadError, setPhotoUploadError] = useState("");
+  const [waitlistCount, setWaitlistCount] = useState(null);
+  const [waitlistAccessible, setWaitlistAccessible] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setLoadingProfile(false);
       return;
     }
-    fetch("/api/breeder/analytics")
+    if (!adminAs && (user.role === "admin" || user.role === "super_admin") && !user.breederSlug) {
+      setLoadingData(false);
+      setLoadingProfile(false);
+      return;
+    }
+
+    breederFetch("/api/breeder/analytics")
       .then((r) => r.json())
       .then((data) => {
         setAnalytics(data);
@@ -76,16 +87,37 @@ export default function BreederDashboardPage() {
       .catch(() => setLoadingData(false));
 
     loadProfile();
-  }, [user]);
+    loadWaitlistCount();
+  }, [user, adminAs, breederFetch]);
+
+  const loadWaitlistCount = async () => {
+    try {
+      const res = await breederFetch("/api/breeder/portal/waitlist");
+      if (res.ok) {
+        const data = await res.json();
+        setWaitlistCount(data.waitingCount ?? 0);
+        setWaitlistAccessible(true);
+      } else {
+        setWaitlistAccessible(false);
+        setWaitlistCount(null);
+      }
+    } catch {
+      setWaitlistAccessible(false);
+      setWaitlistCount(null);
+    }
+  };
 
   const loadProfile = async () => {
     setLoadingProfile(true);
     setProfileError("");
     try {
-      const res = await fetch("/api/breeder/profile");
+      const res = await breederFetch("/api/breeder/profile");
       const data = await res.json();
       if (res.ok) {
         setProfile(data.breeder);
+        if (adminAs && data.breeder?.name) {
+          setPortalAdminContext(adminAs, data.breeder.name);
+        }
         setSelectedBreedsByAnimal(data.breeder.breedsByAnimal || {});
         setProfileForm({
           about: data.breeder.about || "",
@@ -106,7 +138,7 @@ export default function BreederDashboardPage() {
     setLoadingProfile(false);
   };
 
-  const hasLinkedListing = !!(user?.breederSlug || user?.breederId);
+  const hasLinkedListing = !!(user?.breederSlug || user?.breederId || adminPreview);
 
   const renderProfileMissing = () => {
     if (loadingProfile) {
@@ -191,7 +223,7 @@ export default function BreederDashboardPage() {
     setSaveMessage("");
     setSaveError("");
     try {
-      const res = await fetch("/api/breeder/profile", {
+      const res = await breederFetch("/api/breeder/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ breedsByAnimal: selectedBreedsByAnimal }),
@@ -215,7 +247,7 @@ export default function BreederDashboardPage() {
     setProfileSaveMsg("");
     setProfileSaveError("");
     try {
-      const res = await fetch("/api/breeder/profile", {
+      const res = await breederFetch("/api/breeder/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profileForm),
@@ -242,7 +274,7 @@ export default function BreederDashboardPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/breeder/photos", {
+      const res = await breederFetch("/api/breeder/photos", {
         method: "POST",
         body: formData,
       });
@@ -263,7 +295,7 @@ export default function BreederDashboardPage() {
   const handlePhotoDelete = async (photoId) => {
     if (!confirm("Delete this photo?")) return;
     try {
-      const res = await fetch(`/api/breeder/photos?id=${encodeURIComponent(photoId)}`, {
+      const res = await breederFetch(`/api/breeder/photos?id=${encodeURIComponent(photoId)}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -302,6 +334,11 @@ export default function BreederDashboardPage() {
     );
   }
 
+  const isAdminUser = user.role === "admin" || user.role === "super_admin";
+  if (isAdminUser && !adminPreview && !user.breederSlug) {
+    return null;
+  }
+
   const stats = analytics?.summary || {
     page_views: 0,
     website_clicks: 0,
@@ -324,12 +361,20 @@ export default function BreederDashboardPage() {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Breeder Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-500">Track your profile performance and engagement.</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {adminPreview && adminBreederName ? `${adminBreederName} — Dashboard` : "Breeder Dashboard"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {adminPreview
+              ? "Testing the breeder experience — edits save to this listing."
+              : "Track your profile performance and engagement."}
+          </p>
         </div>
-        <Link href="/messages" className="rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white">
-          Messages
-        </Link>
+        {!adminPreview && (
+          <Link href="/messages" className="rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white">
+            Messages
+          </Link>
+        )}
       </div>
 
       {/* Breeding portal */}
@@ -337,13 +382,20 @@ export default function BreederDashboardPage() {
         const tier = profile?.membershipTier || "free";
         const hasLicence = profile?.councilLicence || profile?.licenceVerified;
         const portalTier = ["silver", "gold"].includes(tier);
-        const portalMessage = !hasLicence
-          ? "Add your council licence below to unlock the breeding portal."
-          : !portalTier
-            ? "Included with Silver (limited) and Gold (full). Upgrade to record breeding stock and litters."
-            : tier === "silver"
-              ? "Limited access: up to 4 animals, 2 litters, and 8 pup records. Upgrade to Gold for unlimited."
-              : "Full access — record unlimited breeding stock, litters, and pups.";
+        const isSuperAdmin = user?.role === "super_admin";
+        const portalMessage = adminPreview
+          ? "Open the breeding portal with full Gold access to test litters, pups, wait lists, and receipts."
+          : !hasLicence
+            ? "Add your council licence below to unlock the breeding portal."
+            : isSuperAdmin && !portalTier
+              ? "Full portal access on your own listing — add your dogs, litters, and pups."
+            : !portalTier
+              ? "Included with Silver (limited) and Gold (full). Upgrade to record your dogs and litters."
+              : tier === "silver"
+                ? "Limited access: up to 4 dogs, 2 litters, and 8 pup records. Upgrade to Gold for unlimited."
+                : "Full access — record your dogs, litters, and pups.";
+
+        const canOpenPortal = adminPreview || (hasLicence && (portalTier || isSuperAdmin));
 
         return (
           <div className="mt-6 rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-white p-6 shadow-sm">
@@ -351,23 +403,40 @@ export default function BreederDashboardPage() {
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Breeding portal</h2>
                 <p className="mt-1 text-sm text-slate-600">{portalMessage}</p>
+                {waitlistCount != null && waitlistCount > 0 && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-[#00BFA5]/20">
+                    <Users className="h-3.5 w-3.5 text-[#00BFA5]" />
+                    {waitlistCount} on your wait list
+                  </p>
+                )}
               </div>
-              {hasLicence && portalTier ? (
-                <Link
-                  href="/breeder/portal"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00a98e]"
-                >
-                  <FileText className="h-4 w-4" />
-                  Open breeding portal
-                </Link>
-              ) : hasLicence ? (
-                <a
-                  href="#upgrade-plans"
-                  className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
-                >
-                  View Silver & Gold plans
-                </a>
-              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {waitlistAccessible && (
+                  <Link
+                    href={`/breeder/portal/waitlist${adminQuery}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 hover:border-[#00BFA5]"
+                  >
+                    <Users className="h-4 w-4" />
+                    Wait list{(waitlistCount ?? 0) > 0 ? ` (${waitlistCount})` : ""}
+                  </Link>
+                )}
+                {canOpenPortal ? (
+                  <Link
+                    href={`/breeder/portal${adminQuery}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00a98e]"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Open breeding portal
+                  </Link>
+                ) : hasLicence ? (
+                  <a
+                    href="#upgrade-plans"
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
+                  >
+                    View Silver & Gold plans
+                  </a>
+                ) : null}
+              </div>
             </div>
           </div>
         );
@@ -501,6 +570,7 @@ export default function BreederDashboardPage() {
               verificationStatus={profile?.licenceVerificationStatus}
               licenceVerified={profile?.licenceVerified}
               onNumberChange={(v) => setProfileForm((p) => ({ ...p, council_licence: v }))}
+              uploadUrl={breederUrl("/api/breeder/licence-upload")}
             />
             <div className="sm:col-span-2">
               <label className="block text-sm font-semibold text-slate-700">Health Testing</label>
@@ -595,7 +665,7 @@ export default function BreederDashboardPage() {
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {profile.photos.map((photo) => (
                 <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-2xl border border-slate-200">
-                  <img src={photo.photo_url} alt="" className="h-full w-full object-cover" />
+                  <img src={photo.photo_url} alt={`${profile?.name || "Breeder"} photo`} className="h-full w-full object-cover" />
                   <button
                     onClick={() => handlePhotoDelete(photo.id)}
                     className="absolute right-2 top-2 rounded-full bg-red-500 p-1.5 text-white opacity-0 shadow transition hover:bg-red-600 group-hover:opacity-100"

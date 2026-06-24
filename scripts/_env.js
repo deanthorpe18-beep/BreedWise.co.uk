@@ -42,6 +42,14 @@ function getSupabaseAdmin() {
 }
 
 function getGooglePlacesApiKey() {
+  if (
+    process.env.GOOGLE_PLACES_API_DISABLED === "true" ||
+    process.env.GOOGLE_PLACES_API_DISABLED === "1" ||
+    (process.env.GOOGLE_PLACES_API_ENABLED !== "true" && process.env.GOOGLE_PLACES_API_ENABLED !== "1")
+  ) {
+    console.error("Google Places API is disabled. Set GOOGLE_PLACES_API_ENABLED=true in .env.local to run Google scripts.");
+    process.exit(1);
+  }
   return requireEnv("GOOGLE_PLACES_API_KEY");
 }
 

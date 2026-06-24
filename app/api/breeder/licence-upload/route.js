@@ -1,47 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { authenticateBreederAccess } from "@/lib/breeder-request-auth";
 
 export const dynamic = "force-dynamic";
 
-async function getBreederId(adminClient, userId, userEmail) {
-  const { data: sub } = await adminClient
-    .from("breeder_subscriptions")
-    .select("breeder_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (sub?.breeder_id) return sub.breeder_id;
-
-  const { data: claim } = await adminClient
-    .from("claims")
-    .select("breeder_slug")
-    .eq("claimant_user_id", userId)
-    .eq("status", "approved")
-    .order("reviewed_at", { ascending: false })
-    .maybeSingle();
-  if (claim?.breeder_slug) {
-    const { data: b } = await adminClient.from("breeders").select("id").eq("slug", claim.breeder_slug).maybeSingle();
-    if (b) return b.id;
-  }
-
-  if (userEmail) {
-    const { data: b } = await adminClient
-      .from("breeders")
-      .select("id")
-      .eq("email", userEmail)
-      .eq("status", "claimed_profile")
-      .maybeSingle();
-    if (b) return b.id;
-  }
-  return null;
-}
-
 export async function POST(request) {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await authenticateBreederAccess(request);
+    if (auth.response) return auth.response;
 
     const formData = await request.formData();
     const file = formData.get("file");
@@ -58,8 +23,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Only PDF, JPG, PNG allowed." }, { status: 400 });
     }
 
-    const adminClient = createAdminClient();
-    const breederId = await getBreederId(adminClient, user.id, user.email);
+    const { adminClient, breederId } = auth;
     if (!breederId) {
       return NextResponse.json({ error: "No claimed breeder profile found" }, { status: 404 });
     }

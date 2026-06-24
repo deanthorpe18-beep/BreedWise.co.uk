@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
+import { isSiteOffline, SITE_OFFLINE_MESSAGE } from "@/lib/site-offline";
 
 export async function GET() {
+  if (isSiteOffline()) {
+    return NextResponse.json(
+      { status: "offline", message: SITE_OFFLINE_MESSAGE, timestamp: new Date().toISOString() },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
   return NextResponse.json(
     {
       status: "ok",

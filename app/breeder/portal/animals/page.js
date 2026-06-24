@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Plus, Trash2, ChevronRight, Pencil } from "lucide-react";
 import PortalAccessBanner from "../PortalAccessBanner";
 import { usePortalApi } from "../usePortalApi";
 
@@ -18,9 +19,10 @@ const emptyForm = {
 };
 
 export default function PortalAnimalsPage() {
-  const { portalFetch, portalUrl, adminPreview } = usePortalApi();
+  const { portalFetch, portalUrl, portalQuery, adminPreview } = usePortalApi();
   const [animals, setAnimals] = useState([]);
   const [access, setAccess] = useState(null);
+  const [breedOptions, setBreedOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyForm);
@@ -43,6 +45,13 @@ export default function PortalAnimalsPage() {
 
   useEffect(() => { load(); }, [portalFetch]);
 
+  useEffect(() => {
+    fetch(`/api/breeds?animal=${encodeURIComponent(form.animal_type)}`)
+      .then((r) => r.json())
+      .then((d) => setBreedOptions(d.breeds || []))
+      .catch(() => setBreedOptions([]));
+  }, [form.animal_type]);
+
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -63,7 +72,7 @@ export default function PortalAnimalsPage() {
   };
 
   const remove = async (id) => {
-    if (!confirm("Remove this animal from your breeding records?")) return;
+    if (!confirm("Remove this dog from your breeding records?")) return;
     await portalFetch(portalUrl(`/api/breeder/portal/animals/${id}`), { method: "DELETE" });
     load();
   };
@@ -78,8 +87,10 @@ export default function PortalAnimalsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Breeding stock</h2>
-          <p className="text-sm text-slate-600">Your studs and dams — who you breed from.</p>
+          <h2 className="text-xl font-bold text-slate-900">My dogs</h2>
+          <p className="text-sm text-slate-600">
+            Add each dog you breed from — studs, dams, and retired stock. Use these when you record litters.
+          </p>
         </div>
         {access?.canAddAnimal !== false && (
           <button
@@ -87,7 +98,7 @@ export default function PortalAnimalsPage() {
             onClick={() => setShowForm(!showForm)}
             className="inline-flex items-center gap-2 rounded-full bg-[#00BFA5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#00a98e]"
           >
-            <Plus className="h-4 w-4" /> Add animal
+            <Plus className="h-4 w-4" /> Add dog
           </button>
         )}
       </div>
@@ -96,11 +107,26 @@ export default function PortalAnimalsPage() {
 
       {showForm && (
         <form onSubmit={submit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <p className="text-sm font-semibold text-slate-900">New dog</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-            <Field label="Breed *" value={form.breed} onChange={(v) => setForm({ ...form, breed: v })} />
+            <label className="block text-sm">
+              <span className="font-medium text-slate-700">Breed *</span>
+              <input
+                list="portal-breed-options-list"
+                value={form.breed}
+                onChange={(e) => setForm({ ...form, breed: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                required
+              />
+              <datalist id="portal-breed-options-list">
+                {breedOptions.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
+            </label>
             <Select label="Type" value={form.animal_type} onChange={(v) => setForm({ ...form, animal_type: v })} options={[["dog", "Dog"], ["cat", "Cat"]]} />
-            <Select label="Sex" value={form.sex} onChange={(v) => setForm({ ...form, sex: v })} options={[["", "—"], ["male", "Male"], ["female", "Female"]]} />
+            <Select label="Sex" value={form.sex} onChange={(v) => setForm({ ...form, sex: v })} options={[["", "—"], ["male", "Male (stud)"], ["female", "Female (dam)"]]} />
             <Field label="Date of birth" type="date" value={form.date_of_birth} onChange={(v) => setForm({ ...form, date_of_birth: v })} />
             <Field label="Microchip" value={form.microchip} onChange={(v) => setForm({ ...form, microchip: v })} />
             <Field label="KC / GCCF registration" value={form.registration_number} onChange={(v) => setForm({ ...form, registration_number: v })} />
@@ -108,29 +134,45 @@ export default function PortalAnimalsPage() {
           </div>
           <Field label="Notes" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} multiline />
           <button type="submit" disabled={saving} className="rounded-full bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
-            {saving ? "Saving…" : "Save animal"}
+            {saving ? "Saving…" : "Save dog"}
           </button>
         </form>
       )}
 
       {animals.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
-          No breeding animals yet. Add your first stud or dam above.
+          No dogs on file yet. Add your first stud or dam above — then link them when you record a litter.
         </div>
       ) : (
         <div className="grid gap-3">
           {animals.map((a) => (
             <div key={a.id} className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-              <div>
-                <p className="font-semibold text-slate-900">{a.name}</p>
-                <p className="text-sm text-slate-600">{a.breed} · {a.sex === "male" ? "Male" : a.sex === "female" ? "Female" : "Sex not set"}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-slate-900">
+                  {a.name}
+                  {!a.is_active && <span className="ml-2 text-xs font-medium text-slate-400">(retired)</span>}
+                </p>
+                <p className="text-sm text-slate-600">
+                  {a.breed} · {a.sex === "male" ? "Male stud" : a.sex === "female" ? "Female dam" : "Sex not set"}
+                </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {[a.microchip && `Chip: ${a.microchip}`, a.registration_number && `Reg: ${a.registration_number}`, a.colour].filter(Boolean).join(" · ") || "No extra details"}
+                  {[a.microchip && `Chip: ${a.microchip}`, a.registration_number && `Reg: ${a.registration_number}`, a.colour].filter(Boolean).join(" · ") || "No extra details yet"}
                 </p>
               </div>
-              <button type="button" onClick={() => remove(a.id)} className="text-slate-400 hover:text-red-600" aria-label="Remove">
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/breeder/portal/animals/${a.id}${portalQuery}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#00BFA5] hover:text-[#00BFA5]"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Manage
+                </Link>
+                <button type="button" onClick={() => remove(a.id)} className="text-slate-400 hover:text-red-600" aria-label="Remove">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <Link href={`/breeder/portal/animals/${a.id}${portalQuery}`} className="text-slate-400 hover:text-[#00BFA5]" aria-label="Open profile">
+                  <ChevronRight className="h-5 w-5" />
+                </Link>
+              </div>
             </div>
           ))}
         </div>

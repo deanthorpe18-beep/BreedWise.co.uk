@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@components/AuthProvider";
-import { Loader2, Mail, Lock, Heart, MessageCircle, Search, ArrowRight, Store, Shield, CreditCard, Scale } from "lucide-react";
+import { Loader2, Mail, Lock, Heart, MessageCircle, Search, ArrowRight, Store, Shield, CreditCard, Scale, PartyPopper } from "lucide-react";
 
-export default function AccountSettingsPage() {
+function AccountSettingsContent() {
+  const searchParams = useSearchParams();
+  const welcome = searchParams.get("welcome") === "1";
   const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -79,6 +82,19 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      {welcome && (
+        <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-4">
+          <div className="flex items-start gap-3">
+            <PartyPopper className="h-6 w-6 flex-shrink-0 text-green-600" />
+            <div>
+              <p className="font-bold text-green-900">Welcome to BreedWise — you&apos;re signed up!</p>
+              <p className="mt-1 text-sm text-green-800">
+                Your account is active. Use the links below to save breeders, manage claims, or update your details.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-slate-900">Account Settings</h1>
       <p className="mt-1 text-sm text-slate-500">Manage your account details and preferences.</p>
 
@@ -210,5 +226,17 @@ export default function AccountSettingsPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function AccountSettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#00BFA5]" />
+      </div>
+    }>
+      <AccountSettingsContent />
+    </Suspense>
   );
 }

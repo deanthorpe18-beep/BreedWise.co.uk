@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
+import { isGooglePlacesApiEnabled, getGooglePlacesApiKey, GOOGLE_API_DISABLED_MESSAGE } from "@/lib/google-api-config";
 
 const FIELD_MASK = "id,displayName,rating,reviews,userRatingCount,formattedAddress,websiteUri,nationalPhoneNumber,photos";
 
@@ -13,10 +14,14 @@ export async function POST(request) {
 
     const body = await request.json();
     const { placeId, all } = body;
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
+    if (!isGooglePlacesApiEnabled()) {
+      return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
+    }
+
+    const apiKey = getGooglePlacesApiKey();
     if (!apiKey) {
-      return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+      return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
     }
 
     if (!placeId && !all) {

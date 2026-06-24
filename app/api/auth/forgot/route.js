@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { forgotSchema } from "@/lib/validation";
 import { rateLimitByIp, rateLimitByEmail } from "@/lib/rate-limit";
+import { authResetCallbackUrl } from "@/lib/site-url";
 
 export async function POST(request) {
   try {
@@ -35,7 +36,7 @@ export async function POST(request) {
 
     const supabase = createClient();
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk"}/auth/reset-callback`,
+      redirectTo: authResetCallbackUrl(),
     });
 
     return NextResponse.json({

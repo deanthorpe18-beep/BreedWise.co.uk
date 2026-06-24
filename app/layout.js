@@ -22,11 +22,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <meta httpEquiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="build-version" content="20250606-v3" />
+        <meta name="build-version" content="20250621-v1" />
         <link rel="preconnect" href="https://breedwise.co.uk" />
         <script
           type="application/ld+json"
@@ -34,6 +31,12 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className={`${inter.className} min-h-screen bg-[#FAFBF9] text-[#2D3436]`}>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-[#00BFA5] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <div className="min-h-screen flex flex-col">
           <AuthProvider>
             <ToastProvider>
@@ -50,7 +53,7 @@ export default function RootLayout({ children }) {
               <CacheBuster />
               <SessionTracker />
 
-              <main className="flex-grow">{children}</main>
+              <main id="main-content" className="flex-grow">{children}</main>
 
               <CookieConsent />
             </ToastProvider>
@@ -67,7 +70,7 @@ export default function RootLayout({ children }) {
                   </p>
                   <p className="mt-3 text-sm leading-6 text-slate-500">
                     Made with care in the UK — if something looks wrong or you need a hand, we&apos;re real people at{" "}
-                    <a href="mailto:help@breedwise.co.uk" className="font-medium text-[#00BFA5] hover:text-[#008f7a]">help@breedwise.co.uk</a>.
+                    <a href="mailto:info@breedwise.co.uk" className="font-medium text-[#00BFA5] hover:text-[#008f7a]">info@breedwise.co.uk</a>.
                   </p>
                 </div>
                 <div>
@@ -99,7 +102,7 @@ export default function RootLayout({ children }) {
                     <li><Link href="/request-removal" className="hover:text-[#00BFA5]">Request listing removal</Link></li>
                     <li><Link href="/guides" className="hover:text-[#00BFA5]">Buyer guides</Link></li>
                     <li><Link href="/education" className="hover:text-[#00BFA5]">Education</Link></li>
-                    <li><a href="mailto:help@breedwise.co.uk" className="hover:text-[#00BFA5]">help@breedwise.co.uk</a></li>
+                    <li><a href="mailto:info@breedwise.co.uk" className="hover:text-[#00BFA5]">info@breedwise.co.uk</a></li>
                   </ul>
                 </div>
               </div>

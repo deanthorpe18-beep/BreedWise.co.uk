@@ -95,7 +95,7 @@ export async function GET() {
       priority: b.is_popular ? "0.85" : "0.7",
     })),
     ...uniqueTowns.map((town) => ({
-      loc: `${baseUrl}/breeders/location/${encodeURIComponent(town)}`,
+      loc: `${baseUrl}/breeders/location/${townSlug(town)}`,
       lastmod: today,
       changefreq: "weekly",
       priority: "0.7",

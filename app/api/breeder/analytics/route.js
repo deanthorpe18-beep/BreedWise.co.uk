@@ -1,46 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { authenticateBreederAccess } from "@/lib/breeder-request-auth";
 
 export const dynamic = "force-dynamic";
-
-async function getUserBreeder(adminClient, userId, userEmail) {
-  const { data: subscription } = await adminClient
-    .from("breeder_subscriptions")
-    .select("breeder_id, breeders(slug)")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (subscription?.breeder_id) {
-    return { id: subscription.breeder_id, slug: subscription.breeders?.slug };
-  }
-
-  const { data: claim } = await adminClient
-    .from("claims")
-    .select("breeder_slug")
-    .eq("claimant_user_id", userId)
-    .eq("status", "approved")
-    .order("reviewed_at", { ascending: false })
-    .maybeSingle();
-  if (claim?.breeder_slug) {
-    const { data: breeder } = await adminClient
-      .from("breeders")
-      .select("id, slug")
-      .eq("slug", claim.breeder_slug)
-      .maybeSingle();
-    if (breeder) return breeder;
-  }
-
-  if (userEmail) {
-    const { data: breederByEmail } = await adminClient
-      .from("breeders")
-      .select("id, slug")
-      .eq("email", userEmail)
-      .eq("status", "claimed_profile")
-      .maybeSingle();
-    if (breederByEmail) return breederByEmail;
-  }
-
-  return null;
-}
 
 function groupByDate(rows, dateField = "created_at") {
   const map = {};
@@ -52,18 +13,14 @@ function groupByDate(rows, dateField = "created_at") {
   return map;
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await authenticateBreederAccess(request);
+    if (auth.response) return auth.response;
 
-    const adminClient = createAdminClient();
-    const breeder = await getUserBreeder(adminClient, user.id, user.email);
+    const { adminClient, user, breederId, breeder } = auth;
 
-    if (!breeder?.id || !breeder?.slug) {
+    if (!breeder?.slug) {
       return NextResponse.json({ error: "No claimed breeder found" }, { status: 404 });
     }
 

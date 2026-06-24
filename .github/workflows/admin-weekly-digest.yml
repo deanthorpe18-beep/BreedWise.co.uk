@@ -1,0 +1,17 @@
+name: Weekly admin digest
+
+on:
+  schedule:
+    # Mondays 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger BreedWise weekly admin digest
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://breedwise.co.uk/api/cron/admin-weekly-digest"

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { sendNewMessageEmail } from "@/lib/emails/resend";
+import { getSiteUrl } from "@/lib/site-url";
 
 export async function POST(request) {
   try {
@@ -99,7 +100,7 @@ export async function POST(request) {
         const recipientEmail = recipient?.user?.email;
         if (recipientEmail) {
           const senderName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email || "Someone";
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk";
+          const siteUrl = getSiteUrl();
           const conversationUrl = `${siteUrl}/messages/${conversation_id}`;
           sendNewMessageEmail(recipientEmail, senderName, conversationUrl, content.trim()).catch((err) => {
             console.error("[messages] Notification email failed:", err?.message || err);

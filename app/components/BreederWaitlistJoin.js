@@ -141,7 +141,7 @@ export default function BreederWaitlistJoin({ breederSlug, breederName, breeds =
               Cancel
             </button>
           </div>
-          <p className="text-xs text-slate-500">We&apos;ll email you when this breeder publishes a litter. You can ask to be removed anytime via help@breedwise.co.uk.</p>
+          <p className="text-xs text-slate-500">We&apos;ll email you when this breeder publishes a litter. You can ask to be removed anytime via info@breedwise.co.uk.</p>
         </form>
       )}
     </section>

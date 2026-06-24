@@ -12,6 +12,6 @@ export default function robots() {
         "/breeder/dashboard",
       ],
     },
-    sitemap: "https://breedwise.co.uk/api/seo/sitemap",
+    sitemap: "https://breedwise.co.uk/sitemap.xml",
   };
 }

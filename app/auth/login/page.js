@@ -1,15 +1,28 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { LogIn, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@components/Toast";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function LoginPage() {
-  const router = useRouter();
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-slate-400 text-sm">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") || "";
   const { success: showSuccess } = useToast();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +66,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...(nextPath ? { next: nextPath } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) {

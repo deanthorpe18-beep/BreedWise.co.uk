@@ -2,6 +2,34 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { sendClaimInvitation } from "@/lib/emails/resend";
+import { isValidBreederEmail, normalizeBreederEmail } from "@/lib/breeder-email-utils";
+
+const OUTREACH_LIMIT = 200;
+
+async function loadOutreachCandidates(adminClient, { slugs = null, limit = OUTREACH_LIMIT } = {}) {
+  let query = adminClient
+    .from("breeders")
+    .select("id, slug, name, email, phone, website, status, claimed")
+    .eq("status", "public_listing")
+    .eq("claimed", false)
+    .not("email", "is", null)
+    .neq("email", "")
+    .order("name", { ascending: true });
+
+  if (Array.isArray(slugs) && slugs.length > 0) {
+    query = query.in("slug", slugs);
+  } else {
+    query = query.limit(limit * 3);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data || [])
+    .map((b) => ({ ...b, email: normalizeBreederEmail(b.email) }))
+    .filter((b) => isValidBreederEmail(b.email))
+    .slice(0, limit);
+}
 
 /**
  * GET /api/admin/outreach
@@ -15,16 +43,19 @@ export async function GET() {
     }
 
     const adminClient = createAdminClient();
-    const { data, error } = await adminClient
+    const data = await loadOutreachCandidates(adminClient, { limit: OUTREACH_LIMIT });
+
+    const { data: allWithEmail } = await adminClient
       .from("breeders")
-      .select("id, slug, name, email, phone, website, status, claimed")
+      .select("email")
       .eq("status", "public_listing")
       .eq("claimed", false)
       .not("email", "is", null)
-      .order("name", { ascending: true })
-      .limit(50);
+      .neq("email", "");
 
-    if (error) throw error;
+    const outreachReadyTotal = (allWithEmail || [])
+      .map((b) => normalizeBreederEmail(b.email))
+      .filter(Boolean).length;
 
     // Fetch recent outreach sends for cooldown display
     const slugs = (data || []).map((b) => b.slug);
@@ -35,7 +66,7 @@ export async function GET() {
     if (slugs.length > 0) {
       const { data: sendsData } = await adminClient
         .from("outreach_sends")
-        .select("breeder_slug, sent_at, status")
+        .select("breeder_slug, sent_at, status, converted_at")
         .in("breeder_slug", slugs)
         .gte("sent_at", threeMonthsAgo.toISOString())
         .order("sent_at", { ascending: false });
@@ -55,11 +86,31 @@ export async function GET() {
       return {
         ...b,
         lastSentAt: last?.sent_at || null,
-        onCooldown: !!last && last.status === "sent",
+        onCooldown: !!last && last.status === "sent" && !last.converted_at,
+        convertedAt: last?.converted_at || null,
+        outreachConverted: !!last?.converted_at,
       };
     });
 
-    return NextResponse.json({ breeders });
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: weekSends } = await adminClient
+      .from("outreach_sends")
+      .select("converted_at, status")
+      .gte("sent_at", weekAgo)
+      .eq("status", "sent");
+
+    const weekStats = {
+      sent: (weekSends || []).length,
+      converted: (weekSends || []).filter((s) => s.converted_at).length,
+      awaiting: (weekSends || []).filter((s) => !s.converted_at).length,
+    };
+
+    return NextResponse.json({
+      breeders,
+      total: outreachReadyTotal,
+      showing: breeders.length,
+      weekStats,
+    });
   } catch (err) {
     console.error("[outreach] GET error:", err?.message || err);
     return NextResponse.json(
@@ -90,25 +141,14 @@ export async function POST(request) {
     let breeders = [];
 
     if (Array.isArray(breederSlugs) && breederSlugs.length > 0) {
-      const { data, error } = await adminClient
-        .from("breeders")
-        .select("id, slug, name, email, phone, website, status")
-        .in("slug", breederSlugs)
-        .eq("status", "public_listing")
-        .not("email", "is", null);
-
-      if (error) throw error;
-      breeders = data || [];
+      breeders = await loadOutreachCandidates(adminClient, {
+        slugs: breederSlugs,
+        limit: breederSlugs.length,
+      });
     } else {
-      const { data, error } = await adminClient
-        .from("breeders")
-        .select("id, slug, name, email, phone, website, status")
-        .eq("status", "public_listing")
-        .not("email", "is", null)
-        .limit(batchSize);
-
-      if (error) throw error;
-      breeders = data || [];
+      breeders = await loadOutreachCandidates(adminClient, {
+        limit: Math.min(batchSize, OUTREACH_LIMIT),
+      });
     }
 
     // Check which breeders are on cooldown (sent to within last 3 months)
@@ -134,13 +174,13 @@ export async function POST(request) {
 
     const results = [];
     for (const breeder of breeders) {
-      const to = breeder.email;
-      if (!to) {
+      const to = normalizeBreederEmail(breeder.email);
+      if (!to || !isValidBreederEmail(to)) {
         results.push({
           breederSlug: breeder.slug,
           breederName: breeder.name,
           sent: false,
-          reason: "No contact email available",
+          reason: "Invalid or missing contact email",
         });
         continue;
       }

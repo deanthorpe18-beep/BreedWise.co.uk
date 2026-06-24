@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Baby, Loader2, Search } from "lucide-react";
+import { Baby, LayoutDashboard, Loader2, Search } from "lucide-react";
 import { setPortalAdminContext } from "@/lib/portal-admin-context";
 
 export default function AdminBreederPortalPicker({ compact = false }) {
@@ -29,19 +29,23 @@ export default function AdminBreederPortalPicker({ compact = false }) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const openPortal = (breeder) => {
+  const openAsBreeder = (breeder, target) => {
     setPortalAdminContext(breeder.id, breeder.name);
-    router.push(`/breeder/portal?adminAs=${breeder.id}`);
+    if (target === "portal") {
+      router.push(`/breeder/portal?adminAs=${breeder.id}`);
+    } else {
+      router.push(`/breeder/dashboard?adminAs=${breeder.id}`);
+    }
   };
 
   return (
     <div className={`rounded-3xl border border-[#00BFA5]/30 bg-gradient-to-br from-[#E6FFFB] to-white ${compact ? "p-5" : "p-6"}`}>
       <h3 className={`font-bold text-slate-900 flex items-center gap-2 ${compact ? "text-base" : "text-lg"}`}>
-        <Baby className="h-5 w-5 text-[#00BFA5]" />
-        Open breeding portal as a breeder
+        <LayoutDashboard className="h-5 w-5 text-[#00BFA5]" />
+        Manage as a breeder
       </h3>
       <p className="mt-1 text-sm text-slate-600">
-        Search any listing, then open the full portal — same screens, same tools breeders use for stock, litters, pups, wait lists, and receipts.
+        Search any listing and open their dashboard or breeding portal — the same screens breeders use for profile edits, photos, litters, wait lists, and paperwork.
       </p>
 
       <div className="relative mt-4">
@@ -87,10 +91,17 @@ export default function AdminBreederPortalPicker({ compact = false }) {
                 </a>
                 <button
                   type="button"
-                  onClick={() => openPortal(b)}
-                  className="rounded-full bg-[#00BFA5] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#00a98e]"
+                  onClick={() => openAsBreeder(b, "dashboard")}
+                  className="inline-flex items-center gap-1 rounded-full bg-[#00BFA5] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#00a98e]"
                 >
-                  Open portal
+                  <LayoutDashboard className="h-3 w-3" /> Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAsBreeder(b, "portal")}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#00BFA5] bg-white px-3 py-1.5 text-xs font-semibold text-[#00BFA5] hover:bg-[#E6FFFB]"
+                >
+                  <Baby className="h-3 w-3" /> Portal
                 </button>
               </div>
             </li>
@@ -100,11 +111,11 @@ export default function AdminBreederPortalPicker({ compact = false }) {
 
       {!compact && (
         <p className="mt-4 text-xs text-slate-500">
-          Tip: you can also pick a breeder from the{" "}
+          Tip: pick a breeder from the{" "}
           <Link href="/admin?tab=breeders" className="font-semibold text-[#00BFA5] hover:underline">
             Breeders
           </Link>{" "}
-          tab and click <strong>Portal</strong>.
+          tab and click <strong>Manage</strong>.
         </p>
       )}
     </div>

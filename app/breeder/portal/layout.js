@@ -10,7 +10,7 @@ import { useAuth } from "@components/AuthProvider";
 
 const NAV = [
   { href: "/breeder/portal", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/breeder/portal/animals", label: "Breeding stock", icon: Dog },
+  { href: "/breeder/portal/animals", label: "My dogs", icon: Dog },
   { href: "/breeder/portal/litters", label: "Litters", icon: Baby },
   { href: "/breeder/portal/waitlist", label: "Wait list", icon: Users },
 ];
@@ -58,16 +58,16 @@ function PortalNav() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link
-            href={adminPreview ? "/admin?tab=breeding" : "/breeder/dashboard"}
+            href={adminPreview ? `/breeder/dashboard${portalQuery}` : "/breeder/dashboard"}
             className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#00BFA5]"
           >
-            <ArrowLeft className="h-4 w-4" /> {adminPreview ? "Back to admin" : "Back to dashboard"}
+            <ArrowLeft className="h-4 w-4" /> {adminPreview ? "Breeder dashboard" : "Back to dashboard"}
           </Link>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">Breeding portal</h1>
           <p className="text-sm text-slate-600">
             {adminPreview && displayName
               ? `Managing ${displayName}'s breeding records`
-              : "Manage dogs, litters, and pups in one place."}
+              : "Manage your dogs, litters, and pups in one place."}
           </p>
         </div>
       </div>

@@ -15,6 +15,8 @@
     "seed-cats": "node scripts/seed-cat-breeders.js",
     "seed-fish": "node scripts/seed-fish-breeders.js",
     "backfill-reviews": "node scripts/backfill-google-reviews-cache.js",
+    "find-emails": "node scripts/find-breeder-emails.js",
+    "find-emails-all": "node scripts/find-breeder-emails.js --all --newest",
     "backfill-breeds": "node scripts/backfill-breeder-breeds.js",
     "fix-locations": "node scripts/fix-breeder-locations.js",
     "cleanup-non-uk": "node scripts/cleanup-non-uk-breeders.js --cats"

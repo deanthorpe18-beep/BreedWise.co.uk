@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SearchIcon, UserCheck, CheckCircle, Mail, AlertCircle, Loader2, Upload, FileText, Shield, Award, Home } from "lucide-react";
 import PageViewTracker from "@components/PageViewTracker";
 import BreederSearchDropdown from "@components/BreederSearchDropdown";
 
 import WarmHero from "@components/WarmHero";
+import { claimAuthQueryString, claimPathFromSearchParams } from "@/lib/breeder-onboarding";
 
 const EVIDENCE_TYPES = [
   { key: "licence", label: "Breeding Licence", icon: Shield, desc: "Local council breeding licence" },
@@ -16,6 +18,19 @@ const EVIDENCE_TYPES = [
 ];
 
 export default function ClaimPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#00BFA5]" />
+      </div>
+    }>
+      <ClaimPageContent />
+    </Suspense>
+  );
+}
+
+function ClaimPageContent() {
+  const searchParams = useSearchParams();
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [form, setForm] = useState({ breederSlug: "", breederName: "", email: "", name: "", notes: "" });
@@ -39,6 +54,23 @@ export default function ClaimPage() {
       })
       .catch(() => setLoadingUser(false));
   }, []);
+
+  useEffect(() => {
+    const slug = searchParams.get("slug");
+    const name = searchParams.get("name");
+    if (slug) {
+      setForm((prev) => ({
+        ...prev,
+        breederSlug: slug,
+        breederName: name ? decodeURIComponent(name) : prev.breederName,
+      }));
+    }
+  }, [searchParams]);
+
+  const authQuery = claimAuthQueryString(searchParams);
+  const claimReturnPath = claimPathFromSearchParams(searchParams);
+  const fromOutreach = searchParams.get("from") === "outreach";
+  const outreachListingName = form.breederName || (searchParams.get("name") ? decodeURIComponent(searchParams.get("name")) : "");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -112,10 +144,44 @@ export default function ClaimPage() {
           <WarmHero
             eyebrow="How to claim"
             title="Claim your breeder profile"
-            description="If you're listed on BreedWise, claiming your profile lets you keep your details accurate and helps buyers trust what they see. We review every claim by hand — usually within a couple of working days."
+            description={
+              fromOutreach && outreachListingName
+                ? `You're here from our invitation email. Claim ${outreachListingName} to keep your details accurate and help buyers trust what they see.`
+                : "If you're listed on BreedWise, claiming your profile lets you keep your details accurate and helps buyers trust what they see. We review every claim by hand — usually within a couple of working days."
+            }
           />
 
-          {!user && !loadingUser && (
+          {fromOutreach && !user && !loadingUser && (
+            <div className="rounded-3xl border border-[#00BFA5] bg-[#E6FFFB] p-6">
+              <div className="flex items-start gap-3">
+                <UserCheck className="h-5 w-5 text-[#00BFA5] flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-slate-900">Welcome from our outreach email</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {outreachListingName
+                      ? `Create a free account or log in to claim ${outreachListingName}. Your listing will be pre-selected below.`
+                      : "Create a free account or log in to submit your claim. Your listing will be pre-selected below."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      href={`/auth/signup${authQuery}`}
+                      className="inline-flex items-center rounded-full bg-[#00BFA5] px-4 py-2 text-xs font-semibold text-white hover:bg-[#00a98e]"
+                    >
+                      Create account
+                    </Link>
+                    <Link
+                      href={`/auth/login?next=${encodeURIComponent(claimReturnPath)}`}
+                      className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Log in
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!user && !loadingUser && !fromOutreach && (
             <div className="rounded-3xl border border-[#00BFA5] bg-[#E6FFFB] p-6">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-[#00BFA5] flex-shrink-0 mt-0.5" />
@@ -123,9 +189,9 @@ export default function ClaimPage() {
                   <p className="font-semibold text-slate-900">Authentication required</p>
                   <p className="mt-1 text-sm text-slate-600">
                     You must be logged in to submit a claim.{" "}
-                    <Link href="/auth/login" className="font-semibold text-[#00BFA5] hover:text-[#008f7a]">Log in</Link>{" "}
+                    <Link href={`/auth/login?next=${encodeURIComponent(claimReturnPath)}`} className="font-semibold text-[#00BFA5] hover:text-[#008f7a]">Log in</Link>{" "}
                     or{" "}
-                    <Link href="/auth/signup" className="font-semibold text-[#00BFA5] hover:text-[#008f7a]">create an account</Link>.
+                    <Link href={`/auth/signup${authQuery}`} className="font-semibold text-[#00BFA5] hover:text-[#008f7a]">create an account</Link>.
                   </p>
                 </div>
               </div>
@@ -157,6 +223,7 @@ export default function ClaimPage() {
                     value={form.breederSlug}
                     onChange={handleBreederSelect}
                     disabled={!user}
+                    selectedName={form.breederName}
                   />
                 </div>
                 <p className="mt-1.5 text-xs text-slate-400">

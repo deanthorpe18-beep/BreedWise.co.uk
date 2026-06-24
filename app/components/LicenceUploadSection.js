@@ -3,7 +3,13 @@
 import { useState, useRef } from "react";
 import { Shield, Upload, Loader2, CheckCircle, Clock, XCircle } from "lucide-react";
 
-export default function LicenceUploadSection({ licenceNumber, verificationStatus, licenceVerified, onNumberChange }) {
+export default function LicenceUploadSection({
+  licenceNumber,
+  verificationStatus,
+  licenceVerified,
+  onNumberChange,
+  uploadUrl = "/api/breeder/licence-upload",
+}) {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -27,7 +33,7 @@ export default function LicenceUploadSection({ licenceNumber, verificationStatus
     fd.append("file", file);
     if (licenceNumber) fd.append("licence_number", licenceNumber);
     try {
-      const res = await fetch("/api/breeder/licence-upload", { method: "POST", body: fd });
+      const res = await fetch(uploadUrl, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
       setMsg("Licence uploaded — we'll review it within 1–2 working days.");

@@ -10,18 +10,37 @@ import {
   TrendingUp, MousePointer, Activity, Plus, Building2, Filter, ChevronLeft, ChevronRight,
   Globe, Phone, Mail, ArrowUpRight, Zap, Crosshair, Award, Heart, Star,
   Monitor, AlertOctagon, Layers, SearchX, Target, Fingerprint, MapPin, MessageCircle,
-  CreditCard, Pencil, Dog, RefreshCw, GripVertical, ChevronDown, MoreHorizontal, Baby
+  CreditCard, Pencil, Dog, RefreshCw, Baby, X, Check
 } from "lucide-react";
 
 import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
 import AdminLicencePanel from "@components/AdminLicencePanel";
+import AdminOutreachPanel from "@components/AdminOutreachPanel";
 import AdminBreedingPortalPanel from "@components/AdminBreedingPortalPanel";
+import AdminTabNav from "@components/AdminTabNav";
 import { setPortalAdminContext } from "@/lib/portal-admin-context";
+import {
+  ADMIN_CATEGORIES,
+  ALL_ADMIN_TAB_IDS,
+  findCategoryForTab,
+  getTabBadges,
+  getCategoryBadges,
+} from "@/lib/admin-nav";
+import {
+  loadDismissedNotifications,
+  dismissSignupIds,
+  dismissClaimIds,
+  dismissRemovalIds,
+  countUnreadSignups,
+  countUnreadClaims,
+  countUnreadRemovals,
+} from "@/lib/admin-notifications";
 
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading: loadingUser } = useAuth();
   const [activeTab, setActiveTab] = useState("queue");
+  const [activeCategory, setActiveCategory] = useState("operations");
   const [claims, setClaims] = useState([]);
   const [removals, setRemovals] = useState([]);
   const [stats, setStats] = useState(null);
@@ -98,12 +117,12 @@ export default function AdminPage() {
 
   // Members tab state
   const [members, setMembers] = useState([]);
-
-  // Tab order state (drag-to-reorder)
-  const [tabOrder, setTabOrder] = useState(null);
-  const [draggedTabId, setDraggedTabId] = useState(null);
-  const [dragOverTabId, setDragOverTabId] = useState(null);
-  const [showMoreTabs, setShowMoreTabs] = useState(false);
+  const [recentSignups, setRecentSignups] = useState([]);
+  const [dismissedNotifications, setDismissedNotifications] = useState({
+    signups: [],
+    claims: [],
+    removals: [],
+  });
   const [membersTotal, setMembersTotal] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersSearch, setMembersSearch] = useState("");
@@ -140,67 +159,75 @@ export default function AdminPage() {
   const [uploadBreedMsg, setUploadBreedMsg] = useState("");
   const [breedImagePendingOnly, setBreedImagePendingOnly] = useState(false);
 
-  // Outreach state
-  const [outreachBreeders, setOutreachBreeders] = useState([]);
-  const [outreachLoading, setOutreachLoading] = useState(false);
-  const [outreachMsg, setOutreachMsg] = useState("");
-  const [outreachError, setOutreachError] = useState("");
-  const [selectedOutreach, setSelectedOutreach] = useState(new Set());
-
-  const defaultTabs = [
-    { id: "queue", label: "Queue", icon: Shield },
-    { id: "breeders", label: "Breeders", icon: Building2 },
-    { id: "members", label: "Members", icon: Users },
-    { id: "analytics", label: "Analytics", icon: TrendingUp },
-    { id: "funnel", label: "Funnel", icon: Target },
-    { id: "search-intel", label: "Search", icon: Search },
-    { id: "listing-quality", label: "Quality", icon: Award },
-    { id: "duplicates", label: "Dups", icon: Layers },
-    { id: "claim-fraud", label: "Fraud", icon: AlertOctagon },
-    { id: "seo", label: "SEO", icon: Globe },
-    { id: "health", label: "Health", icon: Monitor },
-    { id: "audit", label: "Audit", icon: FileText },
-    { id: "stats", label: "Stats", icon: BarChart3 },
-    { id: "tiers", label: "Tiers", icon: CreditCard },
-    { id: "cms", label: "Editor", icon: Pencil },
-    { id: "outreach", label: "Outreach", icon: Mail },
-    { id: "licences", label: "Licences", icon: Shield },
-    { id: "breeding", label: "Breeding", icon: Baby },
-    { id: "newsletter", label: "Newsletter", icon: Mail },
-    { id: "admins", label: "Admins", icon: Users },
-  ];
-
-  // Load tab order from localStorage on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("adminTabOrder");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Validate: ensure all default tab IDs are present
-        const defaultIds = defaultTabs.map((t) => t.id);
-        const valid = parsed.filter((id) => defaultIds.includes(id));
-        const missing = defaultIds.filter((id) => !valid.includes(id));
-        setTabOrder([...valid, ...missing]);
-      } else {
-        setTabOrder(defaultTabs.map((t) => t.id));
-      }
-    } catch {
-      setTabOrder(defaultTabs.map((t) => t.id));
-    }
+    setDismissedNotifications(loadDismissedNotifications());
   }, []);
 
   useEffect(() => {
     try {
       const tab = new URLSearchParams(window.location.search).get("tab");
-      if (tab && defaultTabs.some((t) => t.id === tab)) {
+      if (tab && ALL_ADMIN_TAB_IDS.includes(tab)) {
         setActiveTab(tab);
+        setActiveCategory(findCategoryForTab(tab));
       }
     } catch {}
   }, []);
 
-  const tabs = tabOrder
-    ? tabOrder.map((id) => defaultTabs.find((t) => t.id === id)).filter(Boolean)
-    : defaultTabs;
+  const handleCategoryChange = (categoryId) => {
+    const category = ADMIN_CATEGORIES.find((c) => c.id === categoryId);
+    if (!category) return;
+    setActiveCategory(categoryId);
+    handleTabChange(category.tabs[0].id);
+  };
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setActiveCategory(findCategoryForTab(tabId));
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tabId);
+      window.history.replaceState({}, "", url.toString());
+    } catch {}
+  };
+
+  const markSignupsRead = (ids) => {
+    setDismissedNotifications((prev) => dismissSignupIds(ids, prev));
+  };
+
+  const markClaimsReviewed = (ids) => {
+    setDismissedNotifications((prev) => dismissClaimIds(ids, prev));
+  };
+
+  const markRemovalsReviewed = (ids) => {
+    setDismissedNotifications((prev) => dismissRemovalIds(ids, prev));
+  };
+
+  const markAllNotificationsRead = () => {
+    setDismissedNotifications((prev) => {
+      let next = prev;
+      const pendingClaimIds = claims.filter((c) => c.status === "pending").map((c) => c.id);
+      const pendingRemovalIds = removals.filter((r) => r.status === "pending").map((r) => r.id);
+      const signupIds = recentSignups.map((s) => s.id);
+      if (pendingClaimIds.length) next = dismissClaimIds(pendingClaimIds, next);
+      if (pendingRemovalIds.length) next = dismissRemovalIds(pendingRemovalIds, next);
+      if (signupIds.length) next = dismissSignupIds(signupIds, next);
+      return next;
+    });
+  };
+
+  const pendingClaimsTotal = claims.filter((c) => c.status === "pending").length;
+  const pendingRemovalsTotal = removals.filter((r) => r.status === "pending").length;
+
+  const unreadClaims = countUnreadClaims(claims, dismissedNotifications);
+  const unreadRemovals = countUnreadRemovals(removals, dismissedNotifications);
+  const newSignups = countUnreadSignups(recentSignups, dismissedNotifications);
+  const tabBadges = getTabBadges({
+    pendingClaims: unreadClaims,
+    pendingRemovals: unreadRemovals,
+    newSignups,
+  });
+  const categoryBadges = getCategoryBadges(tabBadges);
+  const totalUnread = unreadClaims + unreadRemovals + newSignups;
 
   useEffect(() => {
     if (!loadingUser && user && user.role !== "admin" && user.role !== "super_admin") {
@@ -232,7 +259,6 @@ export default function AdminPage() {
     if (activeTab === "tiers") loadTiers();
     if (activeTab === "tiers") loadCms();
     if (activeTab === "cms") loadCms();
-    if (activeTab === "outreach") loadOutreach();
   }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user, analyticsRefreshTick]);
 
   // Auto-refresh analytics every 30 seconds when on analytics tab
@@ -251,12 +277,13 @@ export default function AdminPage() {
         fetch("/api/admin/claims"),
         fetch("/api/admin/removals"),
         fetch("/api/admin/stats"),
+        fetch("/api/admin/signups?limit=20&days=30"),
       ];
       if (activeTab === "admins") {
         endpoints.push(fetch("/api/admin/users"));
       }
 
-      const [claimsRes, removalsRes, statsRes, adminsRes] = await Promise.all(endpoints);
+      const [claimsRes, removalsRes, statsRes, signupsRes, adminsRes] = await Promise.all(endpoints);
 
       if (claimsRes.status === 403 || removalsRes.status === 403) {
         setError("Access denied.");
@@ -271,6 +298,11 @@ export default function AdminPage() {
       setClaims(claimsData.claims || []);
       setRemovals(removalsData.removals || []);
       setStats(statsData);
+
+      if (signupsRes?.ok) {
+        const signupsData = await signupsRes.json();
+        setRecentSignups(signupsData.signups || []);
+      }
 
       if (adminsRes && adminsRes.ok) {
         const adminsData = await adminsRes.json();
@@ -533,52 +565,6 @@ export default function AdminPage() {
         loadCms();
       }
     } catch {}
-  };
-
-  const loadOutreach = async () => {
-    setOutreachLoading(true);
-    setOutreachMsg("");
-    setOutreachError("");
-    try {
-      const res = await fetch("/api/admin/outreach");
-      const data = await res.json();
-      if (res.ok) {
-        setOutreachBreeders(data.breeders || []);
-      } else {
-        setOutreachError(data.error || "Failed to load breeders.");
-      }
-    } catch {
-      setOutreachError("Network error.");
-    } finally {
-      setOutreachLoading(false);
-    }
-  };
-
-  const sendOutreach = async () => {
-    setOutreachMsg("");
-    setOutreachError("");
-    const slugs = Array.from(selectedOutreach);
-    if (slugs.length === 0) {
-      setOutreachError("Select at least one breeder.");
-      return;
-    }
-    try {
-      const res = await fetch("/api/admin/outreach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ breederSlugs: slugs }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setOutreachMsg(`Sent ${data.sent} emails. ${data.failed} skipped/failed.`);
-        setSelectedOutreach(new Set());
-        await loadOutreach(); // refresh cooldown status
-      } else {
-        setOutreachError(data.error || "Failed to send emails.");
-      }
-    } catch {
-      setOutreachError("Network error.");
-    }
   };
 
   const updateClaimStatus = async (id, status) => {
@@ -863,9 +849,6 @@ export default function AdminPage() {
     );
   }
 
-  const extraLinks = [
-    { href: "/admin/places", label: "Google Cache", icon: Globe },
-  ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8">
@@ -877,6 +860,68 @@ export default function AdminPage() {
               <p className="text-sm uppercase tracking-[0.3em] text-[#00BFA5]">Admin dashboard</p>
               <h1 className="mt-3 text-3xl font-semibold text-slate-900">BreedWise Management</h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">Manage listings, review claims, monitor analytics, and track site activity.</p>
+              {(unreadClaims > 0 || unreadRemovals > 0 || newSignups > 0) && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {unreadClaims > 0 && (
+                    <div className="inline-flex items-center rounded-full bg-orange-100 pl-3 pr-1 py-1 text-xs font-semibold text-orange-700">
+                      <button type="button" onClick={() => handleTabChange("queue")} className="inline-flex items-center gap-1.5 hover:text-orange-900">
+                        <UserCheck className="h-3 w-3" />
+                        {unreadClaims} pending claim{unreadClaims !== 1 ? "s" : ""}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => markClaimsReviewed(claims.filter((c) => c.status === "pending").map((c) => c.id))}
+                        className="ml-1 rounded-full p-1 hover:bg-orange-200"
+                        title="Mark claims as reviewed"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  {unreadRemovals > 0 && (
+                    <div className="inline-flex items-center rounded-full bg-red-100 pl-3 pr-1 py-1 text-xs font-semibold text-red-700">
+                      <button type="button" onClick={() => handleTabChange("queue")} className="inline-flex items-center gap-1.5 hover:text-red-900">
+                        <Trash2 className="h-3 w-3" />
+                        {unreadRemovals} removal request{unreadRemovals !== 1 ? "s" : ""}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => markRemovalsReviewed(removals.filter((r) => r.status === "pending").map((r) => r.id))}
+                        className="ml-1 rounded-full p-1 hover:bg-red-200"
+                        title="Mark removals as reviewed"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  {newSignups > 0 && (
+                    <div className="inline-flex items-center rounded-full bg-blue-100 pl-3 pr-1 py-1 text-xs font-semibold text-blue-700">
+                      <button type="button" onClick={() => handleTabChange("members")} className="inline-flex items-center gap-1.5 hover:text-blue-900">
+                        <UserPlus className="h-3 w-3" />
+                        {newSignups} new signup{newSignups !== 1 ? "s" : ""}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => markSignupsRead(recentSignups.map((s) => s.id))}
+                        className="ml-1 rounded-full p-1 hover:bg-blue-200"
+                        title="Mark signups as read"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  {totalUnread > 1 && (
+                    <button
+                      type="button"
+                      onClick={markAllNotificationsRead}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      <Check className="h-3 w-3" />
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {user?.role === "super_admin" && (
@@ -904,106 +949,14 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200">
-            <nav className="flex flex-wrap items-center gap-1 px-2 py-2">
-              {tabs.slice(0, 6).map((tab) => (
-                <button
-                  key={tab.id}
-                  draggable
-                  onClick={() => setActiveTab(tab.id)}
-                  onDragStart={(e) => {
-                    setDraggedTabId(tab.id);
-                    e.dataTransfer.effectAllowed = "move";
-                    const dragImage = document.createElement("div");
-                    dragImage.style.opacity = "0";
-                    document.body.appendChild(dragImage);
-                    e.dataTransfer.setDragImage(dragImage, 0, 0);
-                    setTimeout(() => document.body.removeChild(dragImage), 0);
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (draggedTabId && draggedTabId !== tab.id) {
-                      setDragOverTabId(tab.id);
-                    }
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (draggedTabId && draggedTabId !== tab.id && tabOrder) {
-                      const fromIndex = tabOrder.indexOf(draggedTabId);
-                      const toIndex = tabOrder.indexOf(tab.id);
-                      if (fromIndex >= 0 && toIndex >= 0) {
-                        const newOrder = [...tabOrder];
-                        newOrder.splice(fromIndex, 1);
-                        newOrder.splice(toIndex, 0, draggedTabId);
-                        setTabOrder(newOrder);
-                        localStorage.setItem("adminTabOrder", JSON.stringify(newOrder));
-                      }
-                    }
-                    setDraggedTabId(null);
-                    setDragOverTabId(null);
-                  }}
-                  onDragEnd={() => {
-                    setDraggedTabId(null);
-                    setDragOverTabId(null);
-                  }}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition whitespace-nowrap cursor-pointer ${
-                    activeTab === tab.id
-                      ? "bg-[#E6FFFB] text-[#00BFA5]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  } ${draggedTabId === tab.id ? "opacity-40" : ""} ${dragOverTabId === tab.id && draggedTabId !== tab.id ? "bg-slate-50" : ""}`}
-                  title="Drag to reorder"
-                >
-                  <GripVertical className="h-3 w-3 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing" />
-                  <tab.icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              ))}
-              {/* More dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowMoreTabs((s) => !s)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition whitespace-nowrap ${
-                    tabs.slice(6).some((t) => t.id === activeTab)
-                      ? "bg-[#E6FFFB] text-[#00BFA5]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                  More
-                  <ChevronDown className={`h-3 w-3 transition ${showMoreTabs ? "rotate-180" : ""}`} />
-                </button>
-                {showMoreTabs && (
-                  <div className="absolute z-30 mt-1 w-56 rounded-2xl border border-slate-200 bg-white py-2 shadow-lg">
-                    {tabs.slice(6).map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => { setActiveTab(tab.id); setShowMoreTabs(false); }}
-                        className={`flex w-full items-center gap-2 px-4 py-2 text-sm font-semibold transition ${
-                          activeTab === tab.id
-                            ? "bg-[#E6FFFB] text-[#00BFA5]"
-                            : "text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <tab.icon className="h-4 w-4" />
-                        {tab.label}
-                      </button>
-                    ))}
-                    <div className="my-1 border-t border-slate-100" />
-                    {extraLinks.map((link) => (
-                      <a
-                        key={link.href}
-                        href={link.href}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
-                      >
-                        <link.icon className="h-4 w-4" />
-                        {link.label}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </nav>
-          </div>
+          <AdminTabNav
+            activeCategory={activeCategory}
+            activeTab={activeTab}
+            onCategoryChange={handleCategoryChange}
+            onTabChange={handleTabChange}
+            tabBadges={tabBadges}
+            categoryBadges={categoryBadges}
+          />
 
           <div className="p-6">
             {/* Review Queue */}
@@ -1013,8 +966,18 @@ export default function AdminPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                       <UserCheck className="h-5 w-5 text-[#00BFA5]" />
-                      Claims ({claims.filter((c) => c.status === "pending").length} pending)
+                      Claims ({unreadClaims > 0 ? `${unreadClaims} unread` : `${pendingClaimsTotal} pending`})
                     </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {unreadClaims > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => markClaimsReviewed(claims.filter((c) => c.status === "pending").map((c) => c.id))}
+                          className="rounded-2xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100"
+                        >
+                          Mark all reviewed
+                        </button>
+                      )}
                     <button
                       onClick={async () => {
                         try {
@@ -1034,6 +997,7 @@ export default function AdminPage() {
                     >
                       Fix claimed breeders
                     </button>
+                    </div>
                     <select
                       value={`${claimsSort.field}:${claimsSort.dir}`}
                       onChange={(e) => {
@@ -1055,18 +1019,34 @@ export default function AdminPage() {
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No claims yet.</div>
                   ) : (
                     <div className="space-y-3">
-                      {sortData(claims, claimsSort.field, claimsSort.dir).map((claim) => (
-                        <div key={claim.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      {sortData(claims, claimsSort.field, claimsSort.dir).map((claim) => {
+                        const isUnread = claim.status === "pending" && !dismissedNotifications.claims.includes(claim.id);
+                        return (
+                        <div key={claim.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${isUnread ? "border-orange-300 ring-1 ring-orange-100" : "border-slate-200"}`}>
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">{claim.breeder_name || claim.breeder_slug}</p>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {claim.breeder_name || claim.breeder_slug}
+                                {isUnread && (
+                                  <span className="ml-2 inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">New</span>
+                                )}
+                              </p>
                               <p className="text-sm text-slate-500">{claim.claimant_email}</p>
                               <p className="text-xs text-slate-400 mt-1">Submitted {new Date(claim.submitted_at).toLocaleDateString()}</p>
                               {claim.notes && <p className="text-xs text-slate-500 mt-1">Notes: {claim.notes}</p>}
                               {claim.admin_notes && <p className="text-xs text-slate-500 mt-1">Admin notes: {claim.admin_notes}</p>}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <StatusBadge status={claim.status} />
+                              {isUnread && (
+                                <button
+                                  type="button"
+                                  onClick={() => markClaimsReviewed([claim.id])}
+                                  className="rounded-3xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                >
+                                  Mark reviewed
+                                </button>
+                              )}
                               {claim.status === "pending" && (
                                 <>
                                   <button onClick={() => updateClaimStatus(claim.id, "approved")} className="rounded-3xl bg-[#00BFA5] px-4 py-2 text-xs font-semibold text-white hover:bg-[#00a98e]">Approve</button>
@@ -1076,7 +1056,8 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1085,8 +1066,18 @@ export default function AdminPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                       <Trash2 className="h-5 w-5 text-[#FF6B6B]" />
-                      Removal Requests ({removals.filter((r) => r.status === "pending").length} pending)
+                      Removal Requests ({unreadRemovals > 0 ? `${unreadRemovals} unread` : `${pendingRemovalsTotal} pending`})
                     </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {unreadRemovals > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => markRemovalsReviewed(removals.filter((r) => r.status === "pending").map((r) => r.id))}
+                          className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        >
+                          Mark all reviewed
+                        </button>
+                      )}
                     <select
                       value={`${removalsSort.field}:${removalsSort.dir}`}
                       onChange={(e) => {
@@ -1101,16 +1092,24 @@ export default function AdminPage() {
                       <option value="requester_email:asc">Email (A–Z)</option>
                       <option value="status:asc">Status</option>
                     </select>
+                    </div>
                   </div>
                   {removals.length === 0 ? (
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No removal requests yet.</div>
                   ) : (
                     <div className="space-y-3">
-                      {sortData(removals, removalsSort.field, removalsSort.dir).map((removal) => (
-                        <div key={removal.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      {sortData(removals, removalsSort.field, removalsSort.dir).map((removal) => {
+                        const isUnread = removal.status === "pending" && !dismissedNotifications.removals.includes(removal.id);
+                        return (
+                        <div key={removal.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${isUnread ? "border-red-300 ring-1 ring-red-100" : "border-slate-200"}`}>
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">{removal.breeder_name || removal.breeder_slug}</p>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {removal.breeder_name || removal.breeder_slug}
+                                {isUnread && (
+                                  <span className="ml-2 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">New</span>
+                                )}
+                              </p>
                               <p className="text-sm text-slate-500">{removal.requester_email}</p>
                               <p className="text-xs text-slate-400 mt-1">Submitted {new Date(removal.submitted_at).toLocaleDateString()}</p>
                               {removal.reason && <p className="text-xs text-slate-500 mt-1">Reason: {removal.reason}</p>}
@@ -1119,6 +1118,15 @@ export default function AdminPage() {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <StatusBadge status={removal.status} />
+                              {isUnread && (
+                                <button
+                                  type="button"
+                                  onClick={() => markRemovalsReviewed([removal.id])}
+                                  className="rounded-3xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                >
+                                  Mark reviewed
+                                </button>
+                              )}
                               {removal.status === "pending" && (
                                 <>
                                   <button onClick={() => updateRemovalStatus(removal.id, "approved")} className="rounded-3xl bg-[#00BFA5] px-4 py-2 text-xs font-semibold text-white hover:bg-[#00a98e]">Approve</button>
@@ -1131,7 +1139,91 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                      <UserPlus className="h-5 w-5 text-[#00BFA5]" />
+                      Recent signups ({recentSignups.length}
+                      {newSignups > 0 ? ` · ${newSignups} unread` : ""})
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {newSignups > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => markSignupsRead(recentSignups.map((s) => s.id))}
+                          className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange("members")}
+                      className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      View all members
+                    </button>
+                    </div>
+                  </div>
+                  {recentSignups.length === 0 ? (
+                    <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No signups in the last 30 days.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentSignups.map((signup) => {
+                        const isUnread = !dismissedNotifications.signups.includes(signup.id);
+                        return (
+                          <div
+                            key={signup.id}
+                            className={`rounded-3xl border bg-white p-5 shadow-sm ${
+                              isUnread ? "border-blue-300 ring-1 ring-blue-100" : "border-slate-200"
+                            }`}
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">
+                                  {signup.display_name || "Unnamed"}
+                                  {isUnread && (
+                                    <span className="ml-2 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                                      New
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-sm text-slate-500">{signup.email}</p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  Joined {new Date(signup.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                  signup.account_intent === "buyer" ? "bg-purple-100 text-purple-700" : "bg-[#E6FFFB] text-[#008f7a]"
+                                }`}>
+                                  {signup.account_intent === "buyer" ? "Buyer" : "Breeder"}
+                                </span>
+                                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                  signup.email_confirmed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                                }`}>
+                                  {signup.email_confirmed ? "Verified" : "Awaiting email"}
+                                </span>
+                                {isUnread && (
+                                  <button
+                                    type="button"
+                                    onClick={() => markSignupsRead([signup.id])}
+                                    className="rounded-3xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                  >
+                                    Mark read
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1244,6 +1336,9 @@ export default function AdminPage() {
                             <a href={`/breeder/${b.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                               <ArrowUpRight className="h-3 w-3" /> View
                             </a>
+                            <Link href={`/breeder/dashboard?adminAs=${b.id}`} onClick={() => setPortalAdminContext(b.id, b.name)} className="inline-flex items-center gap-1 rounded-3xl border border-[#00BFA5]/40 bg-[#E6FFFB] px-3 py-1.5 text-xs font-semibold text-[#00796B] hover:bg-[#00BFA5]/10">
+                              Manage
+                            </Link>
                             <Link href={`/breeder/portal?adminAs=${b.id}`} onClick={() => setPortalAdminContext(b.id, b.name)} className="inline-flex items-center gap-1 rounded-3xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100">
                               <Baby className="h-3 w-3" /> Portal
                             </Link>
@@ -1652,6 +1747,16 @@ export default function AdminPage() {
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
                 ) : listingQuality ? (
                   <>
+                    {listingQuality.dataGaps && (
+                      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                        <GapCard label="Total listings" value={listingQuality.dataGaps.totalPublic} />
+                        <GapCard label="No email" value={listingQuality.dataGaps.missingEmail} warn />
+                        <GapCard label="No website" value={listingQuality.dataGaps.missingWebsite} warn />
+                        <GapCard label="No coordinates" value={listingQuality.dataGaps.missingCoordinates} warn />
+                        <GapCard label="No phone" value={listingQuality.dataGaps.missingPhone} warn />
+                        <GapCard label="Unclaimed" value={listingQuality.dataGaps.unclaimed} />
+                      </div>
+                    )}
                     <div className="grid gap-4 sm:grid-cols-4">
                       <QualityCard tier="excellent" count={listingQuality.distribution.excellent} color="bg-green-100 text-green-700" />
                       <QualityCard tier="good" count={listingQuality.distribution.good} color="bg-blue-100 text-blue-700" />
@@ -1963,6 +2068,7 @@ export default function AdminPage() {
                     <StatCard title="Total Removals" value={stats.totalRemovals} icon={Trash2} color="text-[#FF6B6B]" />
                     <StatCard title="Pending Removals" value={stats.pendingRemovals} icon={AlertTriangle} color="text-orange-500" />
                     <StatCard title="Total Users" value={stats.totalUsers} icon={Users} color="text-blue-500" />
+                    <StatCard title="Signups (7d)" value={stats.recentSignups7d ?? 0} icon={UserPlus} color="text-[#00BFA5]" />
                     <StatCard title="Total Breeders" value={breedersTotal} icon={Building2} color="text-purple-500" />
                   </div>
                 )}
@@ -2088,8 +2194,18 @@ export default function AdminPage() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                     <Users className="h-5 w-5 text-[#00BFA5]" />
-                    Standard Members ({membersTotal})
+                    Standard Members ({membersTotal}
+                    {newSignups > 0 ? ` · ${newSignups} unread` : ""})
                   </h2>
+                  {newSignups > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => markSignupsRead(recentSignups.map((s) => s.id))}
+                      className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                    >
+                      Mark all signups as read
+                    </button>
+                  )}
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="relative flex-1">
@@ -2124,23 +2240,51 @@ export default function AdminPage() {
                 ) : (
                   <>
                     <div className="space-y-3">
-                      {sortData(members, membersSort.field, membersSort.dir).map((m) => (
-                        <div key={m.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      {sortData(members, membersSort.field, membersSort.dir).map((m) => {
+                        const isRecentSignup = recentSignups.some((s) => s.id === m.id);
+                        const isUnreadSignup = isRecentSignup && !dismissedNotifications.signups.includes(m.id);
+                        return (
+                        <div key={m.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${isUnreadSignup ? "border-blue-300 ring-1 ring-blue-100" : "border-slate-200"}`}>
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">{m.display_name || "Unnamed"}</p>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {m.display_name || "Unnamed"}
+                                {isUnreadSignup && (
+                                  <span className="ml-2 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">New</span>
+                                )}
+                              </p>
                               <p className="text-xs text-slate-500">{m.email || "No email"}</p>
                               <p className="text-xs text-slate-400">Joined {new Date(m.created_at).toLocaleDateString()}</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                m.account_intent === "buyer" ? "bg-purple-100 text-purple-700" : "bg-[#E6FFFB] text-[#008f7a]"
+                              }`}>
+                                {m.account_intent === "buyer" ? "Buyer" : "Breeder"}
+                              </span>
+                              {m.email_confirmed === false && (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                                  Awaiting email
+                                </span>
+                              )}
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600">
                                 <Users className="h-3 w-3" />
                                 {m.role || "breeder"}
                               </span>
+                              {isUnreadSignup && (
+                                <button
+                                  type="button"
+                                  onClick={() => markSignupsRead([m.id])}
+                                  className="rounded-3xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                >
+                                  Mark read
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {membersTotal > MEMBERS_LIMIT && (
                       <div className="flex items-center justify-between">
@@ -2318,20 +2462,6 @@ export default function AdminPage() {
                     })}
                   </div>
                 )}
-
-                <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-6">
-                  <h3 className="text-sm font-semibold text-slate-900">Stripe Configuration</h3>
-                  <div className="mt-3 space-y-2 text-sm text-slate-600">
-                    <p>These environment variables are required on Railway:</p>
-                    <ul className="list-disc pl-5 space-y-1 font-mono text-xs">
-                      <li>STRIPE_SECRET_KEY ✅ (saved in .env.local)</li>
-                      <li>STRIPE_WEBHOOK_SECRET (from Stripe Dashboard → Webhooks)</li>
-                    </ul>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Price IDs are now stored in the database and synced automatically. You no longer need STRIPE_PRICE_BRONZE, STRIPE_PRICE_SILVER, or STRIPE_PRICE_GOLD as environment variables.
-                    </p>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -2342,7 +2472,7 @@ export default function AdminPage() {
                   <Pencil className="h-5 w-5 text-[#00BFA5]" />
                   Site Content Editor
                 </h2>
-                <p className="text-sm text-slate-600">Quickly update text across the site. Changes are saved in-memory and persist until server restart. For production persistence, a cms_content database table is recommended.</p>
+                <p className="text-sm text-slate-600">Edit homepage hero text, CTAs, and trust disclaimer. Changes save to the database and appear on the live site immediately.</p>
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h3 className="text-sm font-semibold text-slate-900 mb-4">Add or Edit Content</h3>
@@ -2427,95 +2557,7 @@ export default function AdminPage() {
 
             {/* Outreach */}
             {activeTab === "outreach" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-[#00BFA5]" />
-                    Outreach — Claim Invitations
-                  </h2>
-                  <button onClick={loadOutreach} disabled={outreachLoading} className="inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                    <RefreshCw className={`h-3 w-3 ${outreachLoading ? "animate-spin" : ""}`} />
-                    Refresh
-                  </button>
-                </div>
-
-                {outreachMsg && (
-                  <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{outreachMsg}</div>
-                )}
-                {outreachError && (
-                  <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{outreachError}</div>
-                )}
-
-                {/* Send controls */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <button onClick={sendOutreach} disabled={outreachLoading || selectedOutreach.size === 0} className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00a98e] disabled:opacity-50">
-                    <Mail className="h-4 w-4" />
-                    {outreachLoading ? "Sending…" : `Send invitation (${selectedOutreach.size})`}
-                  </button>
-                  <button onClick={() => setSelectedOutreach(new Set(outreachBreeders.filter(b => !b.onCooldown).map(b => b.slug)))} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Select all eligible</button>
-                  <button onClick={() => setSelectedOutreach(new Set())} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Clear</button>
-                </div>
-
-                {/* Breeders table */}
-                <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden">
-                  {outreachLoading && outreachBreeders.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">
-                      <RefreshCw className="mx-auto mb-2 h-5 w-5 animate-spin text-[#00BFA5]" />
-                      Loading unclaimed breeders…
-                    </div>
-                  ) : outreachBreeders.length === 0 ? (
-                    <div className="p-8 text-center text-sm text-slate-500">No unclaimed breeders with contact info found.</div>
-                  ) : (
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 w-10"></th>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Name</th>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Email</th>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Website</th>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {outreachBreeders.map((b) => {
-                          const cooldownUntil = b.lastSentAt ? new Date(new Date(b.lastSentAt).getTime() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB") : null;
-                          return (
-                            <tr key={b.slug} className={`${selectedOutreach.has(b.slug) ? "bg-[#00BFA5]/5" : ""} ${b.onCooldown ? "opacity-60" : ""}`}>
-                              <td className="px-4 py-2">
-                                <input type="checkbox" checked={selectedOutreach.has(b.slug)} disabled={b.onCooldown} onChange={(e) => {
-                                  const next = new Set(selectedOutreach);
-                                  if (e.target.checked) next.add(b.slug); else next.delete(b.slug);
-                                  setSelectedOutreach(next);
-                                }} className="h-4 w-4 rounded border-slate-300 text-[#00BFA5] focus:ring-[#00BFA5] disabled:opacity-30" />
-                              </td>
-                              <td className="px-4 py-2 font-medium text-slate-900">{b.name}</td>
-                              <td className="px-4 py-2 text-slate-600">{b.email || "—"}</td>
-                              <td className="px-4 py-2 text-slate-600">{b.website ? <a href={b.website} target="_blank" rel="noopener noreferrer" className="text-[#00BFA5] hover:underline">{b.website}</a> : "—"}</td>
-                              <td className="px-4 py-2">
-                                {b.onCooldown ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                                    <Clock className="h-3 w-3" />
-                                    On cooldown until {cooldownUntil}
-                                  </span>
-                                ) : b.lastSentAt ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                                    Last sent {new Date(b.lastSentAt).toLocaleDateString("en-GB")}
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
-                                    <CheckCircle className="h-3 w-3" />
-                                    Ready
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
+              <AdminOutreachPanel />
             )}
 
             {activeTab === "licences" && (
@@ -2722,6 +2764,15 @@ function FunnelCard({ label, rate, desc }) {
       <p className="text-3xl font-bold text-[#00BFA5]">{rate}</p>
       <p className="mt-1 text-sm font-semibold text-slate-900">{label}</p>
       <p className="mt-1 text-xs text-slate-500">{desc}</p>
+    </div>
+  );
+}
+
+function GapCard({ label, value, warn = false }) {
+  return (
+    <div className={`rounded-3xl border p-4 shadow-sm ${warn && value > 0 ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
+      <p className={`text-2xl font-bold ${warn && value > 0 ? "text-amber-700" : "text-slate-900"}`}>{value?.toLocaleString?.() ?? value}</p>
+      <p className="mt-1 text-xs font-semibold text-slate-600">{label}</p>
     </div>
   );
 }

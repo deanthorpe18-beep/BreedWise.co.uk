@@ -36,9 +36,28 @@ export async function GET(request) {
 
     const adminClient = createAdminClient();
 
+    const { count: totalPublic } = await adminClient
+      .from("breeders")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["public_listing", "claimed_profile"]);
+
+    const [
+      { count: missingEmail },
+      { count: missingWebsite },
+      { count: missingLat },
+      { count: missingPhone },
+      { count: unclaimed },
+    ] = await Promise.all([
+      adminClient.from("breeders").select("*", { count: "exact", head: true }).in("status", ["public_listing", "claimed_profile"]).or("email.is.null,email.eq."),
+      adminClient.from("breeders").select("*", { count: "exact", head: true }).in("status", ["public_listing", "claimed_profile"]).or("website.is.null,website.eq."),
+      adminClient.from("breeders").select("*", { count: "exact", head: true }).in("status", ["public_listing", "claimed_profile"]).or("lat.is.null,lng.is.null"),
+      adminClient.from("breeders").select("*", { count: "exact", head: true }).in("status", ["public_listing", "claimed_profile"]).or("phone.is.null,phone.eq."),
+      adminClient.from("breeders").select("*", { count: "exact", head: true }).eq("status", "public_listing"),
+    ]);
+
     let query = adminClient
       .from("breeders")
-      .select("id, name, slug, status, description, phone, email, website, address, photos, google_rating, claimed_at, membership_tier")
+      .select("id, name, slug, status, town, county, description, phone, email, website, address, photos, google_rating, claimed_at, membership_tier, lat, lng")
       .order("name");
 
     if (status) query = query.eq("status", status);
@@ -64,6 +83,14 @@ export async function GET(request) {
     return NextResponse.json({
       total: scored.length,
       distribution,
+      dataGaps: {
+        totalPublic: totalPublic || 0,
+        missingEmail: missingEmail || 0,
+        missingWebsite: missingWebsite || 0,
+        missingCoordinates: missingLat || 0,
+        missingPhone: missingPhone || 0,
+        unclaimed: unclaimed || 0,
+      },
       listings: scored.sort((a, b) => a.score - b.score).slice(0, 50),
     });
   } catch (err) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rateLimitByIp } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/server";
+import { isGooglePlacesApiEnabled, getGooglePlacesApiKey, GOOGLE_API_DISABLED_MESSAGE } from "@/lib/google-api-config";
 
 const CACHE_TTL_DAYS = 7;
 const FIELD_MASK = "id,displayName,rating,reviews,userRatingCount,formattedAddress,websiteUri,nationalPhoneNumber,photos";
@@ -16,10 +17,14 @@ export async function GET(request, { params }) {
   }
 
   const { placeId } = await params;
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
+  if (!isGooglePlacesApiEnabled()) {
+    return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
+  }
+
+  const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
-    return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+    return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
   }
 
   try {

@@ -1,7 +1,34 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { signupSchema } from "@/lib/validation";
 import { rateLimitByIp, rateLimitByEmail } from "@/lib/rate-limit";
+import { authCallbackUrl } from "@/lib/site-url";
+import { buildClaimPath, postAuthPathForIntent } from "@/lib/breeder-onboarding";
+
+async function recordOutreachConversion(adminClient, email, breederSlug, userId) {
+  if (!breederSlug || !userId) return;
+
+  const { data: send } = await adminClient
+    .from("outreach_sends")
+    .select("id")
+    .eq("breeder_slug", breederSlug)
+    .ilike("to_email", email.trim())
+    .eq("status", "sent")
+    .is("converted_at", null)
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!send?.id) return;
+
+  await adminClient
+    .from("outreach_sends")
+    .update({
+      converted_at: new Date().toISOString(),
+      converted_user_id: userId,
+    })
+    .eq("id", send.id);
+}
 
 export async function POST(request) {
   try {
@@ -24,7 +51,15 @@ export async function POST(request) {
       );
     }
 
-    const { displayName, email, password } = result.data;
+    const {
+      displayName,
+      email,
+      password,
+      accountIntent,
+      signupSource,
+      outreachBreederSlug,
+      outreachBreederName,
+    } = result.data;
 
     const emailLimit = rateLimitByEmail(email, 5, 3600000);
     if (!emailLimit.allowed) {
@@ -36,12 +71,27 @@ export async function POST(request) {
 
     const supabase = createClient();
 
+    const userMetadata = {
+      display_name: displayName,
+      account_intent: accountIntent,
+      signup_source: signupSource === "outreach" ? "outreach" : "website",
+    };
+
+    if (signupSource === "outreach" && outreachBreederSlug) {
+      userMetadata.outreach_breeder_slug = outreachBreederSlug;
+      if (outreachBreederName) {
+        userMetadata.outreach_breeder_name = outreachBreederName;
+      }
+    }
+
+    const nextPath = postAuthPathForIntent(accountIntent, userMetadata);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://breedwise.co.uk"}/auth/callback`,
+        data: userMetadata,
+        emailRedirectTo: authCallbackUrl(nextPath),
       },
     });
 
@@ -52,10 +102,30 @@ export async function POST(request) {
       );
     }
 
+    if (data.user?.id && accountIntent === "buyer") {
+      try {
+        const adminClient = createAdminClient();
+        await adminClient.from("profiles").update({ role: "buyer" }).eq("id", data.user.id);
+      } catch (profileErr) {
+        console.error("[signup] Failed to set buyer role:", profileErr?.message);
+      }
+    }
+
+    if (data.user?.id && signupSource === "outreach" && outreachBreederSlug) {
+      try {
+        const adminClient = createAdminClient();
+        await recordOutreachConversion(adminClient, email, outreachBreederSlug, data.user.id);
+      } catch (convErr) {
+        console.error("[signup] Outreach conversion tracking failed:", convErr?.message);
+      }
+    }
+
     return NextResponse.json(
       {
         message: "Account created. Please check your email to verify your address.",
         userId: data.user?.id,
+        claimPath: accountIntent === "breeder" ? buildClaimPath(userMetadata) : null,
+        fromOutreach: signupSource === "outreach",
       },
       { status: 201 }
     );

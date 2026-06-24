@@ -109,7 +109,12 @@ export async function POST(request) {
     // Send emails asynchronously; do not block response on email delivery
     Promise.allSettled([
       sendClaimConfirmation(result.data.email, result.data.breederName || "your listing"),
-      sendClaimAdminNotification(result.data.breederName || "Unknown", result.data.email),
+      sendClaimAdminNotification(result.data.breederName || "Unknown", result.data.email, {
+        breederSlug: result.data.breederSlug,
+        claimantName: result.data.name,
+        signupSource: userData.user.user_metadata?.signup_source,
+        outreachBreederName: userData.user.user_metadata?.outreach_breeder_name,
+      }),
     ]);
 
     return NextResponse.json(

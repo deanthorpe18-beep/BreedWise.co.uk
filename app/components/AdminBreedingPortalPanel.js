@@ -125,6 +125,13 @@ export default function AdminBreedingPortalPanel() {
                     <ExternalLink className="h-3.5 w-3.5" /> Profile
                   </a>
                   <Link
+                    href={`/breeder/dashboard?adminAs=${b.id}`}
+                    onClick={() => setPortalAdminContext(b.id, b.name)}
+                    className="inline-flex items-center gap-1 rounded-full border border-[#00BFA5] bg-white px-3 py-1.5 text-xs font-semibold text-[#00796B] hover:bg-[#E6FFFB]"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
                     href={`/breeder/portal?adminAs=${b.id}`}
                     onClick={() => setPortalAdminContext(b.id, b.name)}
                     className="inline-flex items-center gap-1 rounded-full bg-[#00BFA5] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#00a98e]"
