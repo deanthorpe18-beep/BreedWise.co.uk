@@ -16,6 +16,8 @@ import {
 import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
 import AdminLicencePanel from "@components/AdminLicencePanel";
 import AdminOutreachPanel from "@components/AdminOutreachPanel";
+import AdminAnalyticsPanel from "@components/AdminAnalyticsPanel";
+import AdminMyKennelPanel from "@components/AdminMyKennelPanel";
 import AdminBreedingPortalPanel from "@components/AdminBreedingPortalPanel";
 import AdminTabNav from "@components/AdminTabNav";
 import { setPortalAdminContext } from "@/lib/portal-admin-context";
@@ -246,7 +248,6 @@ export default function AdminPage() {
     if (!admin) return;
     if (activeTab === "breeders") loadBreeders();
     if (activeTab === "audit") loadAuditLog();
-    if (activeTab === "analytics") loadAnalytics();
     if (activeTab === "stats") loadBreedImages();
     if (activeTab === "search-intel") loadSearchIntel();
     if (activeTab === "listing-quality") loadListingQuality();
@@ -259,7 +260,7 @@ export default function AdminPage() {
     if (activeTab === "tiers") loadTiers();
     if (activeTab === "tiers") loadCms();
     if (activeTab === "cms") loadCms();
-  }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user, analyticsRefreshTick]);
+  }, [activeTab, breederSearch, breederStatus, breederOffset, auditBreederSlug, auditOffset, membersSearch, membersOffset, user]);
 
   // Auto-refresh analytics every 30 seconds when on analytics tab
   useEffect(() => {
@@ -1365,211 +1366,7 @@ export default function AdminPage() {
 
             {/* Analytics */}
             {activeTab === "analytics" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
-                    <span className="text-sm font-semibold text-slate-700">Live</span>
-                    <span className="text-xs text-slate-400">Updates every 30s</span>
-                  </div>
-                  <button
-                    onClick={() => setAnalyticsRefreshTick((t) => t + 1)}
-                    disabled={analyticsLoading}
-                    className="inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    <Loader2 className={`h-3 w-3 ${analyticsLoading ? "animate-spin" : ""}`} />
-                    Refresh
-                  </button>
-                </div>
-                {analyticsLoading ? (
-                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#00BFA5]" /></div>
-                ) : analytics ? (
-                  <>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      <StatCard title="Users Online" value={analytics.onlineUsers} icon={Activity} color="text-[#00BFA5]" />
-                      <StatCard title="Page Views (30d)" value={analytics.totalPageViews} icon={Eye} color="text-blue-500" />
-                      <StatCard title="CTA Clicks (30d)" value={analytics.totalCtaClicks} icon={MousePointer} color="text-purple-500" />
-                      <StatCard title="Searches (30d)" value={analytics.totalSearches || 0} icon={Search} color="text-orange-500" />
-                    </div>
-
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                        <Users className="h-5 w-5 text-[#00BFA5]" />
-                        Unique Visitors
-                      </h3>
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                        <VisitorCard label="Today" value={analytics.uniqueVisitors?.today ?? 0} />
-                        <VisitorCard label="This Week" value={analytics.uniqueVisitors?.week ?? 0} />
-                        <VisitorCard label="This Month" value={analytics.uniqueVisitors?.month ?? 0} />
-                        <VisitorCard label="This Year" value={analytics.uniqueVisitors?.year ?? 0} />
-                        <VisitorCard label="Total" value={analytics.uniqueVisitors?.total ?? 0} />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <Eye className="h-5 w-5 text-[#00BFA5]" />
-                          Most Viewed Breeders (30d)
-                        </h3>
-                        {analytics.topBreeders.length === 0 ? (
-                          <p className="mt-4 text-sm text-slate-500">No page view data yet.</p>
-                        ) : (
-                          <div className="mt-4 space-y-3">
-                            {analytics.topBreeders.map((b, i) => (
-                              <div key={b.breeder_slug} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="text-sm font-medium text-slate-900">{b.breeder_slug}</span>
-                                </div>
-                                <span className="text-sm font-semibold text-slate-700">{b.views} views</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <Search className="h-5 w-5 text-orange-500" />
-                          Top Search Terms (30d)
-                        </h3>
-                        {(analytics.topSearchTerms || []).length === 0 ? (
-                          <p className="mt-4 text-sm text-slate-500">No search data yet.</p>
-                        ) : (
-                          <div className="mt-4 space-y-3">
-                            {analytics.topSearchTerms.map((t, i) => (
-                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="text-sm font-medium text-slate-900">{t.name}</span>
-                                </div>
-                                <span className="text-sm font-semibold text-slate-700">{t.count} searches</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <Dog className="h-5 w-5 text-blue-500" />
-                          Top Searched Breeds (30d)
-                        </h3>
-                        {(analytics.topSearchedBreeds || []).length === 0 ? (
-                          <p className="mt-4 text-sm text-slate-500">No breed search data yet.</p>
-                        ) : (
-                          <div className="mt-4 space-y-3">
-                            {analytics.topSearchedBreeds.map((t, i) => (
-                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="text-sm font-medium text-slate-900">{t.name}</span>
-                                </div>
-                                <span className="text-sm font-semibold text-slate-700">{t.count} searches</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-green-500" />
-                          Top Searched Locations (30d)
-                        </h3>
-                        {(analytics.topSearchedLocations || []).length === 0 ? (
-                          <p className="mt-4 text-sm text-slate-500">No location search data yet.</p>
-                        ) : (
-                          <div className="mt-4 space-y-3">
-                            {analytics.topSearchedLocations.map((t, i) => (
-                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="text-sm font-medium text-slate-900">{t.name}</span>
-                                </div>
-                                <span className="text-sm font-semibold text-slate-700">{t.count} searches</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <MousePointer className="h-5 w-5 text-purple-500" />
-                        CTA Clicks by Type (30d)
-                      </h3>
-                      {Object.keys(analytics.ctaByType).length === 0 ? (
-                        <p className="mt-4 text-sm text-slate-500">No CTA click data yet.</p>
-                      ) : (
-                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                          {Object.entries(analytics.ctaByType).map(([type, count]) => (
-                            <div key={type} className="rounded-2xl bg-[#F1F4F6] p-4 text-center">
-                              <p className="text-2xl font-bold text-slate-900">{count}</p>
-                              <p className="text-xs font-medium text-slate-500 capitalize">{type.replace("_", " ")}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <Globe className="h-5 w-5 text-[#00BFA5]" />
-                          Traffic Sources (30d)
-                        </h3>
-                        {(analytics.topTrafficSources || []).length === 0 ? (
-                          <p className="mt-4 text-sm text-slate-500">No referrer data yet.</p>
-                        ) : (
-                          <div className="mt-4 space-y-3">
-                            {analytics.topTrafficSources.map((t, i) => (
-                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#00BFA5] text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="truncate text-sm font-medium text-slate-900">{t.name}</span>
-                                </div>
-                                <span className="flex-shrink-0 text-sm font-semibold text-slate-700">{t.count} visits</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <Target className="h-5 w-5 text-orange-500" />
-                          UTM Campaigns (30d)
-                        </h3>
-                        {(analytics.topUtmCampaigns || []).length === 0 ? (
-                          <p className="mt-4 text-sm text-slate-500">No UTM campaign data yet.</p>
-                        ) : (
-                          <div className="mt-4 space-y-3">
-                            {analytics.topUtmCampaigns.map((t, i) => (
-                              <div key={t.name} className="flex items-center justify-between rounded-2xl bg-[#F1F4F6] px-4 py-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">{i + 1}</span>
-                                  <span className="truncate text-sm font-medium text-slate-900">{t.name}</span>
-                                </div>
-                                <span className="flex-shrink-0 text-sm font-semibold text-slate-700">{t.count} visits</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">Unable to load analytics.</div>
-                )}
-              </div>
+              <AdminAnalyticsPanel refreshTick={analyticsRefreshTick} />
             )}
 
             {/* Funnel */}
@@ -1663,8 +1460,8 @@ export default function AdminPage() {
                           <div className="space-y-2 max-h-80 overflow-y-auto">
                             {searchIntel.zeroResults.map((s, i) => (
                               <div key={i} className="flex items-center justify-between rounded-xl bg-red-50 px-4 py-2">
-                                <span className="text-sm text-slate-700">{s.query || s.breed || s.location || "(empty)"}</span>
-                                <span className="text-xs text-slate-400">{new Date(s.created_at).toLocaleDateString()}</span>
+                                <span className="text-sm text-slate-700">{[s.query, s.breed, s.location].filter(Boolean).join(" · ") || "(empty)"}</span>
+                                <span className="text-xs text-slate-400">{s.searched_at ? new Date(s.searched_at).toLocaleDateString("en-GB") : "—"}</span>
                               </div>
                             ))}
                           </div>
@@ -1682,8 +1479,8 @@ export default function AdminPage() {
                           <div className="space-y-2 max-h-80 overflow-y-auto">
                             {searchIntel.lowResults.map((s, i) => (
                               <div key={i} className="flex items-center justify-between rounded-xl bg-orange-50 px-4 py-2">
-                                <span className="text-sm text-slate-700">{s.query || s.breed || s.location || "(empty)"} ({s.results_count} results)</span>
-                                <span className="text-xs text-slate-400">{new Date(s.created_at).toLocaleDateString()}</span>
+                                <span className="text-sm text-slate-700">{[s.query, s.breed, s.location].filter(Boolean).join(" · ") || "(empty)"} ({s.result_count ?? 0} results)</span>
+                                <span className="text-xs text-slate-400">{s.searched_at ? new Date(s.searched_at).toLocaleDateString("en-GB") : "—"}</span>
                               </div>
                             ))}
                           </div>
@@ -2553,6 +2350,10 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeTab === "my-kennel" && (
+              <AdminMyKennelPanel />
             )}
 
             {/* Outreach */}

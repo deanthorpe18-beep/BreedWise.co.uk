@@ -14,6 +14,7 @@ import BreederProfileOwnerPanel from "@components/BreederProfileOwnerPanel";
 import BreederTrustBadges from "@components/BreederTrustBadges";
 import BreederPublicLitters from "@components/BreederPublicLitters";
 import BreederWaitlistJoin from "@components/BreederWaitlistJoin";
+import ProfileTracker, { TrackedLink } from "@components/ProfileTracker";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { getBreederHeroUrl } from "@/lib/breeder-images";
@@ -120,14 +121,18 @@ export default async function BreederProfilePage({ params }) {
     const justClaimed = isJustClaimed(breeder.claimed_at);
 
     let publicLitters = [];
-    const adminClient = createAdminClient();
-    const { data: litters } = await adminClient
-      .from("breeding_litters")
-      .select("id, litter_name, breed, animal_type, birth_date, expected_go_home_date, total_born, announcement_text, pups:breeding_litter_animals(status)")
-      .eq("breeder_id", breeder.id)
-      .eq("is_public", true)
-      .order("birth_date", { ascending: false, nullsFirst: false });
-    publicLitters = litters || [];
+    try {
+        const adminClient = createAdminClient();
+        const { data: litters } = await adminClient
+          .from("breeding_litters")
+          .select("id, litter_name, breed, animal_type, birth_date, expected_go_home_date, total_born, announcement_text, pups:breeding_litter_animals(status)")
+          .eq("breeder_id", breeder.id)
+          .eq("is_public", true)
+          .order("birth_date", { ascending: false, nullsFirst: false });
+        publicLitters = litters || [];
+    } catch (litterErr) {
+        console.warn("[breeder page] Public litters unavailable for", slug, litterErr?.message || litterErr);
+    }
 
     const structuredData = [
         localBusinessSchema({

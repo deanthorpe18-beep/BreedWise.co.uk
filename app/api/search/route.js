@@ -8,6 +8,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
 
     const query = searchParams.get("q") || "";
+    const breederName = searchParams.get("name") || "";
     const animal = searchParams.get("animal") || "";
     const breedsParam = searchParams.getAll("breed");
     const breeds = breedsParam.length > 0 ? breedsParam : [];
@@ -19,6 +20,7 @@ export async function GET(request) {
 
     const result = await searchBreeders({
       query,
+      breederName,
       animal,
       breeds,
       maxDistance,

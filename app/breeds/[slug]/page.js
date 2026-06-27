@@ -209,23 +209,42 @@ export default async function BreedPage({ params }) {
           </div>
         </>
       ) : (
-        /* Coming Soon state for breeds without encyclopedia data */
-        <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="rounded-full bg-amber-100 p-3">
-              <PawPrint className="h-6 w-6 text-amber-600" />
+        /* Breeds without full encyclopedia — show available facts + buyer guidance */
+        <div className="mt-8 space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900">Quick facts</h3>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {breed.group_name && (
+                <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Group:</span> {breed.group_name}</p>
+              )}
+              {breed.size && (
+                <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Size:</span> {breed.size.charAt(0).toUpperCase() + breed.size.slice(1)}</p>
+              )}
+              {breed.animal_type && (
+                <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Type:</span> {breed.animal_type.replace("-", " ")}</p>
+              )}
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-amber-900">Breed encyclopedia entry coming soon</h3>
-              <p className="mt-2 text-sm text-amber-700 max-w-lg">
-                We&apos;re building detailed profiles for every breed. Check back soon for 
-                temperament, health, exercise and grooming information for the {breed.name}.
-              </p>
-            </div>
-            <Link
-              href="/breeds"
-              className="inline-flex items-center gap-2 rounded-3xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-amber-700"
-            >
+          </div>
+
+          <div className="rounded-3xl border border-[#00BFA5]/20 bg-[#E6FFFB]/50 p-6">
+            <h3 className="text-lg font-semibold text-slate-900">Before you contact a breeder</h3>
+            <ul className="mt-3 space-y-2 text-sm text-slate-600 list-disc pl-5">
+              <li>Ask about health testing relevant to {breed.name}</li>
+              <li>Visit the mother (dam) and see where puppies are raised</li>
+              <li>Request a written contract and vaccination records</li>
+              <li>Never pay a deposit before you are confident the breeder is legitimate</li>
+            </ul>
+            <Link href="/education/choosing-a-breeder" className="mt-4 inline-flex text-sm font-semibold text-[#00BFA5] hover:underline">
+              Read our full buyer guide →
+            </Link>
+          </div>
+
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <h3 className="text-lg font-semibold text-amber-900">Full breed profile coming soon</h3>
+            <p className="mt-2 text-sm text-amber-700 max-w-lg mx-auto">
+              We&apos;re adding temperament, health, exercise and grooming details for {breed.name}.
+            </p>
+            <Link href="/breeds" className="mt-4 inline-flex items-center gap-2 rounded-3xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">
               Browse breeds with full profiles
             </Link>
           </div>

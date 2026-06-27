@@ -33,7 +33,7 @@ function applyFilters(breeders, filters) {
 }
 
 export default function SearchResults({
-  breeders, query, breed, animal, sortBy, userLat, userLng,
+  breeders, query, breederName = "", breed, animal, sortBy, userLat, userLng,
   currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 24,
   availableOnly = false, licensedOnly = false, kcOnly = false, healthOnly = false, verifiedOnly = false,
 }) {
@@ -94,6 +94,7 @@ export default function SearchResults({
   const buildPageUrl = (pageNum) => {
     const params = new URLSearchParams();
     if (query && query !== "My location") params.set("q", query);
+    if (breederName) params.set("name", breederName);
     if (breed) params.set("breed", breed);
     if (animal) params.set("animal", animal);
     if (userLat) params.set("userLat", userLat);
@@ -132,6 +133,8 @@ export default function SearchResults({
                 : `Showing ${startIndex}–${endIndex} of ${totalCount}`
               : "No results"}
             {breed ? ` · ${breed}` : ""}
+            {breederName ? ` · name: ${breederName}` : ""}
+            {query && query !== "My location" ? ` · ${query}` : ""}
             {userLat && userLng ? " · sorted by distance" : ""}
             {sortBy === "rating" ? " · sorted by rating" : ""}
           </p>

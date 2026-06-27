@@ -3,9 +3,14 @@ import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 const SETUP_SECRET = process.env.ADMIN_SETUP_SECRET;
+const SETUP_DISABLED = process.env.ADMIN_SETUP_DISABLED === "true";
 
 export async function POST(request) {
     try {
+        if (SETUP_DISABLED) {
+            return NextResponse.json({ error: "Admin setup endpoint is disabled." }, { status: 403 });
+        }
+
         const { secret, email, password, fullName } = await request.json();
 
         if (!secret || secret !== SETUP_SECRET) {

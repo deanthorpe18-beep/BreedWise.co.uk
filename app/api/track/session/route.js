@@ -14,21 +14,28 @@ function hashIp(ip) {
 
 export async function POST(request) {
   try {
-    // x-forwarded-for can be a comma-separated list; use the first (client) IP
     const forwarded = request.headers.get("x-forwarded-for") || "unknown";
     const ip = forwarded.split(",")[0].trim();
     const limit = rateLimitByIp(ip, 60, 60000);
     if (!limit.allowed) {
-      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: { "Retry-After": String(limit.retryAfter) } });
+      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
 
+    const body = await request.json().catch(() => ({}));
+    const {
+      session_id,
+      page_path,
+      referrer,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+    } = body;
     const userAgent = request.headers.get("user-agent") || "";
-
     const ipHash = hashIp(ip);
+    const now = new Date().toISOString();
 
     const adminClient = createAdminClient();
 
-    // Upsert session - update last_active if exists, insert if not
     const { data: existing } = await adminClient
       .from("user_sessions")
       .select("id")
@@ -38,14 +45,40 @@ export async function POST(request) {
     if (existing) {
       await adminClient
         .from("user_sessions")
-        .update({ last_active_at: new Date().toISOString(), user_agent: userAgent.slice(0, 500) })
+        .update({ last_active_at: now, user_agent: userAgent.slice(0, 500) })
         .eq("id", existing.id);
     } else {
       await adminClient.from("user_sessions").insert({
         ip_hash: ipHash,
         user_agent: userAgent.slice(0, 500),
-        last_active_at: new Date().toISOString(),
+        last_active_at: now,
       });
+    }
+
+    if (session_id) {
+      const { data: vs } = await adminClient
+        .from("visitor_sessions")
+        .select("id")
+        .eq("session_id", session_id)
+        .maybeSingle();
+
+      if (vs) {
+        await adminClient
+          .from("visitor_sessions")
+          .update({ last_active_at: now })
+          .eq("id", vs.id);
+      } else {
+        await adminClient.from("visitor_sessions").insert({
+          session_id,
+          ip_hash: ipHash,
+          user_agent: userAgent.slice(0, 500),
+          entry_path: page_path || null,
+          referrer: referrer || null,
+          utm_source: utm_source || null,
+          utm_medium: utm_medium || null,
+          utm_campaign: utm_campaign || null,
+        });
+      }
     }
 
     return NextResponse.json({ success: true });

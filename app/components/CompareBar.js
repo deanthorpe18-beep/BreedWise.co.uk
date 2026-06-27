@@ -20,18 +20,25 @@ export default function CompareBar() {
 
   if (count === 0 || dismissed) return null;
 
+  const canCompare = count >= 2;
+
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#00BFA5]/30 bg-white px-4 py-3 shadow-xl shadow-[#00BFA5]/10">
-        <div className="flex items-center gap-2 text-sm text-slate-700">
-          <GitCompare className="h-4 w-4 text-[#00BFA5]" />
-          <span>
-            <strong>{count}</strong> breeder{count !== 1 ? "s" : ""} saved
-            {count >= 2 ? " — ready to compare" : " — save one more to compare"}
+        <div className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
+          <GitCompare className="h-4 w-4 text-[#00BFA5] shrink-0" />
+          <span className="truncate">
+            {canCompare ? (
+              <>
+                <strong>{count}</strong> saved — ready to compare side by side
+              </>
+            ) : (
+              <>Save <strong>one more</strong> breeder to compare</>
+            )}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {count >= 2 && (
+        <div className="flex items-center gap-2 shrink-0">
+          {canCompare && (
             <Link
               href="/account/compare"
               className="rounded-xl bg-[#00BFA5] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#00a98e]"

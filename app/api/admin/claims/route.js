@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 import { sendClaimStatusUpdate } from "@/lib/emails/resend";
+import { markOutreachClaimed } from "@/lib/outreach-tracking";
 
 export async function GET() {
   try {
@@ -112,6 +113,8 @@ export async function PATCH(request) {
           console.error("[claims/PATCH] Subscription insert error:", subErr.message);
         }
       }
+
+      await markOutreachClaimed(adminClient, data.breeder_slug, data.claimant_user_id);
     }
 
     // Send status update email to claimant asynchronously

@@ -20,7 +20,12 @@ export function saveSearch(search) {
   if (typeof window === "undefined") return;
   try {
     const existing = getRecentSearches();
-    const filtered = existing.filter((s) => s.breed !== search.breed || s.location !== search.location);
+    const filtered = existing.filter(
+      (s) =>
+        s.breed !== search.breed ||
+        s.location !== search.location ||
+        (s.breederName || "") !== (search.breederName || "")
+    );
     const updated = [search, ...filtered].slice(0, MAX_RECENT);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   } catch {}
@@ -58,8 +63,10 @@ export default function RecentSearches() {
         {searches.map((s, i) => {
           const params = new URLSearchParams();
           if (s.location) params.set("q", s.location);
+          if (s.breederName) params.set("name", s.breederName);
           if (s.breed) params.set("breed", s.breed);
-          const label = [s.breed, s.location].filter(Boolean).join(" in ") || "Search";
+          const label =
+            [s.breederName, s.breed, s.location].filter(Boolean).join(" · ") || "Search";
           return (
             <div key={i} className="group inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#00BFA5]">
               <Link href={`/search?${params.toString()}`} className="flex items-center gap-1.5">

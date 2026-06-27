@@ -4,12 +4,20 @@ import { requireAdmin } from "@/lib/auth";
 import { sendClaimInvitation } from "@/lib/emails/resend";
 import { isValidBreederEmail, normalizeBreederEmail } from "@/lib/breeder-email-utils";
 
-const OUTREACH_LIMIT = 200;
+const PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 100;
 
-async function loadOutreachCandidates(adminClient, { slugs = null, limit = OUTREACH_LIMIT } = {}) {
+function sanitizeSearch(q) {
+  return String(q || "")
+    .trim()
+    .replace(/[%_(),&]/g, "")
+    .slice(0, 80);
+}
+
+async function loadOutreachCandidates(adminClient, { slugs = null, search = "" } = {}) {
   let query = adminClient
     .from("breeders")
-    .select("id, slug, name, email, phone, website, status, claimed")
+    .select("id, slug, name, email, phone, website, status, claimed, town, county")
     .eq("status", "public_listing")
     .eq("claimed", false)
     .not("email", "is", null)
@@ -19,7 +27,10 @@ async function loadOutreachCandidates(adminClient, { slugs = null, limit = OUTRE
   if (Array.isArray(slugs) && slugs.length > 0) {
     query = query.in("slug", slugs);
   } else {
-    query = query.limit(limit * 3);
+    const term = sanitizeSearch(search);
+    if (term) {
+      query = query.or(`name.ilike.%${term}%,email.ilike.%${term}%,town.ilike.%${term}%,county.ilike.%${term}%,slug.ilike.%${term}%`);
+    }
   }
 
   const { data, error } = await query;
@@ -27,70 +38,82 @@ async function loadOutreachCandidates(adminClient, { slugs = null, limit = OUTRE
 
   return (data || [])
     .map((b) => ({ ...b, email: normalizeBreederEmail(b.email) }))
-    .filter((b) => isValidBreederEmail(b.email))
-    .slice(0, limit);
+    .filter((b) => isValidBreederEmail(b.email));
+}
+
+async function attachOutreachMeta(adminClient, breeders) {
+  const slugs = breeders.map((b) => b.slug);
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  let recentSends = [];
+  if (slugs.length > 0) {
+    const { data: sendsData } = await adminClient
+      .from("outreach_sends")
+      .select("breeder_slug, sent_at, status, converted_at")
+      .in("breeder_slug", slugs)
+      .gte("sent_at", threeMonthsAgo.toISOString())
+      .order("sent_at", { ascending: false });
+    recentSends = sendsData || [];
+  }
+
+  const lastSendBySlug = {};
+  for (const s of recentSends) {
+    if (!lastSendBySlug[s.breeder_slug]) {
+      lastSendBySlug[s.breeder_slug] = s;
+    }
+  }
+
+  return breeders.map((b) => {
+    const last = lastSendBySlug[b.slug];
+    return {
+      ...b,
+      lastSentAt: last?.sent_at || null,
+      onCooldown: !!last && last.status === "sent" && !last.converted_at,
+      convertedAt: last?.converted_at || null,
+      outreachConverted: !!last?.converted_at,
+    };
+  });
+}
+
+function paginateList(items, page, limit) {
+  const total = items.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const offset = (safePage - 1) * limit;
+  return {
+    items: items.slice(offset, offset + limit),
+    total,
+    page: safePage,
+    limit,
+    totalPages,
+    offset,
+  };
 }
 
 /**
- * GET /api/admin/outreach
+ * GET /api/admin/outreach?page=1&limit=100&q=search
  * List unclaimed breeders available for outreach.
  */
-export async function GET() {
+export async function GET(request) {
   try {
     const auth = await requireAdmin();
     if (auth.error) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, parseInt(searchParams.get("limit") || String(PAGE_SIZE), 10) || PAGE_SIZE)
+    );
+    const search = sanitizeSearch(searchParams.get("q"));
+
     const adminClient = createAdminClient();
-    const data = await loadOutreachCandidates(adminClient, { limit: OUTREACH_LIMIT });
-
-    const { data: allWithEmail } = await adminClient
-      .from("breeders")
-      .select("email")
-      .eq("status", "public_listing")
-      .eq("claimed", false)
-      .not("email", "is", null)
-      .neq("email", "");
-
-    const outreachReadyTotal = (allWithEmail || [])
-      .map((b) => normalizeBreederEmail(b.email))
-      .filter(Boolean).length;
-
-    // Fetch recent outreach sends for cooldown display
-    const slugs = (data || []).map((b) => b.slug);
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-    let recentSends = [];
-    if (slugs.length > 0) {
-      const { data: sendsData } = await adminClient
-        .from("outreach_sends")
-        .select("breeder_slug, sent_at, status, converted_at")
-        .in("breeder_slug", slugs)
-        .gte("sent_at", threeMonthsAgo.toISOString())
-        .order("sent_at", { ascending: false });
-      recentSends = sendsData || [];
-    }
-
-    // Map last send per breeder
-    const lastSendBySlug = {};
-    for (const s of recentSends) {
-      if (!lastSendBySlug[s.breeder_slug]) {
-        lastSendBySlug[s.breeder_slug] = s;
-      }
-    }
-
-    const breeders = (data || []).map((b) => {
-      const last = lastSendBySlug[b.slug];
-      return {
-        ...b,
-        lastSentAt: last?.sent_at || null,
-        onCooldown: !!last && last.status === "sent" && !last.converted_at,
-        convertedAt: last?.converted_at || null,
-        outreachConverted: !!last?.converted_at,
-      };
-    });
+    const allCandidates = await loadOutreachCandidates(adminClient, { search });
+    const { items, total, totalPages, page: safePage } = paginateList(allCandidates, page, limit);
+    const breeders = await attachOutreachMeta(adminClient, items);
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: weekSends } = await adminClient
@@ -107,8 +130,12 @@ export async function GET() {
 
     return NextResponse.json({
       breeders,
-      total: outreachReadyTotal,
+      total,
       showing: breeders.length,
+      page: safePage,
+      limit,
+      totalPages,
+      search,
       weekStats,
     });
   } catch (err) {
@@ -143,15 +170,12 @@ export async function POST(request) {
     if (Array.isArray(breederSlugs) && breederSlugs.length > 0) {
       breeders = await loadOutreachCandidates(adminClient, {
         slugs: breederSlugs,
-        limit: breederSlugs.length,
       });
     } else {
-      breeders = await loadOutreachCandidates(adminClient, {
-        limit: Math.min(batchSize, OUTREACH_LIMIT),
-      });
+      const all = await loadOutreachCandidates(adminClient);
+      breeders = all.slice(0, Math.min(batchSize, PAGE_SIZE));
     }
 
-    // Check which breeders are on cooldown (sent to within last 3 months)
     const slugs = breeders.map((b) => b.slug);
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -168,9 +192,7 @@ export async function POST(request) {
       recentSends = sendsData || [];
     }
 
-    const onCooldown = new Set(
-      recentSends.map((s) => s.breeder_slug)
-    );
+    const onCooldown = new Set(recentSends.map((s) => s.breeder_slug));
 
     const results = [];
     for (const breeder of breeders) {
@@ -201,11 +223,12 @@ export async function POST(request) {
       }
 
       try {
-        await sendClaimInvitation(to, breeder.name, breeder.slug);
+        const resendId = await sendClaimInvitation(to, breeder.name, breeder.slug);
         await adminClient.from("outreach_sends").insert({
           breeder_slug: breeder.slug,
           to_email: to,
           status: "sent",
+          resend_id: resendId || null,
         });
         results.push({
           breederSlug: breeder.slug,

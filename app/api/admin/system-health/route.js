@@ -111,6 +111,54 @@ export async function GET() {
         : "availability_status column present",
     });
 
+    const migrationChecks = [
+      { name: "Migration 029 (newsletter)", table: "newsletter_campaigns" },
+      { name: "Migration 032 (breeding portal)", table: "breeding_animals" },
+      { name: "Migration 035 (waitlist)", table: "breeder_waitlist" },
+      { name: "Migration 037 (outreach conversions)", table: "outreach_sends", column: "converted_at" },
+      { name: "Migration 038 (visitor analytics)", table: "visitor_sessions" },
+    ];
+
+    for (const mc of migrationChecks) {
+      const { error: mcError } = await adminClient
+        .from(mc.table)
+        .select(mc.column || "id")
+        .limit(1);
+      checks.push({
+        name: mc.name,
+        status: mcError ? "warning" : "ok",
+        detail: mcError ? `Missing — ${mcError.message}` : "Present",
+      });
+    }
+
+    const resendWebhookSet = Boolean(process.env.RESEND_WEBHOOK_SECRET);
+    checks.push({
+      name: "Resend webhooks",
+      status: resendWebhookSet ? "ok" : "warning",
+      detail: resendWebhookSet
+        ? "RESEND_WEBHOOK_SECRET configured"
+        : "Set RESEND_WEBHOOK_SECRET for outreach open/click tracking",
+    });
+
+    const cronSecretSet = Boolean(process.env.CRON_SECRET);
+    checks.push({
+      name: "Cron jobs",
+      status: cronSecretSet ? "ok" : "warning",
+      detail: cronSecretSet
+        ? "CRON_SECRET set — search alerts run via GitHub Actions daily"
+        : "CRON_SECRET missing — scheduled jobs will fail",
+    });
+
+    const { count: recentSessions } = await adminClient
+      .from("visitor_sessions")
+      .select("*", { count: "exact", head: true })
+      .gte("started_at", hourAgo);
+    checks.push({
+      name: "Visitor journey tracking",
+      status: recentSessions === null ? "warning" : "ok",
+      detail: `${recentSessions ?? 0} sessions in last hour`,
+    });
+
     const hasError = checks.some((c) => c.status === "error");
     const hasWarning = checks.some((c) => c.status === "warning");
     const overall = hasError ? "error" : hasWarning ? "degraded" : "healthy";

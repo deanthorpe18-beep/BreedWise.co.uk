@@ -3,12 +3,10 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import MainNav from "@components/MainNav";
 import CookieConsent from "@components/CookieConsent";
-import SessionTracker from "@components/SessionTracker";
-import CacheBuster from "@components/CacheBuster";
+import AnalyticsTracker from "@components/AnalyticsTracker";
 import NewsletterSignup from "@components/NewsletterSignup";
 import { AuthProvider } from "@components/AuthProvider";
 import { ToastProvider } from "@components/Toast";
-import AdSensePlaceholder from "@components/AdSensePlaceholder";
 import { websiteSchema, organizationSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 
@@ -23,7 +21,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="build-version" content="20250621-v1" />
+        <meta name="build-version" content="20250620-v2" />
         <link rel="preconnect" href="https://breedwise.co.uk" />
         <script
           type="application/ld+json"
@@ -50,8 +48,7 @@ export default function RootLayout({ children }) {
                 </div>
               </header>
 
-              <CacheBuster />
-              <SessionTracker />
+              <AnalyticsTracker />
 
               <main id="main-content" className="flex-grow">{children}</main>
 

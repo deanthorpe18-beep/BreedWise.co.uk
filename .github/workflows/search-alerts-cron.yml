@@ -1,0 +1,17 @@
+name: Daily search alerts
+
+on:
+  schedule:
+    # Daily 08:00 UTC
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  send-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger BreedWise search alert emails
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://breedwise.co.uk/api/cron/search-alerts"

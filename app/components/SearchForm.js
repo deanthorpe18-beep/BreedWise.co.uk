@@ -33,6 +33,7 @@ const SORT_OPTIONS = [
 
 export default function SearchForm({
   initialLocation = "",
+  initialBreederName = "",
   initialBreed = "",
   initialBreeds = [],
   initialAnimal = "",
@@ -44,6 +45,7 @@ export default function SearchForm({
 }) {
   const router = useRouter();
   const [locationQuery, setLocationQuery] = useState(initialLocation);
+  const [breederNameQuery, setBreederNameQuery] = useState(initialBreederName);
   const [animal, setAnimal] = useState(initialAnimal);
   const [selectedBreeds, setSelectedBreeds] = useState(initialBreeds);
   const [breedOptions, setBreedOptions] = useState([]);
@@ -73,7 +75,7 @@ export default function SearchForm({
       .catch(() => setLoadingBreeds(false));
   }, [animal]);
 
-  const hasCriteria = !!(selectedBreeds.length > 0 || locationQuery.trim() || userLat || animal);
+  const hasCriteria = !!(selectedBreeds.length > 0 || locationQuery.trim() || breederNameQuery.trim() || userLat || animal);
 
   const handleGeolocation = useCallback(() => {
     setGeoLoading(true);
@@ -115,14 +117,16 @@ export default function SearchForm({
     if (!hasCriteria) return;
     const query = new URLSearchParams();
     const loc = locationQuery.trim() && locationQuery !== "My location" ? locationQuery.trim() : "";
+    const breederName = breederNameQuery.trim();
     if (loc) query.set("q", loc);
+    if (breederName) query.set("name", breederName);
     if (animal) query.set("animal", animal);
     selectedBreeds.forEach((b) => query.append("breed", b));
     if (maxDistance) query.set("maxDistance", maxDistance);
     if (sortBy && sortBy !== "relevance") query.set("sort", sortBy);
     if (userLat) query.set("userLat", userLat);
     if (userLng) query.set("userLng", userLng);
-    saveSearch({ animal, breeds: selectedBreeds, location: loc, timestamp: new Date().toISOString() });
+    saveSearch({ animal, breeds: selectedBreeds, location: loc, breederName, timestamp: new Date().toISOString() });
     router.push(`/search?${query.toString()}`);
   };
 
@@ -141,7 +145,7 @@ export default function SearchForm({
       {/* Location input + geolocation */}
       <div className="space-y-2">
         <label htmlFor="location" className={`text-sm font-semibold text-slate-700`}>
-          Enter town or postcode
+          Town or postcode
         </label>
         <div className={`relative rounded-3xl border px-4 py-3 shadow-sm focus-within:border-[#00BFA5] focus-within:ring-2 focus-within:ring-[#00BFA5]/20 ${
           isHero ? "border-slate-200 bg-white" : "border-slate-200 bg-[#F1F4F6]"
@@ -174,6 +178,24 @@ export default function SearchForm({
         {userLat && userLng && (
           <p className="text-xs text-[#00BFA5]">Using your current location</p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="breederName" className="text-sm font-semibold text-slate-700">
+          Breeder or kennel name
+        </label>
+        <div className={`relative rounded-3xl border px-4 py-3 shadow-sm focus-within:border-[#00BFA5] focus-within:ring-2 focus-within:ring-[#00BFA5]/20 ${
+          isHero ? "border-slate-200 bg-white" : "border-slate-200 bg-[#F1F4F6]"
+        }`}>
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            id="breederName"
+            className="w-full rounded-3xl border-none bg-transparent pl-11 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            value={breederNameQuery}
+            onChange={(event) => setBreederNameQuery(event.target.value)}
+            placeholder="e.g. Meadowbrook Labradors, Happy Paws Kennels"
+          />
+        </div>
       </div>
 
       {/* Animal Type selector */}
@@ -323,12 +345,12 @@ export default function SearchForm({
         }`}
       >
         <Search className="h-4 w-4" />
-        {hasCriteria ? "Search breeders" : "Select an animal type, breed, or location"}
+        {hasCriteria ? "Search breeders" : "Add a location, breeder name, breed, or animal type"}
       </button>
 
       {!hasCriteria && (
         <p className="text-center text-xs text-slate-400">
-          Pick cats, fish, or another animal type — or add a breed or location to narrow results
+          Search by kennel name, pick an animal type, choose a breed, or enter a location
         </p>
       )}
     </form>

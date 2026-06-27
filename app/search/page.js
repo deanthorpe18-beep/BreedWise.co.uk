@@ -16,13 +16,15 @@ import { Suspense } from "react";
 
 export function generateMetadata({ searchParams }) {
   const query = searchParams?.q || "";
+  const breederName = searchParams?.name || "";
   const breeds = searchParams?.breed ? (Array.isArray(searchParams.breed) ? searchParams.breed : [searchParams.breed]) : [];
   const animal = searchParams?.animal || "";
   const breedLabel = breeds.length === 1 ? breeds[0] : breeds.length > 1 ? `${breeds.length} breeds` : "";
   const animalLabel = animal ? `${animal.charAt(0).toUpperCase() + animal.slice(1)}` : "Pet";
 
   let title = "Search breeders";
-  if (breedLabel && query) title = `${breedLabel} breeders in ${query}`;
+  if (breederName) title = `${breederName} — breeder search`;
+  else if (breedLabel && query) title = `${breedLabel} breeders in ${query}`;
   else if (breedLabel) title = `${breedLabel} breeders`;
   else if (query) title = `${animalLabel} breeders in ${query}`;
   else if (animal) title = `${animalLabel} breeders`;
@@ -36,6 +38,7 @@ export function generateMetadata({ searchParams }) {
 
 export default async function SearchPage({ searchParams }) {
   const query = searchParams?.q || "";
+  const breederName = searchParams?.name || "";
   const animal = searchParams?.animal || "";
   const breedsParam = searchParams?.breed || "";
   const breeds = breedsParam
@@ -53,7 +56,7 @@ export default async function SearchPage({ searchParams }) {
 
   const healthOnly = searchParams?.health === "1";
 
-  const hasSearchCriteria = !!(breeds.length > 0 || query.trim() || userLat || animal);
+  const hasSearchCriteria = !!(breeds.length > 0 || query.trim() || breederName.trim() || userLat || animal);
 
   let breeders = [];
   let totalCount = 0;
@@ -62,6 +65,7 @@ export default async function SearchPage({ searchParams }) {
   if (hasSearchCriteria) {
     const result = await searchBreeders({
       query,
+      breederName,
       animal,
       breeds,
       maxDistance,
@@ -100,7 +104,7 @@ export default async function SearchPage({ searchParams }) {
             <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#00BFA5]">Find your next companion</p>
             <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl lg:text-5xl">UK pet breeders, all in one place</h1>
             <p className="max-w-3xl text-base leading-7 text-slate-600">
-              Dogs, cats, birds, fish, reptiles and small pets — search by breed and location, compare listings, and contact breeders directly.
+              Dogs, cats, birds, fish, reptiles and small pets — search by breed, location, or breeder name, compare listings, and contact breeders directly.
             </p>
           </div>
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#00BFA5]/10 blur-2xl" />
@@ -109,6 +113,7 @@ export default async function SearchPage({ searchParams }) {
         <div className="mt-8">
           <SearchForm
             initialLocation={query}
+            initialBreederName={breederName}
             initialAnimal={animal}
             initialBreeds={breeds}
             initialMaxDistance={maxDistance}
@@ -148,7 +153,7 @@ export default async function SearchPage({ searchParams }) {
               </div>
               <h2 className="mt-6 text-xl font-semibold text-slate-900">Ready when you are</h2>
               <p className="mt-2 max-w-md mx-auto text-sm text-slate-600">
-                Pick an animal type, choose a breed, and tell us where you&apos;re looking — or tap &quot;Use my location&quot; to see who&apos;s nearby.
+                Search by breeder or kennel name, pick an animal type, choose a breed, enter a location — or tap &quot;Use my location&quot; to see who&apos;s nearby.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link href="/search?animal=cat" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#00BFA5]">
@@ -189,6 +194,7 @@ export default async function SearchPage({ searchParams }) {
             <SearchResults
               breeders={breeders}
               query={query}
+              breederName={breederName}
               breed={breeds.join(", ")}
               animal={animal}
               sortBy={sortBy}

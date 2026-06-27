@@ -51,7 +51,7 @@ export async function GET() {
   ]);
 
   const uniqueTowns = [...new Set((locations || []).map((l) => l.town).filter(Boolean))];
-  const topTowns = uniqueTowns.slice(0, 50);
+  const topTowns = uniqueTowns.slice(0, 200);
 
   const topDogBreeds = (breeds || []).filter((b) => b.is_popular && b.animal_type === "dog" && b.slug).slice(0, 25);
   const topCatBreeds = (breeds || []).filter((b) => b.is_popular && b.animal_type === "cat" && b.slug);

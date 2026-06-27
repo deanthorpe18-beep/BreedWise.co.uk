@@ -33,7 +33,12 @@ function SignupForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    accountIntent: outreachSource || intentParam === "breeder" ? "breeder" : "breeder",
+    accountIntent:
+      outreachSource || intentParam === "breeder"
+        ? "breeder"
+        : intentParam === "buyer"
+          ? "buyer"
+          : "breeder",
     agreeTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -45,8 +50,10 @@ function SignupForm() {
   useEffect(() => {
     if (outreachSource) {
       setForm((prev) => ({ ...prev, accountIntent: "breeder" }));
+    } else if (intentParam === "buyer") {
+      setForm((prev) => ({ ...prev, accountIntent: "buyer" }));
     }
-  }, [outreachSource]);
+  }, [outreachSource, intentParam]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

@@ -54,7 +54,7 @@ export async function GET(request) {
         .from("cta_clicks")
         .select("*", { count: "exact", head: true })
         .gte("created_at", since)
-        .in("action_type", ["phone", "email", "message", "website", "call"]),
+        .in("action_type", ["email", "website", "call"]),
       adminClient
         .from("conversations")
         .select("*", { count: "exact", head: true })

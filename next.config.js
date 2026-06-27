@@ -25,34 +25,48 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: "/:path*",
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
       {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+        source: "/admin/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/account/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/breeder/dashboard/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/breeder/portal/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/messages/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/auth/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/breeder/:slug",
+        headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+      },
+      {
+        source: "/search",
+        headers: [{ key: "Cache-Control", value: "public, s-maxage=300, stale-while-revalidate=600" }],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
     ];
   },

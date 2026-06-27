@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mail, Loader2, Sparkles, Send, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Mail, Loader2, Sparkles, Send, CheckCircle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 const TOPICS = [
   { id: "weekly", label: "Weekly roundup", desc: "Stats, trending breeds & site news", color: "#00BFA5", icon: "📬" },
@@ -29,6 +29,9 @@ export default function AdminNewsletterPanel() {
   const [error, setError] = useState("");
   const [showHtml, setShowHtml] = useState(false);
   const [extraEmails, setExtraEmails] = useState("");
+  const [deleting, setDeleting] = useState(null);
+
+  const draftCount = campaigns.filter((c) => c.status === "draft").length;
 
   const parseExtraCount = () =>
     extraEmails
@@ -44,9 +47,13 @@ export default function AdminNewsletterPanel() {
       const res = await fetch("/api/admin/newsletter");
       const data = await res.json();
       if (res.ok) {
-        setCampaigns(data.campaigns || []);
+        const list = data.campaigns || [];
+        setCampaigns(list);
         setSubscriberCount(data.subscriberCount || 0);
-        if (!selected && data.campaigns?.[0]) setSelected(data.campaigns[0]);
+        setSelected((prev) => {
+          if (prev && list.some((c) => c.id === prev.id)) return prev;
+          return list[0] || null;
+        });
       }
     } catch {}
     setLoading(false);
@@ -129,6 +136,55 @@ export default function AdminNewsletterPanel() {
     if (res.ok) setMsg("Draft saved.");
   };
 
+  const deleteDraft = async (campaign, e) => {
+    e?.stopPropagation?.();
+    if (!campaign?.id || campaign.status === "sent") return;
+    if (!confirm(`Delete draft "${campaign.subject}"? This cannot be undone.`)) return;
+    setDeleting(campaign.id);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", campaignId: campaign.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMsg("Draft deleted.");
+        await load();
+      } else {
+        setError(data.error || "Delete failed");
+      }
+    } catch {
+      setError("Delete failed");
+    }
+    setDeleting(null);
+  };
+
+  const deleteAllDrafts = async () => {
+    if (draftCount === 0) return;
+    if (!confirm(`Delete all ${draftCount} draft${draftCount !== 1 ? "s" : ""}? Sent campaigns will be kept.`)) return;
+    setDeleting("all");
+    setError("");
+    try {
+      const res = await fetch("/api/admin/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete-all-drafts" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMsg(`Deleted ${data.deletedCount} draft${data.deletedCount !== 1 ? "s" : ""}.`);
+        await load();
+      } else {
+        setError(data.error || "Delete failed");
+      }
+    } catch {
+      setError("Delete failed");
+    }
+    setDeleting(null);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -185,24 +241,55 @@ export default function AdminNewsletterPanel() {
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Drafts & sent</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Drafts & sent</p>
+            {draftCount > 0 && (
+              <button
+                type="button"
+                onClick={deleteAllDrafts}
+                disabled={!!deleting}
+                className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+              >
+                {deleting === "all" ? "Deleting…" : `Delete all drafts (${draftCount})`}
+              </button>
+            )}
+          </div>
           {campaigns.length === 0 ? (
             <p className="text-sm text-slate-500">No campaigns yet. Generate one above.</p>
           ) : (
             campaigns.map((c) => (
-              <button
+              <div
                 key={c.id}
-                type="button"
-                onClick={() => setSelected(c)}
-                className={`w-full rounded-2xl border p-3 text-left text-sm transition ${
+                className={`flex items-start gap-1 rounded-2xl border transition ${
                   selected?.id === c.id ? "border-[#00BFA5] bg-[#E6FFFB]" : "border-slate-200 bg-white hover:bg-slate-50"
                 }`}
               >
-                <p className="font-semibold text-slate-900 truncate">{c.subject}</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  {c.status === "sent" ? `Sent to ${c.recipient_count}` : "Draft"} · {new Date(c.created_at).toLocaleDateString()}
-                </p>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSelected(c)}
+                  className="min-w-0 flex-1 p-3 text-left text-sm"
+                >
+                  <p className="font-semibold text-slate-900 truncate">{c.subject}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {c.status === "sent" ? `Sent to ${c.recipient_count}` : "Draft"} · {new Date(c.created_at).toLocaleDateString()}
+                  </p>
+                </button>
+                {c.status === "draft" && (
+                  <button
+                    type="button"
+                    onClick={(e) => deleteDraft(c, e)}
+                    disabled={deleting === c.id}
+                    className="shrink-0 p-3 text-slate-400 hover:text-red-600 disabled:opacity-50"
+                    aria-label={`Delete draft ${c.subject}`}
+                  >
+                    {deleting === c.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+              </div>
             ))
           )}
         </div>
@@ -233,11 +320,15 @@ export default function AdminNewsletterPanel() {
 
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Email preview</p>
-              <div
-                className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-100"
-                style={{ maxHeight: 520, overflowY: "auto" }}
-              >
-                <div dangerouslySetInnerHTML={{ __html: selected.html_body || "" }} />
+              <p className="mb-2 text-xs text-slate-500">Scroll inside the preview to see the full email. Regenerate a draft to pick up layout updates.</p>
+              <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-100">
+                <iframe
+                  title="Newsletter email preview"
+                  srcDoc={selected.html_body || ""}
+                  className="w-full border-0 bg-white"
+                  style={{ height: 720, minHeight: 480 }}
+                  sandbox="allow-same-origin"
+                />
               </div>
             </div>
 
@@ -286,6 +377,14 @@ export default function AdminNewsletterPanel() {
               <div className="flex flex-wrap gap-2 pt-2">
                 <button onClick={save} className="rounded-3xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                   Save edits
+                </button>
+                <button
+                  onClick={() => deleteDraft(selected)}
+                  disabled={!!deleting}
+                  className="inline-flex items-center gap-2 rounded-3xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deleting === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Delete draft
                 </button>
                 <button
                   onClick={send}

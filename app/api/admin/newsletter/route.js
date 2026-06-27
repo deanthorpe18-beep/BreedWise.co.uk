@@ -77,6 +77,43 @@ export async function POST(request) {
       return NextResponse.json({ campaign: data });
     }
 
+    if (action === "delete") {
+      if (!campaignId) return NextResponse.json({ error: "campaignId required" }, { status: 400 });
+
+      const { data: campaign, error: campError } = await adminClient
+        .from("newsletter_campaigns")
+        .select("id, status")
+        .eq("id", campaignId)
+        .single();
+      if (campError || !campaign) {
+        return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+      }
+      if (campaign.status !== "draft") {
+        return NextResponse.json({ error: "Only drafts can be deleted" }, { status: 400 });
+      }
+
+      const { error } = await adminClient.from("newsletter_campaigns").delete().eq("id", campaignId);
+      if (error) throw error;
+      return NextResponse.json({ success: true, deletedId: campaignId });
+    }
+
+    if (action === "delete-all-drafts") {
+      const { data: drafts, error: listError } = await adminClient
+        .from("newsletter_campaigns")
+        .select("id")
+        .eq("status", "draft");
+      if (listError) throw listError;
+
+      const ids = (drafts || []).map((d) => d.id);
+      if (ids.length === 0) {
+        return NextResponse.json({ success: true, deletedCount: 0 });
+      }
+
+      const { error } = await adminClient.from("newsletter_campaigns").delete().in("id", ids);
+      if (error) throw error;
+      return NextResponse.json({ success: true, deletedCount: ids.length });
+    }
+
     if (action === "send") {
       if (!campaignId) return NextResponse.json({ error: "campaignId required" }, { status: 400 });
 

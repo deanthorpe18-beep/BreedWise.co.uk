@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { mapPriceIdToTier } from "@/lib/stripe-tiers";
+import {
+  syncBreederTierFromSubscription,
+} from "@/lib/stripe-subscription-sync";
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -59,6 +62,8 @@ export async function POST(request) {
           break;
         }
 
+        const resolvedTier = await mapPriceIdToTier(priceId);
+
         const { error: upsertError } = await supabase
           .from("breeder_subscriptions")
           .upsert(
@@ -69,7 +74,7 @@ export async function POST(request) {
               stripe_subscription_id: stripeSubscriptionId,
               stripe_price_id: priceId,
               status: mapStripeStatus(subscription.status),
-              tier: await mapPriceIdToTier(priceId),
+              tier: resolvedTier,
               current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
               current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
               cancel_at_period_end: subscription.cancel_at_period_end,
@@ -80,6 +85,13 @@ export async function POST(request) {
 
         if (upsertError) {
           console.error("Error upserting subscription:", upsertError);
+        } else {
+          await syncBreederTierFromSubscription(
+            supabase,
+            breederId,
+            resolvedTier,
+            subscription.status
+          );
         }
         break;
       }
@@ -89,9 +101,11 @@ export async function POST(request) {
         const stripeSubscriptionId = subscription.id;
         const priceId = subscription.items?.data?.[0]?.price?.id;
 
+        const resolvedTier = await mapPriceIdToTier(priceId);
+
         const { data: existingSub, error: findError } = await supabase
           .from("breeder_subscriptions")
-          .select("id")
+          .select("id, breeder_id")
           .eq("stripe_subscription_id", stripeSubscriptionId)
           .maybeSingle();
 
@@ -104,7 +118,7 @@ export async function POST(request) {
           .from("breeder_subscriptions")
           .update({
             status: mapStripeStatus(subscription.status),
-            tier: await mapPriceIdToTier(priceId),
+            tier: resolvedTier,
             stripe_price_id: priceId,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -115,6 +129,13 @@ export async function POST(request) {
 
         if (updateError) {
           console.error("Error updating subscription:", updateError);
+        } else if (existingSub.breeder_id) {
+          await syncBreederTierFromSubscription(
+            supabase,
+            existingSub.breeder_id,
+            resolvedTier,
+            subscription.status
+          );
         }
         break;
       }
@@ -125,7 +146,7 @@ export async function POST(request) {
 
         const { data: existingSub, error: findError } = await supabase
           .from("breeder_subscriptions")
-          .select("id")
+          .select("id, breeder_id")
           .eq("stripe_subscription_id", stripeSubscriptionId)
           .maybeSingle();
 
@@ -138,6 +159,7 @@ export async function POST(request) {
           .from("breeder_subscriptions")
           .update({
             status: "cancelled",
+            tier: "free",
             cancel_at_period_end: false,
             updated_at: new Date().toISOString(),
           })
@@ -145,6 +167,8 @@ export async function POST(request) {
 
         if (updateError) {
           console.error("Error marking subscription as cancelled:", updateError);
+        } else if (existingSub.breeder_id) {
+          await syncBreederTierFromSubscription(supabase, existingSub.breeder_id, "free", "canceled");
         }
         break;
       }

@@ -871,6 +871,11 @@ export default function BreederDashboardPage() {
       </div>
 
       {/* Daily breakdown */}
+      {analytics?.upgradeHint && (
+        <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          {analytics.upgradeHint}
+        </div>
+      )}
       {analytics?.daily?.length > 0 && (
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Daily activity</h2>
