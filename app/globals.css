@@ -5,8 +5,13 @@
 :root {
   color-scheme: light;
   font-family: Inter, system-ui, sans-serif;
-  background-color: #FAFBF9;
-  color: #2D3436;
+  --color-brand: #00BFA5;
+  --color-brand-dark: #008f7a;
+  --color-coral: #FF6B6B;
+  --color-amber: #FFB545;
+  --color-surface: #F4F7F5;
+  --color-surface-warm: #FFF9F6;
+  --color-ink: #2D3436;
 }
 
 * {
@@ -18,8 +23,9 @@ body {
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
-  background-color: #FAFBF9;
-  color: #2D3436;
+  background: linear-gradient(180deg, #E8F8F5 0%, #F4F7F5 28%, #FFF9F6 100%);
+  background-attachment: fixed;
+  color: var(--color-ink);
 }
 
 body {
@@ -39,5 +45,14 @@ textarea {
 }
 
 ::selection {
-  background: rgba(0, 191, 165, 0.18);
+  background: rgba(0, 191, 165, 0.25);
+}
+
+@layer utilities {
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #E6FFFB 0%, #ffffff 45%, #FFF0EB 100%);
+  }
+  .bg-teal-band {
+    background: linear-gradient(90deg, rgba(0, 191, 165, 0.12) 0%, rgba(255, 107, 107, 0.08) 100%);
+  }
 }

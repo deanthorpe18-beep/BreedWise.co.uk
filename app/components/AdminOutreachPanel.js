@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  Mail,
+  RefreshCw,
+  Clock,
+  CheckCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import AdminOutreachAnalytics from "@components/AdminOutreachAnalytics";
 
 const PAGE_SIZE = 100;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
-import { Globe, Phone, Mail, Star, MapPin, ExternalLink, MessageCircle, Award, Dog, Calendar, CheckCircle, Shield } from "lucide-react";
+import { Globe, Phone, Star, MapPin, ExternalLink, MessageCircle, Award, Calendar, CheckCircle, Shield } from "lucide-react";
 import JustClaimedBadge from "@components/JustClaimedBadge";
 import { isJustClaimed } from "@lib/breeder-utils";
 import MembershipBadge from "@components/MembershipBadge";
@@ -15,6 +15,10 @@ import BreederTrustBadges from "@components/BreederTrustBadges";
 import BreederPublicLitters from "@components/BreederPublicLitters";
 import BreederWaitlistJoin from "@components/BreederWaitlistJoin";
 import ProfileTracker, { TrackedLink } from "@components/ProfileTracker";
+import RelatedBreedersPanel from "@components/RelatedBreedersPanel";
+import CompareBar from "@components/CompareBar";
+import SaveBreederButton from "@components/SaveBreederButton";
+import { fetchRelatedBreedersForProfile } from "@/lib/related-breeders";
 import { localBusinessSchema, breadcrumbSchema } from "@/lib/seo/schema";
 import { generateMetadata as baseMetadata } from "@/lib/seo/metadata";
 import { getBreederHeroUrl } from "@/lib/breeder-images";
@@ -59,46 +63,19 @@ export default async function BreederProfilePage({ params }) {
             .in("status", ["public_listing", "claimed_profile"])
             .single();
 
-        let relatedBreeders = [];
-        let nearbyBreeders = [];
+        let related = { sameBreed: [], nearby: [], primaryBreed: "", searchHref: "/search" };
         if (data) {
-            const breedNames = data.breeder_breeds?.map((bb) => bb.breed) || [];
-            if (breedNames.length > 0) {
-                const { data: relatedIds } = await supabase
-                    .from("breeder_breeds")
-                    .select("breeder_id")
-                    .in("breed", breedNames)
-                    .neq("breeder_id", data.id)
-                    .limit(20);
-                const ids = [...new Set((relatedIds || []).map((r) => r.breeder_id))].slice(0, 4);
-                if (ids.length > 0) {
-                    const { data: related } = await supabase
-                        .from("breeders")
-                        .select("slug, name, town, county, hero_image_url, membership_tier")
-                        .in("id", ids)
-                        .in("status", ["public_listing", "claimed_profile"]);
-                    relatedBreeders = related || [];
-                }
-            }
-
-            const safeTown = data.town?.replace(/[%_(),&]/g, "") || "";
-            const safeCounty = data.county?.replace(/[%_(),&]/g, "") || "";
-            const { data: nearby } = await supabase
-                .from("breeders")
-                .select("slug, name, town, county, hero_image_url, membership_tier")
-                .neq("id", data.id)
-                .in("status", ["public_listing", "claimed_profile"])
-                .or(`town.ilike.%${safeTown}%,county.ilike.%${safeCounty}%`)
-                .limit(4);
-            nearbyBreeders = nearby || [];
+            related = await fetchRelatedBreedersForProfile(supabase, data);
         }
 
         if (error) {
             fetchError = error;
         } else {
             breeder = data;
-            breeder.relatedBreeders = relatedBreeders;
-            breeder.nearbyBreeders = nearbyBreeders;
+            breeder.relatedSameBreed = related.sameBreed;
+            breeder.relatedNearby = related.nearby;
+            breeder.primaryBreed = related.primaryBreed;
+            breeder.relatedSearchHref = related.searchHref;
         }
     } catch (err) {
         console.warn("[breeder page] Auth or DB error for", slug, err?.message || err);
@@ -190,6 +167,7 @@ export default async function BreederProfilePage({ params }) {
                         </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
+                        <SaveBreederButton breederId={breeder.id} breederSlug={slug} breederName={breeder.name} />
                         <SocialShare url={`https://breedwise.co.uk/breeder/${slug}`} title={breeder.name} breederSlug={slug} />
                         {breeder.status === "claimed_profile" && (
                           <MessageBreederButton breederId={breeder.id} breederName={breeder.name} />
@@ -265,6 +243,14 @@ export default async function BreederProfilePage({ params }) {
                     googlePlaceId={breeder.google_place_id}
                 />
 
+                <RelatedBreedersPanel
+                    sameBreed={breeder.relatedSameBreed || []}
+                    nearby={breeder.relatedNearby || []}
+                    primaryBreed={breeder.primaryBreed}
+                    town={breeder.town}
+                    searchHref={breeder.relatedSearchHref}
+                />
+
                 {/* About */}
                 {breeder.about && (
                     <div className="space-y-4">
@@ -338,56 +324,6 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                 </div>
 
-                {/* Related breeders */}
-                {breeder.relatedBreeders?.length > 0 && (
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-slate-900">More breeders</h2>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {breeder.relatedBreeders.map((b) => (
-                                <Link key={b.slug} href={`/breeder/${b.slug}`} className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-                                    <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200">
-                                        {b.hero_image_url ? (
-                                            <img src={b.hero_image_url} alt={b.name} className="h-full w-full object-cover" />
-                                        ) : (
-                                            <Dog className="h-6 w-6 m-3 text-slate-400" />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="truncate font-semibold text-slate-900">{b.name}</p>
-                                        <p className="truncate text-xs text-slate-500">{b.town}{b.county ? `, ${b.county}` : ""}</p>
-                                    </div>
-                                    <MembershipBadge tier={b.membership_tier} size="sm" />
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Nearby breeders — only show on unclaimed profiles */}
-                {breeder.status !== "claimed_profile" && breeder.nearbyBreeders?.length > 0 && (
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-slate-900">Breeders near {breeder.town}</h2>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {breeder.nearbyBreeders.map((b) => (
-                                <Link key={b.slug} href={`/breeder/${b.slug}`} className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-                                    <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200">
-                                        {b.hero_image_url ? (
-                                            <img src={b.hero_image_url} alt={b.name} className="h-full w-full object-cover" />
-                                        ) : (
-                                            <Dog className="h-6 w-6 m-3 text-slate-400" />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="truncate font-semibold text-slate-900">{b.name}</p>
-                                        <p className="truncate text-xs text-slate-500">{b.town}{b.county ? `, ${b.county}` : ""}</p>
-                                    </div>
-                                    <MembershipBadge tier={b.membership_tier} size="sm" />
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
                 {/* Footer meta */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
@@ -414,6 +350,7 @@ export default async function BreederProfilePage({ params }) {
                     </div>
                 </div>
             </div>
+            <CompareBar />
         </div>
     );
 }

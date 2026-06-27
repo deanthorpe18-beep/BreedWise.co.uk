@@ -6,8 +6,19 @@ import { breadcrumbSchema } from "@/lib/seo/schema";
 import PageViewTracker from "@components/PageViewTracker";
 import {
   Search, Heart, Activity, Scissors, MapPin, Clock, Ruler, Weight,
-  PawPrint, Baby, Dog, ShieldCheck, ChevronRight
+  PawPrint, Baby, Dog, ShieldCheck, ChevronRight, BookOpen, HelpCircle, ListChecks
 } from "lucide-react";
+
+const FACT_COLORS = [
+  "border-teal-200 bg-gradient-to-br from-teal-50 to-white",
+  "border-amber-200 bg-gradient-to-br from-amber-50 to-white",
+  "border-violet-200 bg-gradient-to-br from-violet-50 to-white",
+  "border-rose-200 bg-gradient-to-br from-rose-50 to-white",
+  "border-sky-200 bg-gradient-to-br from-sky-50 to-white",
+  "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white",
+  "border-orange-200 bg-gradient-to-br from-orange-50 to-white",
+  "border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white",
+];
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +98,7 @@ export default async function BreedPage({ params }) {
       </nav>
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-[#00BFA5]/10 bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0] shadow-sm">
+      <div className="relative overflow-hidden rounded-3xl border border-[#00BFA5]/25 bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFE8E0] shadow-md">
         <div className="relative z-10 px-6 py-12 sm:px-10 sm:py-16">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-xl">
@@ -137,14 +148,18 @@ export default async function BreedPage({ params }) {
         <>
           {/* Fact Grid */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <FactCard icon={Ruler} label="Height (male)" value={breed.male_height || "—"} />
-            <FactCard icon={Weight} label="Weight (male)" value={breed.male_weight || "—"} />
-            <FactCard icon={Clock} label="Lifespan" value={breed.lifespan || "—"} />
-            <FactCard icon={Scissors} label="Grooming" value={breed.grooming?.split(".")[0] || "—"} />
-            <FactCard icon={Activity} label="Exercise" value={breed.exercise_needs?.split(".")[0] || "—"} />
-            <FactCard icon={MapPin} label="Origin" value={breed.origin || "—"} />
-            <FactCard icon={Heart} label="Coat Type" value={breed.coat_type || "—"} />
-            <FactCard icon={ShieldCheck} label="Size" value={breed.size ? breed.size.charAt(0).toUpperCase() + breed.size.slice(1) : "—"} />
+            {[
+              { icon: Ruler, label: "Height (male)", value: breed.male_height || "—" },
+              { icon: Weight, label: "Weight (male)", value: breed.male_weight || "—" },
+              { icon: Clock, label: "Lifespan", value: breed.lifespan || "—" },
+              { icon: Scissors, label: "Grooming", value: breed.grooming?.split(".")[0] || "—" },
+              { icon: Activity, label: "Exercise", value: breed.exercise_needs?.split(".")[0] || "—" },
+              { icon: MapPin, label: "Origin", value: breed.origin || "—" },
+              { icon: Heart, label: "Coat Type", value: breed.coat_type || "—" },
+              { icon: ShieldCheck, label: "Size", value: breed.size ? breed.size.charAt(0).toUpperCase() + breed.size.slice(1) : "—" },
+            ].map((fact, i) => (
+              <FactCard key={fact.label} {...fact} colorClass={FACT_COLORS[i % FACT_COLORS.length]} />
+            ))}
           </div>
 
           {/* Traits */}
@@ -207,56 +222,47 @@ export default async function BreedPage({ params }) {
             <h2 className="text-lg font-semibold text-slate-900">About the {breed.name}</h2>
             <p className="mt-3 text-sm leading-7 text-slate-600">{breed.description || "No detailed description available."}</p>
           </div>
+
+          <BreedGuideExtras breedName={breed.name} />
         </>
       ) : (
         /* Breeds without full encyclopedia — show available facts + buyer guidance */
         <div className="mt-8 space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">Quick facts</h3>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {breed.group_name && (
-                <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Group:</span> {breed.group_name}</p>
-              )}
-              {breed.size && (
-                <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Size:</span> {breed.size.charAt(0).toUpperCase() + breed.size.slice(1)}</p>
-              )}
-              {breed.animal_type && (
-                <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Type:</span> {breed.animal_type.replace("-", " ")}</p>
-              )}
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { label: "Group", value: breed.group_name },
+              { label: "Size", value: breed.size ? breed.size.charAt(0).toUpperCase() + breed.size.slice(1) : null },
+              { label: "Type", value: breed.animal_type?.replace("-", " ") },
+            ]
+              .filter((f) => f.value)
+              .map((f, i) => (
+                <div key={f.label} className={`rounded-2xl border p-4 ${FACT_COLORS[i % FACT_COLORS.length]}`}>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{f.label}</p>
+                  <p className="mt-1 font-bold text-slate-900">{f.value}</p>
+                </div>
+              ))}
           </div>
 
-          <div className="rounded-3xl border border-[#00BFA5]/20 bg-[#E6FFFB]/50 p-6">
-            <h3 className="text-lg font-semibold text-slate-900">Before you contact a breeder</h3>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600 list-disc pl-5">
-              <li>Ask about health testing relevant to {breed.name}</li>
-              <li>Visit the mother (dam) and see where puppies are raised</li>
-              <li>Request a written contract and vaccination records</li>
-              <li>Never pay a deposit before you are confident the breeder is legitimate</li>
-            </ul>
-            <Link href="/education/choosing-a-breeder" className="mt-4 inline-flex text-sm font-semibold text-[#00BFA5] hover:underline">
-              Read our full buyer guide →
-            </Link>
-          </div>
+          <BreedGuideExtras breedName={breed.name} compact />
 
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
-            <h3 className="text-lg font-semibold text-amber-900">Full breed profile coming soon</h3>
-            <p className="mt-2 text-sm text-amber-700 max-w-lg mx-auto">
-              We&apos;re adding temperament, health, exercise and grooming details for {breed.name}.
+          <div className="rounded-3xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-6 text-center">
+            <h3 className="text-lg font-bold text-amber-900">Full {breed.name} profile coming soon</h3>
+            <p className="mt-2 text-sm text-amber-800 max-w-lg mx-auto">
+              Temperament, health, exercise and grooming details are on the way.
             </p>
-            <Link href="/breeds" className="mt-4 inline-flex items-center gap-2 rounded-3xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">
-              Browse breeds with full profiles
+            <Link href="/breeds" className="mt-4 inline-flex items-center gap-2 rounded-3xl bg-amber-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-700">
+              Browse full breed profiles
             </Link>
           </div>
         </div>
       )}
 
       {/* CTA */}
-      <div className="mt-8 rounded-3xl border border-[#00BFA5]/20 bg-gradient-to-r from-[#E6FFFB] to-[#F0FDFA] p-8">
+      <div className="mt-8 rounded-3xl border border-[#00BFA5]/30 bg-gradient-to-r from-[#00BFA5] to-[#008f7a] p-8 text-white shadow-lg">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left sm:justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-slate-900">Find {breed.name} breeders near you</h3>
-            <p className="mt-2 text-sm text-slate-600">
+            <h3 className="text-xl font-bold">Find {breed.name} breeders near you</h3>
+            <p className="mt-2 text-sm text-white/90">
               {breederCount > 0
                 ? `Browse ${breederCount} ${breed.name} breeder listing${breederCount !== 1 ? "s" : ""} across the UK.`
                 : `Search for ${breed.name} breeders in your area.`}
@@ -264,7 +270,7 @@ export default async function BreedPage({ params }) {
           </div>
           <Link
             href={`/search?breed=${encodeURIComponent(breed.name)}`}
-            className="inline-flex items-center gap-2 rounded-3xl bg-[#00BFA5] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#00BFA5]/20 transition hover:bg-[#00a98e]"
+            className="inline-flex items-center gap-2 rounded-3xl bg-white px-6 py-3 text-sm font-bold text-[#008f7a] shadow transition hover:bg-[#E6FFFB]"
           >
             <Search className="h-4 w-4" />
             Search breeders
@@ -303,14 +309,68 @@ export default async function BreedPage({ params }) {
   );
 }
 
-function FactCard({ icon: Icon, label, value }) {
+function FactCard({ icon: Icon, label, value, colorClass = "border-slate-200 bg-white" }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-slate-400">
+    <div className={`rounded-2xl border p-4 shadow-sm ${colorClass}`}>
+      <div className="flex items-center gap-2 text-[#00BFA5]">
         <Icon className="h-4 w-4" />
-        <span className="text-xs font-semibold uppercase tracking-[0.2em]">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">{label}</span>
       </div>
-      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
+      <p className="mt-2 text-sm font-bold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function BreedGuideExtras({ breedName, compact = false }) {
+  const questions = [
+    `Is a ${breedName} right for first-time owners?`,
+    `How much exercise does a ${breedName} need daily?`,
+    `What health tests should ${breedName} breeders provide?`,
+    `Are ${breedName}s good with children and other pets?`,
+  ];
+
+  return (
+    <div className="mt-8 grid gap-4 lg:grid-cols-2">
+      <div className="rounded-3xl border border-[#00BFA5]/25 bg-gradient-to-br from-[#E6FFFB] to-white p-6">
+        <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+          <ListChecks className="h-5 w-5 text-[#00BFA5]" />
+          Before you contact a breeder
+        </h3>
+        <ul className="mt-4 space-y-2 text-sm text-slate-700">
+          {[
+            `Ask about health testing relevant to ${breedName}`,
+            "Visit the mother and see where animals are raised",
+            "Request a written contract and vaccination records",
+            "Never pay a deposit before you trust the breeder",
+          ].map((item) => (
+            <li key={item} className="flex gap-2">
+              <span className="text-[#00BFA5]">✓</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+        <Link href="/education/choosing-a-breeder" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#008f7a] hover:underline">
+          <BookOpen className="h-4 w-4" />
+          Full buyer guide
+        </Link>
+      </div>
+
+      {!compact && (
+        <div className="rounded-3xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-6">
+          <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+            <HelpCircle className="h-5 w-5 text-violet-600" />
+            Good questions to ask
+          </h3>
+          <ul className="mt-4 space-y-3 text-sm text-slate-700">
+            {questions.map((q) => (
+              <li key={q} className="rounded-xl bg-white/80 px-3 py-2 border border-violet-100">{q}</li>
+            ))}
+          </ul>
+          <Link href="/education/what-to-ask" className="mt-4 inline-flex text-sm font-bold text-violet-700 hover:underline">
+            More questions to ask breeders →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

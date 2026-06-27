@@ -80,7 +80,8 @@ export async function POST(request) {
     const isOutreach =
       path.includes("source=outreach") ||
       utm_source === "outreach" ||
-      path.includes("/auth/signup") && path.includes("slug=");
+      path.includes("/claim/welcome") ||
+      (path.includes("/auth/signup") && path.includes("slug="));
     if (isOutreach) {
       const slugMatch = path.match(/[?&]slug=([^&]+)/);
       const breederSlug = slugMatch ? decodeURIComponent(slugMatch[1]) : breeder_slug;

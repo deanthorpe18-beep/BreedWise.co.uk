@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen bg-[#FAFBF9] text-[#2D3436]`}>
+      <body className={`${inter.className} min-h-screen text-[#2D3436]`}>
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-[#00BFA5] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
@@ -38,7 +38,7 @@ export default function RootLayout({ children }) {
         <div className="min-h-screen flex flex-col">
           <AuthProvider>
             <ToastProvider>
-              <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
+              <header className="sticky top-0 z-40 border-b border-[#00BFA5]/20 bg-gradient-to-r from-white via-[#F0FFFC] to-[#FFF8F5]/95 backdrop-blur-sm shadow-sm shadow-[#00BFA5]/5">
                 <div className="mx-auto relative flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 md:px-8">
                   <Link href="/" className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#2D3436]">
                     <img src="/logo.svg" alt="BreedWise" className="h-10 w-10" />

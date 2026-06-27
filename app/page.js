@@ -32,7 +32,7 @@ export default async function HomePage() {
       <PageViewTracker page="home" />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#E6FFFB] via-white to-[#FFF5F0]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#D4F5EF] via-[#E6FFFB] to-[#FFE8DC]">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:px-8 sm:py-16 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] items-center">
             {/* Left: Copy */}
@@ -107,7 +107,7 @@ export default async function HomePage() {
 
       {/* What is BreedWise */}
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:px-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
+        <div className="rounded-3xl border border-[#00BFA5]/20 bg-brand-gradient p-8 shadow-md sm:p-10">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#00BFA5]">What is BreedWise?</p>
@@ -129,12 +129,12 @@ export default async function HomePage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                { icon: Shield, title: "Independent directory", desc: "We never sell animals or take a cut of sales." },
-                { icon: Heart, title: "Compare before you enquire", desc: "Save favourites, set search alerts, and use side-by-side compare." },
-                { icon: MapPin, title: "UK-wide search", desc: "By breed, town, distance, or breeders near you." },
-                { icon: PawPrint, title: "For breeders too", desc: "Claim your profile, get enquiries, and manage litters on Gold." },
-              ].map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="rounded-2xl border border-slate-100 bg-[#FAFBF9] p-4">
+                { icon: Shield, title: "Independent directory", desc: "We never sell animals or take a cut of sales.", bg: "from-teal-50 to-white border-teal-200" },
+                { icon: Heart, title: "Compare before you enquire", desc: "Save favourites, set search alerts, and use side-by-side compare.", bg: "from-rose-50 to-white border-rose-200" },
+                { icon: MapPin, title: "UK-wide search", desc: "By breed, town, distance, or breeders near you.", bg: "from-sky-50 to-white border-sky-200" },
+                { icon: PawPrint, title: "For breeders too", desc: "Claim your profile, get enquiries, and manage litters on Gold.", bg: "from-amber-50 to-white border-amber-200" },
+              ].map(({ icon: Icon, title, desc, bg }) => (
+                <div key={title} className={`rounded-2xl border bg-gradient-to-br p-4 ${bg}`}>
                   <Icon className="h-5 w-5 text-[#00BFA5]" />
                   <p className="mt-2 font-semibold text-slate-900">{title}</p>
                   <p className="mt-1 text-xs leading-relaxed text-slate-600">{desc}</p>
@@ -185,16 +185,16 @@ export default async function HomePage() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { icon: Search, title: "Smart Search", desc: "Filter by breed, location, and distance — or use breeders near me." },
-            { icon: Heart, title: "Save & Compare", desc: "Shortlist breeders, compare side by side, and set search alerts for new listings." },
-            { icon: Star, title: "Real Reviews", desc: "See Google ratings and review counts for transparent comparison." },
-            { icon: MessageCircle, title: "Message Breeders", desc: "Contact claimed breeders through our secure messaging — your email stays private." },
-            { icon: Shield, title: "Licence & transparency", desc: "Look for verified badges, council licence info, and health testing on profiles." },
-            { icon: Award, title: "Free buyer tools", desc: "Guides, viewing checklist, puppy cost calculator, and breed encyclopedia." },
+            { icon: Search, title: "Smart Search", desc: "Filter by breed, location, and distance — or use breeders near me.", bg: "from-teal-50 to-white", iconBg: "bg-teal-100", iconColor: "text-teal-600" },
+            { icon: Heart, title: "Save & Compare", desc: "Shortlist breeders, compare side by side, and set search alerts for new listings.", bg: "from-rose-50 to-white", iconBg: "bg-rose-100", iconColor: "text-rose-600" },
+            { icon: Star, title: "Real Reviews", desc: "See Google ratings and review counts for transparent comparison.", bg: "from-amber-50 to-white", iconBg: "bg-amber-100", iconColor: "text-amber-600" },
+            { icon: MessageCircle, title: "Message Breeders", desc: "Contact claimed breeders through our secure messaging — your email stays private.", bg: "from-violet-50 to-white", iconBg: "bg-violet-100", iconColor: "text-violet-600" },
+            { icon: Shield, title: "Licence & transparency", desc: "Look for verified badges, council licence info, and health testing on profiles.", bg: "from-emerald-50 to-white", iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
+            { icon: Award, title: "Free buyer tools", desc: "Guides, viewing checklist, puppy cost calculator, and breed encyclopedia.", bg: "from-sky-50 to-white", iconBg: "bg-sky-100", iconColor: "text-sky-600" },
           ].map((benefit) => (
-            <div key={benefit.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6FFFB] transition group-hover:bg-[#00BFA5]">
-                <benefit.icon className="h-6 w-6 text-[#00BFA5] transition group-hover:text-white" />
+            <div key={benefit.title} className={`group rounded-3xl border border-slate-200/80 bg-gradient-to-br ${benefit.bg} p-6 shadow-sm transition hover:shadow-md hover:-translate-y-0.5`}>
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${benefit.iconBg} transition group-hover:scale-105`}>
+                <benefit.icon className={`h-6 w-6 ${benefit.iconColor}`} />
               </div>
               <h3 className="mt-4 text-lg font-bold text-slate-900">{benefit.title}</h3>
               <p className="mt-2 text-sm text-slate-600 leading-relaxed">{benefit.desc}</p>
@@ -213,7 +213,7 @@ export default async function HomePage() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Buyer Journey */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="rounded-3xl border border-[#00BFA5]/25 bg-gradient-to-br from-[#E6FFFB] to-white p-8 shadow-md">
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6FFFB]">
                   <Users className="h-6 w-6 text-[#00BFA5]" />
@@ -253,7 +253,7 @@ export default async function HomePage() {
             </div>
 
             {/* Breeder Journey */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="rounded-3xl border border-[#FF6B6B]/25 bg-gradient-to-br from-[#FFF0EB] to-white p-8 shadow-md">
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F0]">
                   <PawPrint className="h-6 w-6 text-[#FF6B6B]" />
@@ -302,7 +302,7 @@ export default async function HomePage() {
 
       {/* Trust strip */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-3xl border border-[#00BFA5]/20 bg-teal-band p-8 shadow-sm">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
             <div className="flex items-start gap-3">
               <Shield className="mt-0.5 h-5 w-5 text-[#00BFA5] flex-shrink-0" />
