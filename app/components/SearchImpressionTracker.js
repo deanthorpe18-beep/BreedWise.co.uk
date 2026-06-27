@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { hasAnalyticsConsent } from "@/lib/cookie-consent";
+import { canTrackAnalytics } from "@/lib/analytics-client";
 
 export default function SearchImpressionTracker({ slugs = [] }) {
   const tracked = useRef(false);
 
   useEffect(() => {
-    if (!hasAnalyticsConsent() || tracked.current || slugs.length === 0) return;
+    if (!canTrackAnalytics() || tracked.current || slugs.length === 0) return;
     tracked.current = true;
 
     fetch("/api/track/search-impression", {

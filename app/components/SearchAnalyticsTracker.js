@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { hasAnalyticsConsent } from "@/lib/cookie-consent";
+import { canTrackAnalytics } from "@/lib/analytics-client";
 
 export default function SearchAnalyticsTracker({ query, breed, animal, location, resultsCount, page }) {
   const lastKey = useRef("");
 
   useEffect(() => {
-    if (!hasAnalyticsConsent()) return;
+    if (!canTrackAnalytics()) return;
 
     const key = [query || "", breed || "", animal || "", location || "", page || 1].join("|");
     if (lastKey.current === key) return;

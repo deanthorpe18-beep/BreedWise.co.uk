@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { rateLimitByIp } from "@/lib/rate-limit";
 import { markOutreachSiteVisit } from "@/lib/outreach-tracking";
+import { trackingExcludedForUser } from "@/lib/analytics-track-guard";
 
 function hashIp(ip) {
   let hash = 0;
@@ -15,6 +16,10 @@ function hashIp(ip) {
 
 export async function POST(request) {
   try {
+    if (await trackingExcludedForUser()) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
     const forwarded = request.headers.get("x-forwarded-for") || "unknown";
     const ip = forwarded.split(",")[0].trim();
     const limit = rateLimitByIp(ip, 120, 60000);

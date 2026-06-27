@@ -6,8 +6,8 @@ import {
   trackPageDuration,
   trackClickEvent,
   trackSession,
+  canTrackAnalytics,
 } from "@/lib/analytics-client";
-import { hasAnalyticsConsent } from "@/lib/cookie-consent";
 
 const HEARTBEAT_INTERVAL = 30000;
 
@@ -33,7 +33,7 @@ export default function VisitorJourneyTracker() {
 
   useEffect(() => {
     const startTracking = () => {
-      if (!hasAnalyticsConsent()) return;
+      if (!canTrackAnalytics()) return;
       trackSession();
       intervalRef.current = setInterval(trackSession, HEARTBEAT_INTERVAL);
     };
@@ -50,11 +50,17 @@ export default function VisitorJourneyTracker() {
       startTracking();
     };
 
+    const handleSkipChange = () => {
+      stopTracking();
+      startTracking();
+    };
+
     startTracking();
     window.addEventListener("breedwise-consent-changed", handleConsentChange);
+    window.addEventListener("breedwise-analytics-skip-changed", handleSkipChange);
 
     const handleClick = (e) => {
-      if (!hasAnalyticsConsent()) return;
+      if (!canTrackAnalytics()) return;
       const target = e.target?.closest?.("a, button, [role='button']");
       if (!target) return;
       const href = target.getAttribute("href") || "";
@@ -95,6 +101,7 @@ export default function VisitorJourneyTracker() {
       flushDuration();
       stopTracking();
       window.removeEventListener("breedwise-consent-changed", handleConsentChange);
+      window.removeEventListener("breedwise-analytics-skip-changed", handleSkipChange);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", flushDuration);
       document.removeEventListener("click", handleClick, { capture: true });

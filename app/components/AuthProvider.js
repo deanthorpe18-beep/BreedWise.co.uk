@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { syncAnalyticsSkipFromUser } from "@/lib/analytics-admin-client";
 
 const AuthContext = createContext({
   user: null,
@@ -18,6 +19,7 @@ export function AuthProvider({ children }) {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
       const data = await res.json();
       setUser(data.user || null);
+      syncAnalyticsSkipFromUser(data.user || null);
     } catch {
       setUser(null);
     } finally {
@@ -32,6 +34,7 @@ export function AuthProvider({ children }) {
       // ignore
     }
     setUser(null);
+    syncAnalyticsSkipFromUser(null);
     window.location.href = "/";
   }, []);
 

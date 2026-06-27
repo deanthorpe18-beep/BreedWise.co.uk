@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { trackingExcludedForUser } from "@/lib/analytics-track-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
+    if (await trackingExcludedForUser()) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
     const { query, breed, animal, location, results_count, page } = await request.json();
     const ip = request.headers.get("x-forwarded-for") || "unknown";
     const user_agent = request.headers.get("user-agent") || "";
