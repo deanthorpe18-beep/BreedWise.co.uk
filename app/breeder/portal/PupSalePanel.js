@@ -2,16 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, Upload, FileText, Trash2, Receipt } from "lucide-react";
+import { Check, Loader2, Upload, FileText, Trash2, Receipt, UserPlus } from "lucide-react";
 import { SALE_CHECKLIST_ITEMS, saleChecklistProgress } from "@/lib/breeder-portal-sale";
 import { usePortalApi } from "./usePortalApi";
 
 export default function PupSalePanel({ pup, onUpdate, disabled }) {
-  const { portalFetch, portalUrl, portalQuery, adminAs } = usePortalApi();
+  const { portalFetch, portalUrl, adminAs } = usePortalApi();
   const depositInput = useRef(null);
   const finalInput = useRef(null);
   const [uploading, setUploading] = useState(null);
   const [error, setError] = useState("");
+  const [waitlistEntries, setWaitlistEntries] = useState([]);
+
+  useEffect(() => {
+    if (disabled) return;
+    portalFetch(portalUrl("/api/breeder/portal/waitlist"))
+      .then((r) => r.json())
+      .then((d) => setWaitlistEntries((d.entries || []).filter((e) => e.status !== "withdrawn")))
+      .catch(() => {});
+  }, [disabled, portalFetch, portalUrl]);
 
   if (disabled) {
     return (
@@ -26,6 +35,17 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
   }
 
   const progress = saleChecklistProgress(pup);
+
+  const fillFromWaitlist = (entryId) => {
+    if (!entryId) return;
+    const entry = waitlistEntries.find((e) => e.id === entryId);
+    if (!entry) return;
+    onUpdate({
+      buyer_name: entry.name || "",
+      buyer_email: entry.email || "",
+      buyer_phone: entry.phone || "",
+    });
+  };
 
   const uploadReceipt = async (type, file) => {
     if (!file) return;
@@ -68,6 +88,31 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
       </div>
 
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+
+      {waitlistEntries.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#00BFA5]/20 bg-white px-3 py-2">
+          <UserPlus className="h-4 w-4 text-[#00BFA5] shrink-0" />
+          <label className="flex flex-1 items-center gap-2 text-xs text-slate-600 min-w-[200px]">
+            <span className="font-semibold text-slate-800 shrink-0">Fill buyer from wait list</span>
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                fillFromWaitlist(e.target.value);
+                e.target.value = "";
+              }}
+              className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+            >
+              <option value="">Select a buyer…</option>
+              {waitlistEntries.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name || e.email}
+                  {e.breed_interest ? ` · ${e.breed_interest}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {SALE_CHECKLIST_ITEMS.map(({ key, label }) => (
@@ -142,6 +187,12 @@ export default function PupSalePanel({ pup, onUpdate, disabled }) {
           className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-[#00BFA5]"
         >
           <Receipt className="h-3.5 w-3.5" /> Create payment receipt
+        </Link>
+        <Link
+          href={`/breeder/portal/settings/receipts${adminAs ? `?adminAs=${encodeURIComponent(adminAs)}` : ""}`}
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:border-[#00BFA5]"
+        >
+          Edit default forms
         </Link>
       </div>
       <p className="mt-2 text-xs text-slate-500">

@@ -483,7 +483,7 @@ export default function BreederDashboardPage() {
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-sm font-semibold text-slate-900">Want unlimited breeding records?</p>
               <p className="mt-1 text-sm text-slate-600">
-                Gold removes Silver limits and unlocks receipts and council paperwork when they launch.
+                Gold removes Silver limits and unlocks deposit & payment receipts, buyer auto-fill from your wait list, and printable council summaries.
               </p>
               <Link
                 href={profile.slug ? `/breeder/${profile.slug}/subscription` : "/account/subscription"}

@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import AdminKennelReceiptsPanel from "@components/AdminKennelReceiptsPanel";
 import { setPortalAdminContext } from "@/lib/portal-admin-context";
 
 export default function AdminMyKennelPanel() {
@@ -315,6 +316,12 @@ export default function AdminMyKennelPanel() {
       icon: Users,
       onClick: () => openPortal("/breeder/portal/waitlist"),
     },
+    {
+      label: "Receipt forms",
+      desc: "Customise deposit & payment templates",
+      icon: Settings2,
+      onClick: () => openPortal("/breeder/portal/settings/receipts"),
+    },
   ];
 
   return (
@@ -455,6 +462,8 @@ export default function AdminMyKennelPanel() {
           )}
         </div>
       </div>
+
+      <AdminKennelReceiptsPanel breederId={breeder.id} />
 
       <p className="text-xs text-slate-500">
         <button

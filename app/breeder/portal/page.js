@@ -97,7 +97,8 @@ export default function BreederPortalHome() {
         <ul className="mt-3 space-y-2 text-sm text-slate-600">
           <li>• Editable deposit & payment receipts — auto-filled from your profile</li>
           <li>• Add or remove line items and terms to suit your business</li>
-          <li>• Printable council summary (custom council form layout coming later)</li>
+          <li>• Printable council summary for licence records</li>
+          <li>• Customise default receipt forms under Receipt forms in the menu</li>
         </ul>
         {access?.canUseSaleFeatures || adminPreview || adminView ? (
           <p className="mt-3 text-sm font-medium text-amber-800">Open a litter to manage sale records and print a council summary.</p>

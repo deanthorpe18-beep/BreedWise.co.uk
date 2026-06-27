@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { LayoutDashboard, Dog, Baby, ArrowLeft, Users } from "lucide-react";
+import { LayoutDashboard, Dog, Baby, ArrowLeft, Users, Receipt } from "lucide-react";
 import { usePortalApi } from "./usePortalApi";
 import AdminBreederPortalPicker from "@components/AdminBreederPortalPicker";
 import { useAuth } from "@components/AuthProvider";
@@ -13,6 +13,7 @@ const NAV = [
   { href: "/breeder/portal/animals", label: "My dogs", icon: Dog },
   { href: "/breeder/portal/litters", label: "Litters", icon: Baby },
   { href: "/breeder/portal/waitlist", label: "Wait list", icon: Users },
+  { href: "/breeder/portal/settings/receipts", label: "Receipt forms", icon: Receipt },
 ];
 
 function PortalNav() {
