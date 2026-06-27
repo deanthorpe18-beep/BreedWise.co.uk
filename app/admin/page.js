@@ -15,6 +15,7 @@ import {
 
 import AdminNewsletterPanel from "@components/AdminNewsletterPanel";
 import AdminLicencePanel from "@components/AdminLicencePanel";
+import AdminClaimsPanel from "@components/AdminClaimsPanel";
 import AdminOutreachPanel from "@components/AdminOutreachPanel";
 import AdminAnalyticsPanel from "@components/AdminAnalyticsPanel";
 import AdminMyKennelPanel from "@components/AdminMyKennelPanel";
@@ -44,6 +45,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("queue");
   const [activeCategory, setActiveCategory] = useState("operations");
   const [claims, setClaims] = useState([]);
+  const [claimedCount, setClaimedCount] = useState(0);
   const [removals, setRemovals] = useState([]);
   const [stats, setStats] = useState(null);
   const [admins, setAdmins] = useState([]);
@@ -112,9 +114,7 @@ export default function AdminPage() {
   const [funnelLoading, setFunnelLoading] = useState(false);
 
   // Claim action feedback
-  const [claimActionMsg, setClaimActionMsg] = useState("");
-  const [claimActionError, setClaimActionError] = useState("");
-  const [claimsSort, setClaimsSort] = useState({ field: "submitted_at", dir: "desc" });
+
   const [removalsSort, setRemovalsSort] = useState({ field: "submitted_at", dir: "desc" });
 
   // Members tab state
@@ -297,6 +297,7 @@ export default function AdminPage() {
       const statsData = await statsRes.json();
 
       setClaims(claimsData.claims || []);
+      setClaimedCount(claimsData.claimedCount || 0);
       setRemovals(removalsData.removals || []);
       setStats(statsData);
 
@@ -566,27 +567,6 @@ export default function AdminPage() {
         loadCms();
       }
     } catch {}
-  };
-
-  const updateClaimStatus = async (id, status) => {
-    setClaimActionMsg("");
-    setClaimActionError("");
-    try {
-      const res = await fetch("/api/admin/claims", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setClaimActionMsg(`Claim ${status} successfully.`);
-        loadData();
-      } else {
-        setClaimActionError(data.error || `Failed to ${status} claim.`);
-      }
-    } catch {
-      setClaimActionError("Network error. Please try again.");
-    }
   };
 
   const updateRemovalStatus = async (id, status, adminNotes = "") => {
@@ -999,68 +979,14 @@ export default function AdminPage() {
                       Fix claimed breeders
                     </button>
                     </div>
-                    <select
-                      value={`${claimsSort.field}:${claimsSort.dir}`}
-                      onChange={(e) => {
-                        const [field, dir] = e.target.value.split(":");
-                        setClaimsSort({ field, dir });
-                      }}
-                      className="rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-[#00BFA5] focus:outline-none"
-                    >
-                      <option value="submitted_at:desc">Newest first</option>
-                      <option value="submitted_at:asc">Oldest first</option>
-                      <option value="breeder_name:asc">Breeder (A–Z)</option>
-                      <option value="claimant_email:asc">Email (A–Z)</option>
-                      <option value="status:asc">Status</option>
-                    </select>
                   </div>
-                  {claimActionMsg && <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">{claimActionMsg}</div>}
-                  {claimActionError && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{claimActionError}</div>}
-                  {claims.length === 0 ? (
-                    <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-8 text-center text-slate-600">No claims yet.</div>
-                  ) : (
-                    <div className="space-y-3">
-                      {sortData(claims, claimsSort.field, claimsSort.dir).map((claim) => {
-                        const isUnread = claim.status === "pending" && !dismissedNotifications.claims.includes(claim.id);
-                        return (
-                        <div key={claim.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${isUnread ? "border-orange-300 ring-1 ring-orange-100" : "border-slate-200"}`}>
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-900">
-                                {claim.breeder_name || claim.breeder_slug}
-                                {isUnread && (
-                                  <span className="ml-2 inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">New</span>
-                                )}
-                              </p>
-                              <p className="text-sm text-slate-500">{claim.claimant_email}</p>
-                              <p className="text-xs text-slate-400 mt-1">Submitted {new Date(claim.submitted_at).toLocaleDateString()}</p>
-                              {claim.notes && <p className="text-xs text-slate-500 mt-1">Notes: {claim.notes}</p>}
-                              {claim.admin_notes && <p className="text-xs text-slate-500 mt-1">Admin notes: {claim.admin_notes}</p>}
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <StatusBadge status={claim.status} />
-                              {isUnread && (
-                                <button
-                                  type="button"
-                                  onClick={() => markClaimsReviewed([claim.id])}
-                                  className="rounded-3xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                                >
-                                  Mark reviewed
-                                </button>
-                              )}
-                              {claim.status === "pending" && (
-                                <>
-                                  <button onClick={() => updateClaimStatus(claim.id, "approved")} className="rounded-3xl bg-[#00BFA5] px-4 py-2 text-xs font-semibold text-white hover:bg-[#00a98e]">Approve</button>
-                                  <button onClick={() => updateClaimStatus(claim.id, "rejected")} className="rounded-3xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Reject</button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <AdminClaimsPanel
+                    claims={claims}
+                    claimedCount={claimedCount}
+                    dismissedIds={dismissedNotifications.claims}
+                    onMarkReviewed={markClaimsReviewed}
+                    onUpdated={loadData}
+                  />
                 </div>
 
                 <div>

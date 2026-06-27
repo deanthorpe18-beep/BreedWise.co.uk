@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { ALLOWED_EVIDENCE_KEYS } from "@/lib/claim-config";
 
 export async function POST(request) {
   const supabase = createClient();
@@ -14,8 +15,7 @@ export async function POST(request) {
     const file = formData.get("file");
     const type = formData.get("type");
 
-    const allowedTypeValues = ["licence", "kennel_club", "ownership_proof", "supporting_doc"];
-    if (!type || !allowedTypeValues.includes(type)) {
+    if (!type || !ALLOWED_EVIDENCE_KEYS.has(type)) {
       return NextResponse.json({ error: "Invalid evidence type" }, { status: 400 });
     }
 

@@ -235,9 +235,11 @@ export default function SearchResults({
 function TrustScore({ breeder }) {
   let score = 0;
   if (breeder.status === "claimed_profile") score += 30;
-  if (breeder.kennel_club) score += 20;
   if (breeder.licence_verified) score += 25;
   else if (breeder.council_licence) score += 15;
+  if (breeder.kc_verified) score += 20;
+  else if (breeder.kennel_club) score += 10;
+  if (breeder.gccf_verified || breeder.tica_verified || breeder.other_registry_verified) score += 15;
   if (breeder.health_testing) score += 15;
   if (breeder.google_rating && breeder.google_rating >= 4.0) score += 10;
   if ((breeder.breeder_photos?.length || breeder.photos?.length || 0) > 0) score += 5;

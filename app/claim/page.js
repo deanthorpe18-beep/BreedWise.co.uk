@@ -3,19 +3,30 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SearchIcon, UserCheck, CheckCircle, Mail, AlertCircle, Loader2, Upload, FileText, Shield, Award, Home } from "lucide-react";
+import { SearchIcon, UserCheck, CheckCircle, Mail, AlertCircle, Loader2, Upload, FileText, Shield, Award, Home, Globe, Heart } from "lucide-react";
 import PageViewTracker from "@components/PageViewTracker";
 import BreederSearchDropdown from "@components/BreederSearchDropdown";
 
 import WarmHero from "@components/WarmHero";
 import { claimAuthQueryString, claimPathFromSearchParams } from "@/lib/breeder-onboarding";
+import {
+  BREEDER_TYPE_OPTIONS,
+  EVIDENCE_TYPES,
+  getSuggestedEvidenceKeys,
+} from "@/lib/claim-config";
 
-const EVIDENCE_TYPES = [
-  { key: "licence", label: "Breeding Licence", icon: Shield, desc: "Local council breeding licence" },
-  { key: "kennel_club", label: "Kennel Club Registration", icon: Award, desc: "KC registration certificate" },
-  { key: "ownership_proof", label: "Proof of Ownership", icon: Home, desc: "Business registration or utility bill" },
-  { key: "supporting_doc", label: "Supporting Document", icon: FileText, desc: "Any other relevant document" },
-];
+const EVIDENCE_ICONS = {
+  licence: Shield,
+  kennel_club: Award,
+  gccf: Award,
+  tica: Award,
+  business_reg: FileText,
+  ownership_proof: Home,
+  website_social: Globe,
+  insurance: Shield,
+  vet_reference: Heart,
+  supporting_doc: FileText,
+};
 
 export default function ClaimPage() {
   return (
@@ -33,7 +44,8 @@ function ClaimPageContent() {
   const searchParams = useSearchParams();
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [form, setForm] = useState({ breederSlug: "", breederName: "", email: "", name: "", notes: "" });
+  const [form, setForm] = useState({ breederSlug: "", breederName: "", breederType: "", email: "", name: "", notes: "" });
+  const [showMoreEvidence, setShowMoreEvidence] = useState(false);
   const [evidence, setEvidence] = useState({});
   const [uploading, setUploading] = useState({});
   const [uploadSuccess, setUploadSuccess] = useState({});
@@ -67,6 +79,11 @@ function ClaimPageContent() {
     }
   }, [searchParams]);
 
+  const suggestedKeys = getSuggestedEvidenceKeys(form.breederType);
+  const visibleEvidenceTypes = EVIDENCE_TYPES.filter((type) => {
+    if (showMoreEvidence) return true;
+    return suggestedKeys.includes(type.key);
+  });
   const authQuery = claimAuthQueryString(searchParams);
   const claimReturnPath = claimPathFromSearchParams(searchParams);
   const fromOutreach = searchParams.get("from") === "outreach";
@@ -113,6 +130,10 @@ function ClaimPageContent() {
     e.preventDefault();
     if (!form.breederSlug) {
       setError("Please select a breeder profile from the dropdown.");
+      return;
+    }
+    if (!form.breederType) {
+      setError("Please select what type of breeder you are.");
       return;
     }
     setLoading(true);
@@ -243,6 +264,31 @@ function ClaimPageContent() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">
+                  What type of breeder are you? <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="breederType"
+                  value={form.breederType}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, breederType: e.target.value }));
+                    setShowMoreEvidence(false);
+                  }}
+                  required
+                  disabled={!user}
+                  className="mt-2 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5]/20 disabled:bg-slate-50 disabled:text-slate-400"
+                >
+                  <option value="">Select an option…</option>
+                  {BREEDER_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  You do not need a council licence or Kennel Club registration to claim. We review every claim by hand.
+                </p>
+              </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700">Your name</label>
@@ -285,10 +331,15 @@ function ClaimPageContent() {
               {/* Evidence Upload */}
               <div className="rounded-3xl border border-slate-200 bg-[#F1F4F6] p-5">
                 <h3 className="text-sm font-bold text-slate-900">Verification evidence</h3>
-                <p className="mt-1 text-xs text-slate-500">Upload at least one document to help us verify your claim faster.</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Upload at least one document to help us verify your claim. Verified badges (licence, KC, GCCF, etc.) are added separately after admin review.
+                </p>
+                {!form.breederType && (
+                  <p className="mt-2 text-xs text-amber-700">Select your breeder type above to see recommended documents.</p>
+                )}
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  {EVIDENCE_TYPES.map((type) => {
-                    const Icon = type.icon;
+                  {visibleEvidenceTypes.map((type) => {
+                    const Icon = EVIDENCE_ICONS[type.key] || FileText;
                     const uploaded = evidence[type.key];
                     const isUploading = uploading[type.key];
                     const isSuccess = uploadSuccess[type.key];
@@ -346,6 +397,15 @@ function ClaimPageContent() {
                     );
                   })}
                 </div>
+                {form.breederType && !showMoreEvidence && suggestedKeys.length < EVIDENCE_TYPES.length && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMoreEvidence(true)}
+                    className="mt-4 text-xs font-semibold text-[#00BFA5] hover:text-[#008f7a]"
+                  >
+                    Show all document options
+                  </button>
+                )}
               </div>
 
               <button
@@ -377,7 +437,7 @@ function ClaimPageContent() {
                   <UserCheck className="h-5 w-5 text-white" />
                 </div>
                 <h3 className="font-semibold text-slate-900">2. Submit evidence</h3>
-                <p className="mt-1 text-sm text-slate-600">Upload your licence, KC registration, or proof of ownership.</p>
+                <p className="mt-1 text-sm text-slate-600">Upload proof that matches your breeding activity — licence, registry, website, or address proof all work.</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00BFA5] mb-3">

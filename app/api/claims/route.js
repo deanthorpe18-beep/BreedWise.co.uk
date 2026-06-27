@@ -78,6 +78,7 @@ export async function POST(request) {
     const claimData = {
       breeder_slug: result.data.breederSlug,
       breeder_name: result.data.breederName || null,
+      breeder_type: result.data.breederType || null,
       claimant_email: result.data.email,
       claimant_name: result.data.name || null,
       claimant_user_id: userData.user.id,

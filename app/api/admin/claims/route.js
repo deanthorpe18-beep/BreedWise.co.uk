@@ -1,8 +1,32 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { sendClaimStatusUpdate } from "@/lib/emails/resend";
 import { markOutreachClaimed } from "@/lib/outreach-tracking";
+import {
+  buildCredentialUpdates,
+  CLAIMED_LISTINGS_MILESTONE,
+  evidencePathFromUrl,
+} from "@/lib/claim-config";
+
+async function attachEvidenceSignedUrls(adminClient, claims) {
+  return Promise.all(
+    (claims || []).map(async (claim) => {
+      const evidence = claim.claim_evidence || [];
+      const withUrls = await Promise.all(
+        evidence.map(async (item) => {
+          const path = evidencePathFromUrl(item.file_url);
+          if (!path) return { ...item, signedUrl: item.file_url };
+          const { data: signed } = await adminClient.storage
+            .from("claim-evidence")
+            .createSignedUrl(path, 3600);
+          return { ...item, signedUrl: signed?.signedUrl || item.file_url };
+        })
+      );
+      return { ...claim, claim_evidence: withUrls };
+    })
+  );
+}
 
 export async function GET() {
   try {
@@ -12,13 +36,27 @@ export async function GET() {
     }
 
     const adminClient = createAdminClient();
-    const { data, error } = await adminClient
-      .from("claims")
-      .select("*")
-      .order("submitted_at", { ascending: false });
+    const [{ data, error }, { count: claimedCount, error: countError }] = await Promise.all([
+      adminClient
+        .from("claims")
+        .select("*, claim_evidence(*)")
+        .order("submitted_at", { ascending: false }),
+      adminClient
+        .from("breeders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "claimed_profile"),
+    ]);
 
     if (error) throw error;
-    return NextResponse.json({ claims: data });
+    if (countError) console.error("[claims/GET] claimed count error:", countError.message);
+
+    const claims = await attachEvidenceSignedUrls(adminClient, data);
+
+    return NextResponse.json({
+      claims,
+      claimedCount: claimedCount || 0,
+      claimedMilestone: CLAIMED_LISTINGS_MILESTONE,
+    });
   } catch (err) {
     return NextResponse.json({ error: "Unable to fetch claims." }, { status: 500 });
   }
@@ -32,7 +70,7 @@ export async function PATCH(request) {
     }
 
     const body = await request.json();
-    const { id, status, admin_reason, admin_notes } = body;
+    const { id, status, admin_reason, admin_notes, verifyCredentials, otherRegistryLabel } = body;
 
     if (!id || !status) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
@@ -60,11 +98,9 @@ export async function PATCH(request) {
       throw error;
     }
 
-    // On approval: link claim to breeder profile and set up free tier
     if (status === "approved" && data?.breeder_slug) {
       const now = new Date().toISOString();
 
-      // 1. Fetch breeder ID by slug (must exist)
       const { data: breederRow, error: breederErr } = await adminClient
         .from("breeders")
         .select("id")
@@ -80,8 +116,8 @@ export async function PATCH(request) {
       }
 
       const breederId = breederRow.id;
+      const credentialUpdates = buildCredentialUpdates(verifyCredentials || {}, otherRegistryLabel);
 
-      // 2. Update breeder record
       const { error: breederUpdateErr } = await adminClient
         .from("breeders")
         .update({
@@ -89,6 +125,7 @@ export async function PATCH(request) {
           claimed: true,
           claimed_at: now,
           membership_tier: "free",
+          ...credentialUpdates,
         })
         .eq("id", breederId);
 
@@ -96,18 +133,20 @@ export async function PATCH(request) {
         console.error("[claims/PATCH] Breeder update error:", breederUpdateErr.message);
       }
 
-      // 3. Create free-tier subscription row so dashboard API works
       if (data.claimant_user_id) {
         const { error: subErr } = await adminClient
           .from("breeder_subscriptions")
-          .upsert({
-            breeder_id: breederId,
-            user_id: data.claimant_user_id,
-            tier: "free",
-            status: "active",
-            created_at: now,
-            updated_at: now,
-          }, { onConflict: "breeder_id" });
+          .upsert(
+            {
+              breeder_id: breederId,
+              user_id: data.claimant_user_id,
+              tier: "free",
+              status: "active",
+              created_at: now,
+              updated_at: now,
+            },
+            { onConflict: "breeder_id" }
+          );
 
         if (subErr) {
           console.error("[claims/PATCH] Subscription insert error:", subErr.message);
@@ -117,7 +156,6 @@ export async function PATCH(request) {
       await markOutreachClaimed(adminClient, data.breeder_slug, data.claimant_user_id);
     }
 
-    // Send status update email to claimant asynchronously
     if (data?.claimant_email) {
       Promise.allSettled([
         sendClaimStatusUpdate(data.claimant_email, data.breeder_name || "your listing", status, admin_reason),

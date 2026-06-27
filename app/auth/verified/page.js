@@ -104,7 +104,7 @@ function VerifiedContent() {
               ) : (
                 <li>Search for your kennel or business name</li>
               )}
-              <li>Upload verification evidence (licence, KC registration, etc.)</li>
+              <li>Choose your breeder type and upload proof (licence, registry, website, or address — not all required)</li>
               <li>We review claims within 1–2 working days</li>
             </ol>
           </div>
