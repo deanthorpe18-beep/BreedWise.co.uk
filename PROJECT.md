@@ -16,7 +16,7 @@
 | Auth | Supabase Auth (email/password + OAuth) |
 | Email | Resend |
 | Payments | Stripe (Bronze / Silver / Gold memberships) |
-| Hosting | Railway (custom domain via Cloudflare) |
+| Hosting | Vercel (custom domain) |
 | Analytics | Self-hosted (page_views, cta_clicks, user_sessions) |
 
 ### Philosophy
@@ -177,7 +177,7 @@ Supabase Auth supports OAuth providers natively. To enable:
 
 ## 4. Security Architecture
 
-### Rate Limiting (in-memory, Railway-safe)
+### Rate Limiting (in-memory, best-effort on serverless)
 | Endpoint | Limit | Window |
 |----------|-------|--------|
 | `/api/auth/login` | 5 attempts | 5 min |
@@ -190,7 +190,7 @@ Supabase Auth supports OAuth providers natively. To enable:
 | `/api/claims` | 5 attempts | 60 sec |
 | `/api/removals` | 5 attempts | 60 sec |
 
-**Note:** In-memory rate limiting is safe on Railway because Railway runs persistent processes (not serverless). A TTL cleanup runs every 10 minutes to prevent memory leaks.
+**Note:** On Vercel (serverless), each lambda instance keeps its own counters, so this is a best-effort per-instance throttle rather than a global limit. It still blunts bursts/abuse without needing Redis. A TTL cleanup runs every 10 minutes to prevent memory leaks.
 
 ### SQL Injection Prevention
 - **Never** interpolate user input into `.or()` strings directly.
@@ -247,15 +247,16 @@ UPDATE public.profiles SET role = 'super_admin' WHERE email = 'you@example.com';
 
 ---
 
-## 6. Railway Infrastructure
+## 6. Vercel Infrastructure
 
 ### Deployment
-- **Platform:** Railway (persistent Node.js container)
-- **Build command:** `npm run build`
-- **Start command:** `npm start` (Next.js production server)
+- **Platform:** Vercel (Next.js zero-config, serverless functions)
+- **Framework preset:** Next.js (auto-detected; `vercel.json` sets `"framework": "nextjs"`)
+- **Build command:** `npm run build` (default)
 - **Health check:** `GET /api/health` returns `{ status: "ok" }`
+- **Connect:** Import the GitHub repo in the Vercel dashboard, add env vars (below), then add the `breedwise.co.uk` custom domain.
 
-### Environment Variables (Railway)
+### Environment Variables (Vercel dashboard → Project → Settings → Environment Variables)
 ```bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://zbvwqsjgasgxpphljahs.supabase.co
@@ -286,17 +287,17 @@ CRON_SECRET=your_random_secret
 NEXT_PUBLIC_SITE_URL=https://breedwise.co.uk
 ```
 
-### Scheduled Jobs
-Use Railway's native cron or an external scheduler (e.g., cron-job.org) to hit:
+### Scheduled Jobs (Vercel Cron)
+Defined in `vercel.json` → `crons`. Vercel automatically calls these paths on schedule and, when a `CRON_SECRET` env var is set, includes an `Authorization: Bearer <CRON_SECRET>` header (the cron routes validate it).
 ```
-GET https://breedwise.co.uk/api/cron/google-refresh
-Authorization: Bearer {CRON_SECRET}
+/api/cron/search-alerts        0 8 * * *   (daily 08:00 UTC)
+/api/cron/admin-weekly-digest  0 9 * * 1   (Mondays 09:00 UTC)
 ```
+> **Hobby plan note:** Vercel free tier runs cron jobs at most once per day and triggers within the hour (not to the exact minute) — both jobs above are within that limit.
 
-### No Vercel Dependencies
-- All `vercel.json` headers are ignored on Railway
-- All cache control is handled by `next.config.js` and `middleware.js`
-- The `no-store` Cache-Control is temporary during active development
+### Cache control
+- Security headers and cache rules live in `next.config.js`, `middleware.js`, and `vercel.json`.
+- Sensitive routes (`/admin`, `/account`, `/breeder/dashboard`, `/messages`, `/auth`) use `no-store`.
 
 ---
 

@@ -14,7 +14,7 @@ UK-wide pet breeder directory — dogs, cats, birds, fish, reptiles, and small p
 | Auth | Supabase Auth (email/password) |
 | Payments | Stripe (Bronze / Silver / Gold memberships) |
 | Email | Resend |
-| Hosting | Railway |
+| Hosting | Vercel |
 
 ## Quick start
 

@@ -1,11 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/cron/search-alerts",
@@ -48,8 +43,5 @@
       "source": "/robots.txt",
       "destination": "/api/robots"
     }
-  ],
-  "env": {
-    "NEXT_PUBLIC_SITE_URL": "https://breedwise.co.uk"
-  }
+  ]
 }
