@@ -18,21 +18,14 @@ export async function GET(request, { params }) {
 
   const { placeId } = await params;
 
-  if (!isGooglePlacesApiEnabled()) {
-    return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
-  }
-
-  const apiKey = getGooglePlacesApiKey();
-  if (!apiKey) {
-    return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
-  }
-
   try {
     const supabase = createAdminClient();
     const now = new Date().toISOString();
     const staleCutoff = new Date(Date.now() - CACHE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const googleEnabled = isGooglePlacesApiEnabled();
+    const apiKey = getGooglePlacesApiKey();
 
-    // Check cache first
+    // Check cache first (always — never bill Google just to refuse)
     const { data: cached, error: cacheError } = await supabase
       .from("google_places_cache")
       .select("*")
@@ -45,6 +38,24 @@ export async function GET(request, { params }) {
     }
 
     const isStale = !cached || cached.cached_at < staleCutoff;
+
+    // Google disabled: serve cache only, never call Places API
+    if (!googleEnabled || !apiKey) {
+      if (cached?.place_data) {
+        await supabase
+          .from("google_places_cache")
+          .update({ last_accessed_at: now })
+          .eq("place_id", placeId);
+        return NextResponse.json({
+          ...cached.place_data,
+          _cached: true,
+          _stale: isStale,
+          disabled: true,
+          cached_at: cached.cached_at,
+        });
+      }
+      return NextResponse.json({ error: GOOGLE_API_DISABLED_MESSAGE, disabled: true }, { status: 503 });
+    }
 
     if (cached && !isStale) {
       // Cache hit and fresh — update last_accessed_at
@@ -60,7 +71,7 @@ export async function GET(request, { params }) {
       });
     }
 
-    // Cache miss or stale — fetch from Google Places API
+    // Cache miss or stale — fetch from Google Places API (enabled only)
     const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
       headers: {
         "X-Goog-Api-Key": apiKey,

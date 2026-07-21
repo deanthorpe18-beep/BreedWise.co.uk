@@ -20,7 +20,13 @@ export default function GooglePlacePreview({ placeId }) {
         const res = await fetch(`/api/places/${placeId}`);
         const json = await res.json();
         if (!res.ok) {
-          throw new Error(json.error || "Failed to load place data");
+          // Soft-fail when Google is disabled and nothing is cached
+          if (res.status === 503 && json.disabled) {
+            setError("Live Google place details are paused. Profile contact info still comes from the BreedWise listing.");
+          } else {
+            throw new Error(json.error || "Failed to load place data");
+          }
+          return;
         }
         setPlace(json);
       } catch (err) {

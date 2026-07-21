@@ -30,3 +30,5 @@ Thumbs.db
 .env.tokens
 .env.tokens.local
 supabase/.temp
+
+.vercel
